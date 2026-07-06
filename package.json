@@ -1,0 +1,21 @@
+{
+  "name": "flowbooks",
+  "version": "0.1.0",
+  "private": true,
+  "description": "FlowBooks - Modern Accounting & Business Management SaaS",
+  "scripts": {
+    "dev": "pnpm run --parallel dev",
+    "dev:web": "pnpm --filter @flowbooks/web dev",
+    "dev:api": "pnpm --filter @flowbooks/api dev",
+    "build": "pnpm run --filter @flowbooks/database generate && pnpm run --filter './packages/*' build && pnpm run --filter './apps/*' build",
+    "test": "pnpm run --parallel test",
+    "lint": "pnpm run --parallel lint",
+    "db:generate": "pnpm --filter @flowbooks/database generate",
+    "db:migrate": "pnpm --filter @flowbooks/database migrate:dev",
+    "db:push": "pnpm --filter @flowbooks/database push",
+    "db:studio": "pnpm --filter @flowbooks/database studio"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

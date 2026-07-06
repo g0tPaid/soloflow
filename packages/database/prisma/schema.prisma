@@ -1,0 +1,333 @@
+// FlowBooks Database Schema
+// Multi-tenant accounting SaaS foundation
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+// ─── Auth (Auth.js compatible) ───────────────────────────────────────────────
+
+model User {
+  id            String    @id @default(cuid())
+  email         String    @unique
+  emailVerified DateTime?
+  name          String?
+  image         String?
+  passwordHash  String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  accounts      Account[]
+  sessions      Session[]
+  memberships   OrganizationMember[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("sessions")
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+  @@map("verification_tokens")
+}
+
+// ─── Multi-Tenant ────────────────────────────────────────────────────────────
+
+enum MemberRole {
+  OWNER
+  ADMIN
+  MANAGER
+  ACCOUNTANT
+  SALES
+  EMPLOYEE
+  CUSTOM
+}
+
+model Organization {
+  id        String   @id @default(cuid())
+  name      String
+  slug      String   @unique
+  logo      String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  settings          OrganizationSettings?
+  members           OrganizationMember[]
+  customRoles       CustomRole[]
+  customers         Customer[]
+  products          Product[]
+  invoices          Invoice[]
+  auditLogs         AuditLog[]
+  customFieldDefs   CustomFieldDefinition[]
+  featureFlags      FeatureFlag[]
+
+  @@map("organizations")
+}
+
+model OrganizationSettings {
+  id             String @id @default(cuid())
+  organizationId String @unique
+
+  currency       String  @default("USD")
+  timezone       String  @default("UTC")
+  dateFormat     String  @default("YYYY-MM-DD")
+  fiscalYearStart Int    @default(1) // month 1-12
+  branding       Json    @default("{}")
+  taxConfig      Json    @default("{}")
+  invoicePrefix  String  @default("INV")
+  invoiceNextNum Int     @default(1)
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@map("organization_settings")
+}
+
+model OrganizationMember {
+  id             String     @id @default(cuid())
+  organizationId String
+  userId         String
+  role           MemberRole @default(EMPLOYEE)
+  customRoleId   String?
+  permissions    Json       @default("[]")
+  invitedAt      DateTime?
+  joinedAt       DateTime   @default(now())
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User         @relation(fields: [userId], references: [id], onDelete: Cascade)
+  customRole   CustomRole?  @relation(fields: [customRoleId], references: [id])
+
+  @@unique([organizationId, userId])
+  @@index([organizationId])
+  @@index([userId])
+  @@map("organization_members")
+}
+
+model CustomRole {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  permissions    Json     @default("[]")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  members      OrganizationMember[]
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@map("custom_roles")
+}
+
+// ─── Feature Flags / Plugin Architecture ─────────────────────────────────────
+
+model FeatureFlag {
+  id             String  @id @default(cuid())
+  organizationId String
+  key            String
+  enabled        Boolean @default(false)
+  config         Json    @default("{}")
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, key])
+  @@index([organizationId])
+  @@map("feature_flags")
+}
+
+// ─── Business Entities ───────────────────────────────────────────────────────
+
+model Customer {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  address        Json     @default("{}")
+  taxId          String?
+  notes          String?
+  customFields   Json     @default("{}")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@map("customers")
+}
+
+model Product {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  description    String?
+  sku            String?
+  unitPrice      Decimal  @default(0) @db.Decimal(12, 2)
+  currency       String   @default("USD")
+  taxRate        Decimal  @default(0) @db.Decimal(5, 4)
+  isActive       Boolean  @default(true)
+  customFields   Json     @default("{}")
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoiceItems InvoiceItem[]
+
+  @@index([organizationId])
+  @@index([organizationId, sku])
+  @@map("products")
+}
+
+enum InvoiceStatus {
+  DRAFT
+  SENT
+  VIEWED
+  PARTIAL
+  PAID
+  OVERDUE
+  CANCELLED
+  VOID
+}
+
+model Invoice {
+  id             String        @id @default(cuid())
+  organizationId String
+  customerId     String
+  number         String
+  status         InvoiceStatus @default(DRAFT)
+  issueDate      DateTime      @default(now())
+  dueDate        DateTime?
+  currency       String        @default("USD")
+  subtotal       Decimal       @default(0) @db.Decimal(12, 2)
+  taxAmount      Decimal       @default(0) @db.Decimal(12, 2)
+  discount       Decimal       @default(0) @db.Decimal(12, 2)
+  total          Decimal       @default(0) @db.Decimal(12, 2)
+  notes          String?
+  customFields   Json          @default("{}")
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer     Customer      @relation(fields: [customerId], references: [id])
+  items        InvoiceItem[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, customerId])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id          String  @id @default(cuid())
+  invoiceId   String
+  productId   String?
+  description String
+  quantity    Decimal @default(1) @db.Decimal(12, 4)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  taxRate     Decimal @default(0) @db.Decimal(5, 4)
+  amount      Decimal @default(0) @db.Decimal(12, 2)
+
+  invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+// ─── Extensibility ───────────────────────────────────────────────────────────
+
+enum CustomFieldType {
+  TEXT
+  NUMBER
+  DATE
+  BOOLEAN
+  SELECT
+  MULTI_SELECT
+}
+
+model CustomFieldDefinition {
+  id             String          @id @default(cuid())
+  organizationId String
+  entityType     String // customer, product, invoice, etc.
+  fieldKey       String
+  label          String
+  fieldType      CustomFieldType @default(TEXT)
+  options        Json            @default("[]")
+  required       Boolean         @default(false)
+  sortOrder      Int             @default(0)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, entityType, fieldKey])
+  @@index([organizationId, entityType])
+  @@map("custom_field_definitions")
+}
+
+// ─── Audit ───────────────────────────────────────────────────────────────────
+
+model AuditLog {
+  id             String   @id @default(cuid())
+  organizationId String
+  userId         String?
+  action         String
+  entityType     String
+  entityId       String?
+  metadata       Json     @default("{}")
+  ipAddress      String?
+  createdAt      DateTime @default(now())
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  user         User?        @relation(fields: [userId], references: [id])
+
+  @@index([organizationId])
+  @@index([organizationId, entityType])
+  @@index([organizationId, createdAt])
+  @@map("audit_logs")
+}
