@@ -3,6 +3,7 @@
     "target": "ES2022",
     "module": "commonjs",
     "lib": ["ES2022"],
+    "typeRoots": ["../../apps/api/node_modules/@types", "../../node_modules/@types"],
     "declaration": true,
     "strict": true,
     "esModuleInterop": true,

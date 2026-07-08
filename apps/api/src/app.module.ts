@@ -10,17 +10,25 @@ import { OrganizationsModule } from './organizations/organizations.module';
 import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
+import { ExpensesModule } from './expenses/expenses.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { QueueModule } from './queue/queue.module';
+
+const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
 
 @Module({
   imports: [
     ConfigModule.forRoot({ isGlobal: true }),
-    BullModule.forRoot({
-      connection: {
-        url: process.env.REDIS_URL || 'redis://localhost:6379',
-      },
-    }),
+    ...(queuesEnabled
+      ? [
+          BullModule.forRoot({
+            connection: {
+              url: process.env.REDIS_URL || 'redis://localhost:6379',
+            },
+          }),
+          QueueModule,
+        ]
+      : []),
     PrismaModule,
     RedisModule,
     StorageModule,
@@ -30,8 +38,8 @@ import { QueueModule } from './queue/queue.module';
     CustomersModule,
     ProductsModule,
     InvoicesModule,
+    ExpensesModule,
     DashboardModule,
-    QueueModule,
   ],
 })
 export class AppModule {}

@@ -17,6 +17,11 @@ export class CreateCustomerDto {
   @IsString()
   phone?: string;
 
+  @ApiProperty({ required: false, example: 'INR' })
+  @IsOptional()
+  @IsString()
+  currency?: string;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsObject()

@@ -48,3 +48,16 @@ uploads/
 # Misc
 .turbo/
 .vercel/
+
+# Android / Play Store secrets — never commit
+**/android-keys/
+**/keystore.properties
+**/*.jks
+**/*.keystore
+*.aab
+apps/web/android/
+
+# Generated / local junk
+packages/database/src/generated/
+prisma-err.txt
+apps/web/www/

@@ -3,6 +3,7 @@
 
 generator client {
   provider = "prisma-client-js"
+  output   = "../src/generated/prisma"
 }
 
 datasource db {
@@ -184,6 +185,7 @@ model Customer {
   name           String
   email          String?
   phone          String?
+  currency       String   @default("INR")
   address        Json     @default("{}")
   taxId          String?
   notes          String?
@@ -206,6 +208,7 @@ model Product {
   name           String
   description    String?
   sku            String?
+  imageUrl       String?
   unitPrice      Decimal  @default(0) @db.Decimal(12, 2)
   currency       String   @default("USD")
   taxRate        Decimal  @default(0) @db.Decimal(5, 4)
@@ -233,23 +236,40 @@ enum InvoiceStatus {
   VOID
 }
 
+enum ShippingMethod {
+  AIR
+  SEA
+}
+
+enum ShippingTerms {
+  DDP
+  LCL
+}
+
 model Invoice {
-  id             String        @id @default(cuid())
-  organizationId String
-  customerId     String
-  number         String
-  status         InvoiceStatus @default(DRAFT)
-  issueDate      DateTime      @default(now())
-  dueDate        DateTime?
-  currency       String        @default("USD")
-  subtotal       Decimal       @default(0) @db.Decimal(12, 2)
-  taxAmount      Decimal       @default(0) @db.Decimal(12, 2)
-  discount       Decimal       @default(0) @db.Decimal(12, 2)
-  total          Decimal       @default(0) @db.Decimal(12, 2)
-  notes          String?
-  customFields   Json          @default("{}")
-  createdAt      DateTime      @default(now())
-  updatedAt      DateTime      @updatedAt
+  id                  String           @id @default(cuid())
+  organizationId      String
+  customerId          String
+  number              String
+  status              InvoiceStatus    @default(DRAFT)
+  issueDate           DateTime         @default(now())
+  dueDate             DateTime?
+  currency            String           @default("USD")
+  subtotal            Decimal          @default(0) @db.Decimal(12, 2)
+  taxAmount           Decimal          @default(0) @db.Decimal(12, 2)
+  shipping            Decimal          @default(0) @db.Decimal(12, 2)
+  shippingCost        Decimal          @default(0) @db.Decimal(12, 2)
+  discount            Decimal          @default(0) @db.Decimal(12, 2)
+  total               Decimal          @default(0) @db.Decimal(12, 2)
+  totalCost           Decimal          @default(0) @db.Decimal(12, 2)
+  shippingMethod      ShippingMethod?
+  shippingTerms       ShippingTerms?
+  shippingFromCountry String?
+  shippingToCountry   String?
+  notes               String?
+  customFields        Json             @default("{}")
+  createdAt           DateTime         @default(now())
+  updatedAt           DateTime         @updatedAt
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customer     Customer      @relation(fields: [customerId], references: [id])
@@ -266,11 +286,15 @@ model InvoiceItem {
   id          String  @id @default(cuid())
   invoiceId   String
   productId   String?
+  name        String?
   description String
+  imageUrl    String?
   quantity    Decimal @default(1) @db.Decimal(12, 4)
   unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  unitCost    Decimal @default(0) @db.Decimal(12, 2)
   taxRate     Decimal @default(0) @db.Decimal(5, 4)
   amount      Decimal @default(0) @db.Decimal(12, 2)
+  costAmount  Decimal @default(0) @db.Decimal(12, 2)
 
   invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id])

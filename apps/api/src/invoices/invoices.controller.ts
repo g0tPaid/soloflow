@@ -22,6 +22,11 @@ export class InvoicesController {
     return this.invoicesService.findAll(orgId, page, limit);
   }
 
+  @Get('next-number')
+  nextNumber(@Headers(TENANT_HEADER) orgId: string) {
+    return this.invoicesService.getNextNumber(orgId);
+  }
+
   @Get(':id')
   findOne(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.invoicesService.findOne(orgId, id);

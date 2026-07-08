@@ -1,7 +1,7 @@
-import { Controller, Get, Post, Body, Param, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, UseGuards } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { OrganizationsService } from './organizations.service';
-import { CreateOrganizationDto } from './dto/organization.dto';
+import { CreateOrganizationDto, UpdateOrganizationDto } from './dto/organization.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { CurrentUser } from '../common/decorators/tenant.decorator';
 
@@ -29,5 +29,15 @@ export class OrganizationsController {
   @ApiHeader({ name: 'x-organization-id', required: false })
   findOne(@Param('id') id: string) {
     return this.orgsService.findOne(id);
+  }
+
+  @Patch(':id')
+  @ApiOperation({ summary: 'Update organization branding and details' })
+  update(
+    @CurrentUser() userId: string,
+    @Param('id') id: string,
+    @Body() dto: UpdateOrganizationDto,
+  ) {
+    return this.orgsService.update(userId, id, dto);
   }
 }

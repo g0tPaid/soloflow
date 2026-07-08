@@ -1,112 +1,345 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+
 import { PrismaService } from '../prisma/prisma.service';
+
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
+
 import { InvoiceStatus, Prisma } from '@flowbooks/database';
 
+import { normalizePagination } from '../common/pagination';
+
+
+
 @Injectable()
+
 export class InvoicesService {
+
   constructor(private prisma: PrismaService) {}
 
-  async findAll(organizationId: string, page = 1, limit = 20) {
-    const skip = (page - 1) * limit;
+
+
+  async findAll(organizationId: string, page?: number, limit?: number) {
+
+    const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
+
     const [data, total] = await Promise.all([
+
       this.prisma.invoice.findMany({
+
         where: { organizationId },
+
         skip,
-        take: limit,
+
+        take: limitNum,
+
         orderBy: { createdAt: 'desc' },
+
         include: { customer: { select: { id: true, name: true } }, items: true },
+
       }),
+
       this.prisma.invoice.count({ where: { organizationId } }),
+
     ]);
-    return { data, pagination: { page, limit, total, totalPages: Math.ceil(total / limit) } };
+
+    return {
+
+      data,
+
+      pagination: {
+
+        page: pageNum,
+
+        limit: limitNum,
+
+        total,
+
+        totalPages: Math.ceil(total / limitNum),
+
+      },
+
+    };
+
   }
+
+
 
   async findOne(organizationId: string, id: string) {
+
     const invoice = await this.prisma.invoice.findFirst({
+
       where: { id, organizationId },
+
       include: { customer: true, items: { include: { product: true } } },
+
     });
+
     if (!invoice) throw new NotFoundException('Invoice not found');
+
     return invoice;
+
   }
 
-  async create(organizationId: string, dto: CreateInvoiceDto) {
+  async getNextNumber(organizationId: string) {
     const settings = await this.prisma.organizationSettings.findUnique({
       where: { organizationId },
     });
-
-    const number = `${settings?.invoicePrefix || 'INV'}-${String(settings?.invoiceNextNum || 1).padStart(5, '0')}`;
-
-    const { subtotal, taxAmount, total } = this.calculateTotals(dto.items, dto.discount || 0);
-
-    return this.prisma.$transaction(async (tx) => {
-      const invoice = await tx.invoice.create({
-        data: {
-          organizationId,
-          customerId: dto.customerId,
-          number,
-          issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-          currency: dto.currency || settings?.currency || 'USD',
-          notes: dto.notes,
-          discount: dto.discount || 0,
-          subtotal,
-          taxAmount,
-          total,
-          items: {
-            create: dto.items.map((item) => ({
-              productId: item.productId,
-              description: item.description,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              taxRate: item.taxRate || 0,
-              amount: item.quantity * item.unitPrice,
-            })),
-          },
-        },
-        include: { items: true, customer: true },
-      });
-
-      await tx.organizationSettings.update({
-        where: { organizationId },
-        data: { invoiceNextNum: (settings?.invoiceNextNum || 1) + 1 },
-      });
-
-      return invoice;
-    });
+    const prefix = settings?.invoicePrefix || 'INV';
+    const next = settings?.invoiceNextNum || 1;
+    return { number: `${prefix}-${String(next).padStart(5, '0')}` };
   }
 
-  async update(organizationId: string, id: string, dto: UpdateInvoiceDto) {
-    await this.findOne(organizationId, id);
-
-    const updateData: Prisma.InvoiceUpdateInput = {};
-    if (dto.status) updateData.status = dto.status as InvoiceStatus;
-    if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
-    if (dto.notes !== undefined) updateData.notes = dto.notes;
-    if (dto.discount !== undefined) updateData.discount = dto.discount;
-
-    return this.prisma.invoice.update({
-      where: { id },
-      data: updateData,
-      include: { items: true, customer: true },
+  private async assertUniqueNumber(organizationId: string, number: string, excludeId?: string) {
+    const trimmed = number.trim();
+    if (!trimmed) throw new BadRequestException('Invoice number is required');
+    const existing = await this.prisma.invoice.findFirst({
+      where: {
+        organizationId,
+        number: trimmed,
+        ...(excludeId ? { NOT: { id: excludeId } } : {}),
+      },
     });
+    if (existing) {
+      throw new BadRequestException(`Invoice number "${trimmed}" is already in use`);
+    }
+    return trimmed;
   }
 
-  private calculateTotals(
-    items: { quantity: number; unitPrice: number; taxRate?: number }[],
-    discount: number,
-  ) {
-    let subtotal = 0;
-    let taxAmount = 0;
 
-    for (const item of items) {
-      const amount = item.quantity * item.unitPrice;
-      subtotal += amount;
-      taxAmount += amount * (item.taxRate || 0);
+
+  async create(organizationId: string, dto: CreateInvoiceDto) {
+
+    const settings = await this.prisma.organizationSettings.findUnique({
+
+      where: { organizationId },
+
+    });
+
+
+
+    const number = dto.number?.trim()
+      ? await this.assertUniqueNumber(organizationId, dto.number)
+      : `${settings?.invoicePrefix || 'INV'}-${String(settings?.invoiceNextNum || 1).padStart(5, '0')}`;
+
+
+
+    const { subtotal, shipping, total } = this.calculateTotals(
+
+      dto.items,
+
+      dto.discount || 0,
+
+      dto.shipping || 0,
+
+    );
+
+    const productIds = [
+      ...new Set(dto.items.map((item) => item.productId).filter((id): id is string => !!id)),
+    ];
+    const productImages = new Map<string, string | null>();
+    if (productIds.length > 0) {
+      const products = await this.prisma.product.findMany({
+        where: { organizationId, id: { in: productIds } },
+        select: { id: true, imageUrl: true },
+      });
+      for (const product of products) {
+        productImages.set(product.id, product.imageUrl);
+      }
     }
 
-    const total = subtotal + taxAmount - discount;
-    return { subtotal, taxAmount, total };
+
+
+    return this.prisma.$transaction(async (tx) => {
+
+      const invoice = await tx.invoice.create({
+
+        data: {
+
+          organizationId,
+
+          customerId: dto.customerId,
+
+          number,
+
+          issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
+
+          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+
+          currency: dto.currency || settings?.currency || 'INR',
+
+          notes: dto.notes,
+
+          discount: dto.discount || 0,
+
+          shipping,
+
+          shippingMethod: dto.shippingMethod ?? null,
+
+          shippingTerms: dto.shippingTerms ?? null,
+
+          shippingFromCountry: dto.shippingFromCountry?.trim() || null,
+
+          shippingToCountry: dto.shippingToCountry?.trim() || null,
+
+          subtotal,
+
+          taxAmount: 0,
+
+          total,
+
+          items: {
+
+            create: dto.items.map((item) => {
+              const name = item.name?.trim() || null;
+              const description =
+                item.description?.trim() ||
+                name ||
+                'Item';
+
+              return {
+                productId: item.productId || null,
+                name,
+                description,
+                imageUrl:
+                  item.imageUrl ||
+                  (item.productId ? productImages.get(item.productId) ?? null : null),
+                quantity: item.quantity,
+                unitPrice: item.unitPrice,
+                taxRate: 0,
+                amount: item.quantity * item.unitPrice,
+              };
+            }),
+
+          },
+
+        },
+
+        include: { items: { include: { product: true } }, customer: true },
+
+      });
+
+
+
+      await tx.organizationSettings.upsert({
+        where: { organizationId },
+        create: {
+          organizationId,
+          currency: dto.currency || 'INR',
+          invoiceNextNum: 2,
+        },
+        update: {
+          invoiceNextNum: (settings?.invoiceNextNum || 1) + 1,
+        },
+      });
+
+
+
+      return invoice;
+
+    });
+
   }
+
+
+
+  async update(organizationId: string, id: string, dto: UpdateInvoiceDto) {
+
+    const existing = await this.findOne(organizationId, id);
+
+
+
+    const discount = dto.discount !== undefined ? dto.discount : Number(existing.discount);
+
+    const shipping = dto.shipping !== undefined ? dto.shipping : Number(existing.shipping);
+
+    const { subtotal, total } = this.calculateTotals(
+
+      existing.items.map((item) => ({
+
+        quantity: Number(item.quantity),
+
+        unitPrice: Number(item.unitPrice),
+
+      })),
+
+      discount,
+
+      shipping,
+
+    );
+
+
+
+    const updateData: Prisma.InvoiceUpdateInput = {
+
+      subtotal,
+
+      taxAmount: 0,
+
+      total,
+
+    };
+
+    if (dto.status) updateData.status = dto.status as InvoiceStatus;
+
+    if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
+
+    if (dto.notes !== undefined) updateData.notes = dto.notes;
+
+    if (dto.discount !== undefined) updateData.discount = dto.discount;
+
+    if (dto.shipping !== undefined) updateData.shipping = dto.shipping;
+
+    if (dto.shippingMethod !== undefined) updateData.shippingMethod = dto.shippingMethod;
+
+    if (dto.shippingTerms !== undefined) updateData.shippingTerms = dto.shippingTerms;
+
+    if (dto.shippingFromCountry !== undefined) {
+      updateData.shippingFromCountry = dto.shippingFromCountry?.trim() || null;
+    }
+
+    if (dto.shippingToCountry !== undefined) {
+      updateData.shippingToCountry = dto.shippingToCountry?.trim() || null;
+    }
+
+    if (dto.number !== undefined) {
+      updateData.number = await this.assertUniqueNumber(organizationId, dto.number, id);
+    }
+
+
+
+    return this.prisma.invoice.update({
+
+      where: { id },
+
+      data: updateData,
+
+      include: { items: { include: { product: true } }, customer: true },
+
+    });
+
+  }
+
+
+
+  private calculateTotals(
+
+    items: { quantity: number; unitPrice: number }[],
+
+    discount: number,
+
+    shipping: number,
+
+  ) {
+
+    const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
+
+    const total = subtotal + shipping - discount;
+
+    return { subtotal, shipping, total: Math.max(0, total) };
+
+  }
+
 }
+
+

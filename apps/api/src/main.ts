@@ -9,7 +9,10 @@ async function bootstrap() {
 
   app.use(helmet());
   app.enableCors({
-    origin: process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000'],
+    origin:
+      process.env.NODE_ENV === 'production'
+        ? process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000']
+        : true,
     credentials: true,
   });
 
@@ -25,9 +28,8 @@ async function bootstrap() {
   app.setGlobalPrefix('api/v1');
 
   const config = new DocumentBuilder()
-    .setTitle('FlowBooks API')
-    .setDescription('Modern Accounting & Business Management SaaS API')
-    .setVersion('1.0')
+    .setTitle('SoloFlow API')
+    .setDescription('SoloFlow accounting API')    .setVersion('1.0')
     .addBearerAuth()
     .addApiKey({ type: 'apiKey', name: 'x-organization-id', in: 'header' }, 'organization')
     .build();
@@ -37,8 +39,7 @@ async function bootstrap() {
 
   const port = process.env.PORT || 3001;
   await app.listen(port);
-  console.log(`FlowBooks API running on http://localhost:${port}`);
-  console.log(`Swagger docs at http://localhost:${port}/api/docs`);
+  console.log(`SoloFlow API running on http://localhost:${port}`);  console.log(`Swagger docs at http://localhost:${port}/api/docs`);
 }
 
 bootstrap();

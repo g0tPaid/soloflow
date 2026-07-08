@@ -26,6 +26,7 @@ export interface OrganizationContext {
 export interface DashboardMetrics {
   revenue: number;
   expenses: number;
+  profit: number;
   outstanding: number;
   cashFlow: number;
   currency: string;

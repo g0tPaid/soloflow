@@ -2,7 +2,7 @@
   "name": "flowbooks",
   "version": "0.1.0",
   "private": true,
-  "description": "FlowBooks - Modern Accounting & Business Management SaaS",
+  "description": "SoloFlow - Simple accounting for solopreneurs",
   "scripts": {
     "dev": "pnpm run --parallel dev",
     "dev:web": "pnpm --filter @flowbooks/web dev",

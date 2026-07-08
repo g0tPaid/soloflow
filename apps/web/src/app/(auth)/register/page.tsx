@@ -8,7 +8,7 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { registerSchema, type RegisterInput } from '@flowbooks/shared';
 import { motion } from 'framer-motion';
 import { api } from '@/lib/api';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -34,9 +34,17 @@ export default function RegisterPage() {
         password: data.password,
         redirect: false,
       });
-      if (result?.ok) {
-        router.push('/onboarding');
+      if (!result?.ok) {
+        setError('Account created but sign-in failed. Please log in manually.');
+        return;
       }
+      const session = await getSession();
+      if (!session?.accessToken) {
+        setError('Account created. Please sign in to continue.');
+        router.push('/login');
+        return;
+      }
+      router.push('/onboarding');
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Registration failed');
     } finally {

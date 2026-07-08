@@ -1,12 +1,58 @@
-export const APP_NAME = 'FlowBooks';
-export const APP_DESCRIPTION = 'Modern Accounting & Business Management';
-
-export const BRAND_COLOR = '#2563EB';
-export const BRAND_COLOR_HOVER = '#1D4ED8';
+export const APP_NAME = 'SoloFlow';
+export const APP_DESCRIPTION = 'Simple accounting for solopreneurs';
+export const BRAND_COLOR = '#E40046';
+export const BRAND_COLOR_HOVER = '#C2003C';
 
 export const API_VERSION = 'v1';
-export const DEFAULT_CURRENCY = 'USD';
-export const DEFAULT_TIMEZONE = 'UTC';
+export const DEFAULT_CURRENCY = 'INR';
+export const DEFAULT_TIMEZONE = 'Asia/Kolkata';
+
+export const CURRENCIES = [
+  { code: 'INR', name: 'Indian Rupee', symbol: '₹' },
+  { code: 'USD', name: 'US Dollar', symbol: '$' },
+  { code: 'EUR', name: 'Euro', symbol: '€' },
+  { code: 'GBP', name: 'British Pound', symbol: '£' },
+  { code: 'AED', name: 'UAE Dirham', symbol: 'AED' },
+  { code: 'SAR', name: 'Saudi Riyal', symbol: 'SAR' },
+  { code: 'QAR', name: 'Qatari Riyal', symbol: 'QAR' },
+  { code: 'OMR', name: 'Omani Rial', symbol: 'OMR' },
+  { code: 'KWD', name: 'Kuwaiti Dinar', symbol: 'KWD' },
+  { code: 'JPY', name: 'Japanese Yen', symbol: '¥' },
+  { code: 'CNY', name: 'Chinese Yuan', symbol: '¥' },
+  { code: 'CAD', name: 'Canadian Dollar', symbol: 'CA$' },
+  { code: 'AUD', name: 'Australian Dollar', symbol: 'A$' },
+  { code: 'SGD', name: 'Singapore Dollar', symbol: 'S$' },
+] as const;
+
+export const COMMON_TIMEZONES = [
+  { value: 'Asia/Kolkata', label: 'India (IST)' },
+  { value: 'Asia/Dubai', label: 'UAE (GST)' },
+  { value: 'Asia/Riyadh', label: 'Saudi Arabia' },
+  { value: 'Europe/London', label: 'UK (GMT)' },
+  { value: 'America/New_York', label: 'US Eastern' },
+  { value: 'America/Los_Angeles', label: 'US Pacific' },
+  { value: 'UTC', label: 'UTC' },
+] as const;
+
+/** Recommended invoice PDF promotional banner dimensions */
+export const INVOICE_BANNER_SIZE = {
+  width: 1200,
+  height: 200,
+  label: '1200 × 200 px',
+} as const;
+
+export const SHIPPING_METHODS = [
+  { value: 'AIR', label: 'Air' },
+  { value: 'SEA', label: 'Ship' },
+] as const;
+
+export const SHIPPING_TERMS = [
+  { value: 'DDP', label: 'DDP (Delivered Duty Paid)' },
+  { value: 'LCL', label: 'LCL (Less than Container Load)' },
+] as const;
+
+export type ShippingMethod = (typeof SHIPPING_METHODS)[number]['value'];
+export type ShippingTerms = (typeof SHIPPING_TERMS)[number]['value'];
 
 export const TENANT_HEADER = 'x-organization-id';
 
@@ -119,12 +165,9 @@ export const NAV_MODULES = [
   { key: 'customers', label: 'Customers', href: '/customers', enabled: true },
   { key: 'products', label: 'Products', href: '/products', enabled: true },
   { key: 'invoices', label: 'Invoices', href: '/invoices', enabled: true },
-  { key: 'expenses', label: 'Expenses', href: '/expenses', enabled: false },
-  { key: 'banking', label: 'Banking', href: '/banking', enabled: false },
+  { key: 'expenses', label: 'Expenses', href: '/expenses', enabled: true },
+  { key: 'receipts', label: 'Receipts', href: '/receipts', enabled: true },
+  { key: 'settings', label: 'Company Details', href: '/settings', enabled: true },
   { key: 'reports', label: 'Reports', href: '/reports', enabled: false },
-  { key: 'payroll', label: 'Payroll', href: '/payroll', enabled: false },
   { key: 'inventory', label: 'Inventory', href: '/inventory', enabled: false },
-  { key: 'projects', label: 'Projects', href: '/projects', enabled: false },
-  { key: 'crm', label: 'CRM', href: '/crm', enabled: false },
-  { key: 'settings', label: 'Settings', href: '/settings', enabled: true },
 ] as const;

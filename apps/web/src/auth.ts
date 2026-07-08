@@ -3,8 +3,32 @@ import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { api } from '@/lib/api';
 
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   providers: [
+    ...(LOCAL_MODE
+      ? [
+          Credentials({
+            id: 'local',
+            name: 'local',
+            credentials: {},
+            async authorize() {
+              try {
+                const result = await api.auth.bootstrap();
+                return {
+                  id: result.user.id,
+                  email: result.user.email,
+                  name: result.user.name,
+                  accessToken: result.token,
+                };
+              } catch {
+                return null;
+              }
+            },
+          }),
+        ]
+      : []),
     Google({
       clientId: process.env.AUTH_GOOGLE_ID,
       clientSecret: process.env.AUTH_GOOGLE_SECRET,
@@ -29,7 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: result.user.email,
             name: result.user.name,
             accessToken: result.token,
-          };
+          } as { id: string; email: string; name: string; accessToken: string };
         } catch {
           return null;
         }
@@ -39,16 +63,15 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        token.accessToken = (user as { accessToken?: string }).accessToken;
-        token.id = user.id;
+        const authUser = user as { accessToken?: string; id?: string };
+        token.accessToken = authUser.accessToken;
+        token.id = authUser.id ?? user.id;
       }
       return token;
     },
     async session({ session, token }) {
-      if (token) {
-        session.user.id = token.id as string;
-        (session as { accessToken?: string }).accessToken = token.accessToken as string;
-      }
+      session.user.id = token.id as string;
+      session.accessToken = token.accessToken as string;
       return session;
     },
   },

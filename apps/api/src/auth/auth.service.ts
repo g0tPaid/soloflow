@@ -1,4 +1,4 @@
-import { Injectable, UnauthorizedException, ConflictException } from '@nestjs/common';
+import { Injectable, UnauthorizedException, ConflictException, ForbiddenException } from '@nestjs/common';
 import { JwtService } from '@nestjs/jwt';
 import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
@@ -40,6 +40,31 @@ export class AuthService {
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
+    }
+
+    const token = this.generateToken(user.id, user.email);
+    return {
+      user: { id: user.id, email: user.email, name: user.name },
+      token,
+    };
+  }
+
+  /** Single-user local mode — creates the owner account automatically. */
+  async bootstrapLocal() {
+    if (process.env.LOCAL_SINGLE_USER !== 'true') {
+      throw new ForbiddenException('Local bootstrap is disabled');
+    }
+
+    const email = process.env.LOCAL_USER_EMAIL || 'owner@local';
+    const name = process.env.LOCAL_USER_NAME || 'Owner';
+    const password = process.env.LOCAL_USER_PASSWORD || 'soloflow';
+
+    let user = await this.prisma.user.findUnique({ where: { email } });
+    if (!user) {
+      const passwordHash = await bcrypt.hash(password, 12);
+      user = await this.prisma.user.create({
+        data: { email, name, passwordHash },
+      });
     }
 
     const token = this.generateToken(user.id, user.email);

@@ -9,6 +9,7 @@ import {
   Package,
   FileText,
   Receipt,
+  BadgeCheck,
   Landmark,
   BarChart3,
   Wallet,
@@ -28,6 +29,7 @@ import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
+import { MobileQuickActions } from '@/components/layout/mobile-quick-actions';
 import { useState } from 'react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -36,6 +38,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   products: Package,
   invoices: FileText,
   expenses: Receipt,
+  receipts: BadgeCheck,
   banking: Landmark,
   reports: BarChart3,
   payroll: Wallet,
@@ -199,11 +202,12 @@ export function AppShell({ children, organizationName }: { children: React.React
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.2 }}
-          className="p-4 lg:p-6"
+          className="p-4 pb-28 lg:p-6 lg:pb-6"
         >
           {children}
         </motion.main>
       </div>
+      <MobileQuickActions />
     </div>
   );
 }

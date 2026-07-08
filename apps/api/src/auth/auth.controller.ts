@@ -21,6 +21,12 @@ export class AuthController {
     return this.authService.login(dto);
   }
 
+  @Post('bootstrap')
+  @ApiOperation({ summary: 'Auto-create local single-user account (dev only)' })
+  bootstrapLocal() {
+    return this.authService.bootstrapLocal();
+  }
+
   @Get('me')
   @UseGuards(JwtAuthGuard)
   @ApiBearerAuth()

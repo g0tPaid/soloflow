@@ -2,8 +2,9 @@
 
 import { useState } from 'react';
 import Link from 'next/link';
-import { signIn } from 'next-auth/react';
+import { signIn, getSession } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
+import { api } from '@/lib/api';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { loginSchema, type LoginInput } from '@flowbooks/shared';
@@ -27,11 +28,26 @@ export default function LoginPage() {
     setLoading(true);
     setError('');
     const result = await signIn('credentials', { ...data, redirect: false });
-    setLoading(false);
     if (result?.error) {
       setError('Invalid email or password');
-    } else {
-      router.push('/dashboard');
+      setLoading(false);
+      return;
+    }
+
+    const session = await getSession();
+    if (!session?.accessToken) {
+      setError('Sign-in succeeded but session is missing. Try again.');
+      setLoading(false);
+      return;
+    }
+
+    try {
+      const orgs = await api.organizations.list(session.accessToken);
+      router.push(orgs.length === 0 ? '/onboarding' : '/dashboard');
+    } catch {
+      router.push('/onboarding');
+    } finally {
+      setLoading(false);
     }
   };
 

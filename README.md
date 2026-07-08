@@ -67,6 +67,18 @@ pnpm dev
 
 Double-click `START-FLOWBOOKS.bat` on your Desktop to start everything automatically.
 
+### Windows Note
+
+If `pnpm install` fails with `EPERM` on `@prisma/engines`, temporarily disable antivirus real-time scanning for the project folder, then run:
+
+```bash
+pnpm install
+pnpm db:generate
+pnpm db:migrate
+```
+
+First install may take 5–10 minutes while Prisma downloads database engines.
+
 ## Multi-Tenancy
 
 Every business entity is scoped to an `organizationId`. The API expects the `x-organization-id` header on tenant-scoped routes. Row-level isolation is enforced in all Prisma queries.
