@@ -2,13 +2,28 @@ import type { CreateInvoiceInput, UpdateInvoiceInput, UpdateExpenseCostsInput } 
 import { toApiLineItems } from '@/lib/line-items';
 
 function resolveApiBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+  if (configured) return configured;
+
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    if (host && host !== 'localhost' && host !== '127.0.0.1') {
+    // Phone on same Wi‑Fi as PC: web is http://192.168.x.x:3000, API on :3001
+    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
       return `http://${host}:3001/api/v1`;
     }
   }
-  return process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001/api/v1';
+
+  return 'http://localhost:3001/api/v1';
+}
+
+function connectionHelpMessage(): string {
+  if (typeof window !== 'undefined') {
+    const host = window.location.hostname;
+    if (host.includes('railway.app') || host.includes('vercel.app')) {
+      return 'Cannot connect to SoloFlow API. Check Railway: web NEXT_PUBLIC_API_URL and api CORS_ORIGIN, then redeploy both services.';
+    }
+  }
+  return 'Cannot connect to SoloFlow. Close SoloFlow, double-click START-SOLOFLOW.bat on your Desktop, wait for the browser to open, then try again.';
 }
 
 interface FetchOptions extends RequestInit {
@@ -31,9 +46,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
   try {
     res = await fetch(`${resolveApiBaseUrl()}${endpoint}`, { headers, ...rest });
   } catch {
-    throw new Error(
-      'Cannot connect to SoloFlow. Close SoloFlow, double-click START-SOLOFLOW.bat on your Desktop, wait for the browser to open, then try again.',
-    );
+    throw new Error(connectionHelpMessage());
   }
 
   if (!res.ok) {
