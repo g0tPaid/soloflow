@@ -147,11 +147,13 @@ export function InvoiceForm(props: InvoiceFormProps) {
   const editShipping = isEdit ? Number(editForm.watch('shipping') ?? 0) : shipping;
 
   useEffect(() => {
-    if (props.mode !== 'create' || !props.suggestedNumber) return;
+    if (props.mode !== 'create') return;
+    const suggested = props.suggestedNumber;
+    if (!suggested) return;
     if (!createForm.getValues('number')) {
-      createForm.setValue('number', props.suggestedNumber);
+      createForm.setValue('number', suggested);
     }
-  }, [props.mode, props.suggestedNumber, createForm]);
+  }, [props, createForm]);
 
   async function handleCreateSubmit(data: CreateInvoiceFormValues) {
     if (props.mode !== 'create') return;

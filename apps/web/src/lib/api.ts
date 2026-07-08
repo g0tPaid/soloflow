@@ -259,7 +259,16 @@ export const api = {
   },
   dashboard: {
     metrics: (token: string, organizationId: string) =>
-      apiFetch('/dashboard/metrics', { token, organizationId }),
+      apiFetch<{
+        revenue: number;
+        expenses: number;
+        profit: number;
+        outstanding: number;
+        cashFlow: number;
+        currency: string;
+        period: string;
+        counts: { customers: number; products: number };
+      }>('/dashboard/metrics', { token, organizationId }),
   },
   customers: {
     list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>

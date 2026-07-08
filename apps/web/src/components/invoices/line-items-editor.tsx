@@ -203,8 +203,6 @@ export function LineItemsEditor({
 
           discount={discount}
 
-          shipping={shipping}
-
           onShippingChange={onShippingChange}
 
           {...totals}
@@ -388,8 +386,6 @@ export function LineItemsEditor({
         currency={currency}
 
         discount={discount}
-
-        shipping={shipping}
 
         onShippingChange={onShippingChange}
 

@@ -28,7 +28,6 @@ export default function SettingsPage() {
       data,
     );
     setOrgData(updated);
-    return updated;
   }
 
   return (
