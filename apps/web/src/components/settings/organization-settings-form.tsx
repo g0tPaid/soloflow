@@ -153,7 +153,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         <CardHeader>
           <CardTitle>Invoice promotional banner</CardTitle>
           <CardDescription>
-            Upload an offers or promotions image — it appears at the bottom of every invoice PDF.
+            Shown at the bottom of invoice PDFs under &quot;New Offers&quot;. Upload the image, then click{' '}
+            <strong>Save company details</strong> at the bottom of this page.
             Recommended size: <strong>{INVOICE_BANNER_SIZE.label}</strong> (wide banner).
           </CardDescription>
         </CardHeader>

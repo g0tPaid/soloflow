@@ -40,6 +40,13 @@ export function ImageUploadField({
 
     setUploading(true);
     try {
+      // Banners are embedded in the database so they survive Railway redeploys
+      if (isBanner) {
+        const dataUrl = await readFileAsDataUrl(file);
+        onChange(dataUrl);
+        return;
+      }
+
       const formData = new FormData();
       formData.append('file', file);
       const res = await fetch('/api/upload', {
