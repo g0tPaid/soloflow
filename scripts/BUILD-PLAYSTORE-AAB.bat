@@ -153,6 +153,14 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [6/6] Building signed release AAB...
+if not exist "%USERPROFILE%\.gradle\wrapper\dists\gradle-8.11.1-bin" (
+    echo.
+    echo  Gradle not installed yet. Run DOWNLOAD-GRADLE.bat on your Desktop first.
+    echo  ^(Gradle download times out inside Android Studio on slow internet.^)
+    echo.
+    pause
+    exit /b 1
+)
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }; $gw = 'android\gradle\wrapper\gradle-wrapper.properties'; if (Test-Path $gw) { (Get-Content $gw -Raw) -replace 'networkTimeout=\d+', 'networkTimeout=600000' | Set-Content $gw -NoNewline }"
 cd android
