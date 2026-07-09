@@ -153,31 +153,26 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [6/6] Building signed release AAB...
-if not exist "%USERPROFILE%\.gradle\wrapper\dists\gradle-8.11.1-bin" (
-    echo.
-    echo  Gradle not installed yet. Run DOWNLOAD-GRADLE.bat on your Desktop first.
-    echo  ^(Gradle download times out inside Android Studio on slow internet.^)
-    echo.
-    pause
-    exit /b 1
-)
+set "GRADLE_USER_HOME=%USERPROFILE%\.gradle"
+call "%FLOWBOOKS_ROOT%\scripts\fix-gradle-cache.bat"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }; $gw = 'android\gradle\wrapper\gradle-wrapper.properties'; if (Test-Path $gw) { (Get-Content $gw -Raw) -replace 'networkTimeout=\d+', 'networkTimeout=600000' | Set-Content $gw -NoNewline }"
 cd android
+set "GRADLE_USER_HOME=%USERPROFILE%\.gradle"
 echo.
-echo  First build downloads Gradle ^(can take 10-20 min on slow internet^). Please wait...
+echo  Stopping old Gradle processes ^(safe after power cuts^)...
+call gradlew.bat --stop >nul 2>&1
+echo  Building AAB - can take 20-40 min on slow internet. DO NOT CLOSE.
 echo.
 call gradlew.bat --version
 if %ERRORLEVEL% NEQ 0 (
     echo.
-    echo  Gradle download failed or timed out.
-    echo  FIX: Open Android Studio -^> File -^> Open -^> apps\web\android
-    echo  Wait until bottom says "Gradle sync finished", then close and retry this script.
+    echo  Gradle not ready. Run DOWNLOAD-GRADLE.bat first.
     cd ..\..
     pause
     exit /b 1
 )
-call gradlew.bat bundleRelease
+call gradlew.bat bundleRelease --no-daemon
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo  AAB build failed.
