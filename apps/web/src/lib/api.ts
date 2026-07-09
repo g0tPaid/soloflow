@@ -1,17 +1,28 @@
 import type { CreateInvoiceInput, UpdateInvoiceInput, UpdateExpenseCostsInput } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 
-function resolveApiBaseUrl(): string {
-  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
-  if (configured) return configured;
+function isHostedAppHost(host: string): boolean {
+  return host.includes('railway.app') || host.includes('vercel.app');
+}
 
+function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
+    // Hosted web proxies /api/v1 to the API service (works on phone + desktop)
+    if (isHostedAppHost(host)) {
+      return '/api/v1';
+    }
     // Phone on same Wi‑Fi as PC: web is http://192.168.x.x:3000, API on :3001
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
       return `http://${host}:3001/api/v1`;
     }
   }
+
+  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+  if (configured) return configured;
+
+  const apiUrl = process.env.API_URL?.replace(/\/$/, '');
+  if (apiUrl) return `${apiUrl}/api/v1`;
 
   return 'http://localhost:3001/api/v1';
 }
