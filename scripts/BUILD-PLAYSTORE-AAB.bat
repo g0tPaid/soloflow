@@ -121,7 +121,7 @@ if not exist "android\keystore.properties" (
     set /p STORE_PASS="Keystore password: "
     set /p KEY_PASS="Key password (often same): "
     (
-        echo storeFile=../android-keys/soloflow-upload.jks
+        echo storeFile=../../android-keys/soloflow-upload.jks
         echo storePassword=%STORE_PASS%
         echo keyAlias=soloflow
         echo keyPassword=%KEY_PASS%
