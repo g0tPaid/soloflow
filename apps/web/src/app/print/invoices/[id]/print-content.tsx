@@ -241,6 +241,8 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
           filename={safeFilename}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}
+          emailSubject={`Invoice ${invoice.number}`}
+          emailBody={whatsappMessage}
         />
       )}
 

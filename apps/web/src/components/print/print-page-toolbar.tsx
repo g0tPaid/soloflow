@@ -2,13 +2,14 @@
 
 import Link from 'next/link';
 import { useEffect, useRef, useState } from 'react';
-import { ArrowLeft, Download, Loader2, MessageCircle } from 'lucide-react';
+import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
 import {
   preparePdfFromElement,
   revokePreparedPdf,
   savePdfToDevice,
   type PreparedPdf,
 } from '@/lib/capture-element-image';
+import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { PdfViewerSheet } from '@/components/print/pdf-viewer-sheet';
 import { cn } from '@/lib/utils';
@@ -21,6 +22,8 @@ type Props = {
   accentClassName?: string;
   whatsappMessage?: string;
   whatsappPhone?: string;
+  emailSubject?: string;
+  emailBody?: string;
 };
 
 export function PrintPageToolbar({
@@ -31,11 +34,16 @@ export function PrintPageToolbar({
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
   whatsappPhone,
+  emailSubject,
+  emailBody,
 }: Props) {
-  const [busy, setBusy] = useState<'download' | 'whatsapp' | null>(null);
+  const [busy, setBusy] = useState<'download' | 'whatsapp' | 'share' | null>(null);
   const [error, setError] = useState('');
   const [viewer, setViewer] = useState<PreparedPdf | null>(null);
   const viewerRef = useRef<PreparedPdf | null>(null);
+
+  const shareSubject = emailSubject ?? filename;
+  const shareBody = emailBody ?? whatsappMessage;
 
   useEffect(() => {
     return () => {
@@ -60,7 +68,16 @@ export function PrintPageToolbar({
   async function buildPdf(): Promise<PreparedPdf> {
     const element = document.getElementById(captureElementId);
     if (!element) throw new Error('Document not ready yet');
+    window.scrollTo(0, 0);
+    await new Promise((resolve) => setTimeout(resolve, 150));
     return preparePdfFromElement(element, filename);
+  }
+
+  async function ensurePdf(): Promise<PreparedPdf> {
+    if (viewerRef.current) return viewerRef.current;
+    const prepared = await buildPdf();
+    showViewer(prepared);
+    return prepared;
   }
 
   async function handleDownload() {
@@ -69,8 +86,7 @@ export function PrintPageToolbar({
     setError('');
 
     try {
-      const prepared = await buildPdf();
-      showViewer(prepared);
+      const prepared = await ensurePdf();
       await savePdfToDevice(prepared.file);
     } catch {
       setError('Could not create PDF. Wait for the page to finish loading, then try again.');
@@ -85,8 +101,7 @@ export function PrintPageToolbar({
     setError('');
 
     try {
-      const prepared = viewerRef.current ?? (await buildPdf());
-      if (!viewerRef.current) showViewer(prepared);
+      const prepared = await ensurePdf();
       await shareInvoiceFile(prepared.file, whatsappMessage, whatsappPhone);
     } catch {
       setError('Could not share on WhatsApp. Try Download PDF first.');
@@ -95,8 +110,19 @@ export function PrintPageToolbar({
     }
   }
 
-  function closeViewerOnly() {
-    closeViewer();
+  async function handleShareEmail() {
+    if (busy) return;
+    setBusy('share');
+    setError('');
+
+    try {
+      const prepared = await ensurePdf();
+      await shareDocumentByEmail(prepared.file, shareSubject, shareBody);
+    } catch {
+      setError('Could not share by email. Try Download PDF first.');
+    } finally {
+      setBusy(null);
+    }
   }
 
   const isBusy = busy !== null;
@@ -112,23 +138,37 @@ export function PrintPageToolbar({
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
           </Link>
-          <Link
-            href="/dashboard"
-            className="rounded-lg px-3 py-2 text-sm font-medium text-slate-600 hover:text-slate-900"
-          >
-            Dashboard
-          </Link>
         </div>
         {error ? <p className="mx-auto mt-2 max-w-[900px] text-sm text-red-600">{error}</p> : null}
       </div>
 
-      <div className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-3 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))]">
-        <div className="mx-auto flex max-w-[900px] gap-2">
+      <div className="no-print fixed inset-x-0 bottom-0 z-50 border-t border-slate-200 bg-white/95 px-2 py-3 shadow-[0_-4px_20px_rgba(0,0,0,0.08)] backdrop-blur pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+        <div className="mx-auto flex max-w-[900px] gap-1.5">
+          <Link
+            href="/dashboard"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-3 text-xs font-semibold text-slate-800 sm:text-sm"
+          >
+            <LayoutDashboard className="h-4 w-4 shrink-0" />
+            <span className="truncate">Dashboard</span>
+          </Link>
+          <button
+            type="button"
+            disabled={isBusy}
+            onClick={() => void handleShareEmail()}
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg border border-slate-200 bg-white px-2 py-3 text-xs font-semibold text-slate-800 disabled:opacity-70 sm:text-sm"
+          >
+            {busy === 'share' ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Share2 className="h-4 w-4" />
+            )}
+            Share
+          </button>
           <button
             type="button"
             disabled={isBusy}
             onClick={() => void handleWhatsApp()}
-            className="inline-flex flex-1 items-center justify-center gap-2 rounded-lg bg-[#25D366] px-3 py-3 text-sm font-semibold text-white disabled:opacity-70"
+            className="inline-flex flex-1 items-center justify-center gap-1 rounded-lg bg-[#25D366] px-2 py-3 text-xs font-semibold text-white disabled:opacity-70 sm:text-sm"
           >
             {busy === 'whatsapp' ? (
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -142,7 +182,7 @@ export function PrintPageToolbar({
             disabled={isBusy}
             onClick={() => void handleDownload()}
             className={cn(
-              'inline-flex flex-1 items-center justify-center gap-2 rounded-lg px-3 py-3 text-sm font-semibold text-white disabled:opacity-70',
+              'inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-3 text-xs font-semibold text-white disabled:opacity-70 sm:text-sm',
               accentClassName,
             )}
           >
@@ -151,19 +191,20 @@ export function PrintPageToolbar({
             ) : (
               <Download className="h-4 w-4" />
             )}
-            {busy === 'download' ? 'Creating…' : 'Download PDF'}
+            {busy === 'download' ? 'Creating…' : 'PDF'}
           </button>
         </div>
       </div>
 
       <div className="no-print" style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }} />
-      <div className="no-print" style={{ height: 'calc(4.5rem + env(safe-area-inset-bottom))' }} />
+      <div className="no-print" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
 
       {viewer ? (
         <PdfViewerSheet
           prepared={viewer}
-          onClose={closeViewerOnly}
+          onClose={() => closeViewer()}
           onWhatsApp={() => void handleWhatsApp()}
+          onShareEmail={() => void handleShareEmail()}
         />
       ) : null}
     </>

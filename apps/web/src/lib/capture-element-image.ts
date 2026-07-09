@@ -1,38 +1,72 @@
 import html2canvas from 'html2canvas';
 
-async function renderCanvas(element: HTMLElement) {
-  let scale = Math.min(1.5, window.devicePixelRatio || 1);
+function cloneForCapture(element: HTMLElement): { clone: HTMLElement; cleanup: () => void } {
+  const clone = element.cloneNode(true) as HTMLElement;
+  const wrapper = document.createElement('div');
+  const width = Math.max(element.scrollWidth, element.clientWidth, 320);
+  wrapper.style.cssText = [
+    'position:fixed',
+    'left:-20000px',
+    'top:0',
+    'z-index:-1',
+    'background:#ffffff',
+    `width:${width}px`,
+    'pointer-events:none',
+    'overflow:visible',
+  ].join(';');
+  wrapper.appendChild(clone);
+  document.body.appendChild(wrapper);
 
-  for (let attempt = 0; attempt < 3; attempt += 1) {
-    const canvas = await html2canvas(element, {
-      scale,
+  return {
+    clone,
+    cleanup: () => wrapper.remove(),
+  };
+}
+
+async function renderCanvas(element: HTMLElement) {
+  const { clone, cleanup } = cloneForCapture(element);
+
+  try {
+    await waitForImages(clone);
+    await new Promise((resolve) => setTimeout(resolve, 200));
+
+    const width = Math.max(clone.scrollWidth, clone.clientWidth, 320);
+    const height = Math.max(clone.scrollHeight, clone.clientHeight, 200);
+    let scale = Math.min(2, Math.max(1, window.devicePixelRatio || 1));
+
+    for (let attempt = 0; attempt < 3; attempt += 1) {
+      const canvas = await html2canvas(clone, {
+        scale,
+        useCORS: true,
+        allowTaint: true,
+        backgroundColor: '#ffffff',
+        logging: false,
+        width,
+        height,
+        windowWidth: width,
+        windowHeight: height,
+      });
+
+      if (canvas.width > 0 && canvas.height > 0) {
+        if (canvas.height <= 14000 || scale <= 0.75) return canvas;
+      }
+      scale *= 0.75;
+    }
+
+    return html2canvas(clone, {
+      scale: 0.75,
       useCORS: true,
       allowTaint: true,
       backgroundColor: '#ffffff',
       logging: false,
-      scrollX: 0,
-      scrollY: -window.scrollY,
-      windowWidth: element.scrollWidth,
-      height: element.scrollHeight,
-      width: element.scrollWidth,
+      width,
+      height,
+      windowWidth: width,
+      windowHeight: height,
     });
-
-    if (canvas.height <= 14000 || scale <= 0.5) return canvas;
-    scale *= 0.75;
+  } finally {
+    cleanup();
   }
-
-  return html2canvas(element, {
-    scale: 0.5,
-    useCORS: true,
-    allowTaint: true,
-    backgroundColor: '#ffffff',
-    logging: false,
-    scrollX: 0,
-    scrollY: -window.scrollY,
-    windowWidth: element.scrollWidth,
-    height: element.scrollHeight,
-    width: element.scrollWidth,
-  });
 }
 
 export async function waitForImages(root: HTMLElement, timeoutMs = 8000) {
@@ -57,25 +91,39 @@ export async function waitForImages(root: HTMLElement, timeoutMs = 8000) {
 
 async function canvasToPdfFile(canvas: HTMLCanvasElement, filename: string) {
   const { jsPDF } = await import('jspdf');
-  const width = canvas.width;
-  const height = canvas.height;
-  const pdf = new jsPDF({
-    orientation: width > height ? 'landscape' : 'portrait',
-    unit: 'px',
-    format: [width, height],
-    compress: true,
-  });
-  pdf.addImage(canvas.toDataURL('image/jpeg', 0.88), 'JPEG', 0, 0, width, height);
+  const previewUrl = canvas.toDataURL('image/jpeg', 0.92);
+  const imgData = previewUrl;
+  const pdf = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4', compress: true });
+
+  const pageWidth = pdf.internal.pageSize.getWidth();
+  const pageHeight = pdf.internal.pageSize.getHeight();
+  const imgWidth = pageWidth;
+  const imgHeight = (canvas.height * imgWidth) / canvas.width;
+
+  let heightLeft = imgHeight;
+  let position = 0;
+
+  pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+  heightLeft -= pageHeight;
+
+  while (heightLeft > 0) {
+    position = heightLeft - imgHeight;
+    pdf.addPage();
+    pdf.addImage(imgData, 'JPEG', 0, position, imgWidth, imgHeight);
+    heightLeft -= pageHeight;
+  }
+
   const blob = pdf.output('blob');
   const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
   const file = new File([blob], safeName, { type: 'application/pdf' });
-  return { file, blob, blobUrl: URL.createObjectURL(blob) };
+  return { file, blob, blobUrl: URL.createObjectURL(blob), previewUrl };
 }
 
 export type PreparedPdf = {
   file: File;
   blob: Blob;
   blobUrl: string;
+  previewUrl: string;
   filename: string;
 };
 
@@ -83,10 +131,19 @@ export async function preparePdfFromElement(
   element: HTMLElement,
   filename: string,
 ): Promise<PreparedPdf> {
+  if (element.offsetHeight < 40) {
+    throw new Error('Document not ready yet');
+  }
+
   await waitForImages(element);
   const canvas = await renderCanvas(element);
-  const { file, blob, blobUrl } = await canvasToPdfFile(canvas, filename);
-  return { file, blob, blobUrl, filename: file.name };
+
+  if (canvas.width < 10 || canvas.height < 10) {
+    throw new Error('Could not capture document');
+  }
+
+  const { file, blob, blobUrl, previewUrl } = await canvasToPdfFile(canvas, filename);
+  return { file, blob, blobUrl, previewUrl, filename: file.name };
 }
 
 export async function captureElementAsPng(element: HTMLElement, filename: string): Promise<File> {

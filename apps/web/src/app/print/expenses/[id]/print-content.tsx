@@ -116,6 +116,8 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
         captureElementId="expense-capture-root"
         filename={expenseFilename}
         whatsappMessage={whatsappMessage}
+        emailSubject={`Expense report ${expense.number}`}
+        emailBody={whatsappMessage}
       />
 
       <div id="expense-capture-root" className="bg-white">

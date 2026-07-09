@@ -139,6 +139,8 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
         accentClassName="bg-emerald-600 hover:bg-emerald-700"
         whatsappMessage={whatsappMessage}
         whatsappPhone={invoice.customer?.phone ?? undefined}
+        emailSubject={`Receipt for ${invoice.number}`}
+        emailBody={whatsappMessage}
       />
 
       <div id="receipt-capture-root" className="bg-white">
