@@ -1,0 +1,37 @@
+import { NextResponse } from 'next/server';
+import { auth } from '@/auth';
+
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+
+const publicPrefixes = ['/login', '/register', '/api/auth'];
+
+function isPublicPath(pathname: string) {
+  return publicPrefixes.some((prefix) => pathname.startsWith(prefix));
+}
+
+export default auth((req) => {
+  if (LOCAL_MODE) {
+    return NextResponse.next();
+  }
+
+  const { pathname } = req.nextUrl;
+  const isAuthenticated = !!req.auth;
+
+  if (!isAuthenticated && !isPublicPath(pathname)) {
+    const loginUrl = new URL('/login', req.nextUrl.origin);
+    if (pathname !== '/') {
+      loginUrl.searchParams.set('callbackUrl', pathname);
+    }
+    return NextResponse.redirect(loginUrl);
+  }
+
+  if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
+    return NextResponse.redirect(new URL('/dashboard', req.nextUrl.origin));
+  }
+
+  return NextResponse.next();
+});
+
+export const config = {
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|uploads).*)'],
+};

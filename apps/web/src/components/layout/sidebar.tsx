@@ -1,7 +1,8 @@
 'use client';
 
 import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
+import { signOut } from 'next-auth/react';
 import { motion } from 'framer-motion';
 import {
   LayoutDashboard,
@@ -54,15 +55,22 @@ interface SidebarProps {
 
 export function Sidebar({ organizationName }: SidebarProps) {
   const pathname = usePathname();
+  const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
 
+  async function handleSignOut() {
+    await signOut({ redirect: false });
+    router.push('/login');
+    setMobileOpen(false);
+  }
+
   const sidebarContent = (
     <div className="flex h-full flex-col">
       <div className="flex h-14 items-center gap-2 border-b border-sidebar-border px-4">
-        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-primary-foreground font-bold text-sm">
-          FB
+        <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-primary-foreground font-bold text-sm">
+          SF
         </div>
         {!collapsed && (
           <div className="flex flex-col">
@@ -138,6 +146,18 @@ export function Sidebar({ organizationName }: SidebarProps) {
         >
           {theme === 'dark' ? <Sun className="h-4 w-4" /> : <Moon className="h-4 w-4" />}
           {!collapsed && <span>{theme === 'dark' ? 'Light mode' : 'Dark mode'}</span>}
+        </Button>
+        <Button
+          variant="ghost"
+          size="sm"
+          className={cn(
+            'w-full justify-start gap-3 text-muted-foreground hover:text-destructive',
+            collapsed && 'justify-center px-2',
+          )}
+          onClick={() => void handleSignOut()}
+        >
+          <LogOut className="h-4 w-4" />
+          {!collapsed && <span>Sign out</span>}
         </Button>
       </div>
     </div>
