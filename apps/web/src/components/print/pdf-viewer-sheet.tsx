@@ -16,12 +16,15 @@ type Props = {
 
 export function PdfViewerSheet({ prepared, onClose, onWhatsApp, onShareEmail }: Props) {
   const [saving, setSaving] = useState(false);
+  const [saveMessage, setSaveMessage] = useState('');
 
   async function handleSave() {
     if (saving) return;
     setSaving(true);
+    setSaveMessage('');
     try {
-      await savePdfToDevice(prepared.file);
+      const saved = await savePdfToDevice(prepared.file);
+      setSaveMessage(saved ? 'Download started — check your notifications or Files app.' : 'Could not start download. Try Share instead.');
     } finally {
       setSaving(false);
     }
@@ -88,6 +91,7 @@ export function PdfViewerSheet({ prepared, onClose, onWhatsApp, onShareEmail }: 
         <Button type="button" className="mx-auto mt-3 w-full max-w-[900px]" asChild>
           <Link href="/dashboard">Back to Dashboard</Link>
         </Button>
+        {saveMessage ? <p className="mx-auto mt-2 max-w-[900px] text-center text-xs text-slate-400">{saveMessage}</p> : null}
       </div>
     </div>
   );

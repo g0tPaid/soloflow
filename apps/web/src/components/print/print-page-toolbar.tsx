@@ -14,6 +14,11 @@ import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { PdfViewerSheet } from '@/components/print/pdf-viewer-sheet';
 import { cn } from '@/lib/utils';
 
+function prefersBrowserPrint() {
+  if (typeof window === 'undefined') return false;
+  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+}
+
 type Props = {
   backHref: string;
   backLabel?: string;
@@ -86,8 +91,16 @@ export function PrintPageToolbar({
     setError('');
 
     try {
+      if (prefersBrowserPrint()) {
+        window.print();
+        return;
+      }
+
       const prepared = await ensurePdf();
-      await savePdfToDevice(prepared.file);
+      const saved = await savePdfToDevice(prepared.file);
+      if (!saved) {
+        setError('Download did not start. Tap Save PDF again or use Share.');
+      }
     } catch {
       setError('Could not create PDF. Wait for the page to finish loading, then try again.');
     } finally {

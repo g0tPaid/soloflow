@@ -15,6 +15,58 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+function submitPdfDownloadForm(file: File, base64: string) {
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = '/api/pdf/download';
+  form.style.display = 'none';
+
+  const dataInput = document.createElement('input');
+  dataInput.type = 'hidden';
+  dataInput.name = 'data';
+  dataInput.value = base64;
+  form.appendChild(dataInput);
+
+  const nameInput = document.createElement('input');
+  nameInput.type = 'hidden';
+  nameInput.name = 'filename';
+  nameInput.value = file.name;
+  form.appendChild(nameInput);
+
+  document.body.appendChild(form);
+  form.submit();
+  document.body.removeChild(form);
+}
+
+async function saveWithCapacitorFilesystem(file: File, base64: string): Promise<boolean> {
+  try {
+    const { Capacitor } = await import('@capacitor/core');
+    if (!Capacitor.isNativePlatform()) return false;
+
+    const { Filesystem, Directory } = await import('@capacitor/filesystem');
+    const { Share } = await import('@capacitor/share');
+    const safeName = file.name.replace(/[^\w.-]/g, '_');
+
+    const written = await Filesystem.writeFile({
+      path: safeName,
+      data: base64,
+      directory: Directory.Documents,
+      recursive: true,
+    });
+
+    await Share.share({
+      title: safeName,
+      text: `Saved to Documents/${safeName}`,
+      url: written.uri,
+      dialogTitle: 'PDF saved — open or share',
+    });
+    return true;
+  } catch (error) {
+    if ((error as Error).name === 'AbortError') return true;
+    return false;
+  }
+}
+
 async function saveWithCapacitorShare(file: File): Promise<boolean> {
   try {
     const { Capacitor } = await import('@capacitor/core');
@@ -39,13 +91,43 @@ async function saveWithCapacitorShare(file: File): Promise<boolean> {
     });
     return true;
   } catch (error) {
-    if ((error as Error).name === 'AbortError') return false;
+    if ((error as Error).name === 'AbortError') return true;
     return false;
   }
 }
 
-/** Save/share PDF on mobile — anchor download often fails in Capacitor WebView. */
+/** Save PDF — form POST download works in Android WebView where blob URLs are blocked. */
 export async function savePdfToDevice(file: File): Promise<boolean> {
+  const base64 = await fileToBase64(file);
+
+  if (await saveWithCapacitorFilesystem(file, base64)) return true;
+
+  submitPdfDownloadForm(file, base64);
+  return true;
+}
+
+export async function createPdfDownloadUrl(file: File): Promise<string | null> {
+  try {
+    const data = await fileToBase64(file);
+    const response = await fetch('/api/pdf/stash', {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ data, filename: file.name }),
+    });
+    if (!response.ok) return null;
+    const json = (await response.json()) as { downloadUrl?: string };
+    return json.downloadUrl ?? null;
+  } catch {
+    return null;
+  }
+}
+
+// Kept for share fallbacks when form POST is not used.
+export async function savePdfToDeviceWithShareFallback(file: File): Promise<boolean> {
+  const saved = await savePdfToDevice(file);
+  if (saved) return true;
+
   if (await saveWithCapacitorShare(file)) return true;
 
   if (navigator.share) {
@@ -60,21 +142,5 @@ export async function savePdfToDevice(file: File): Promise<boolean> {
     }
   }
 
-  const url = URL.createObjectURL(file);
-  const opened = window.open(url, '_blank', 'noopener,noreferrer');
-  if (opened) {
-    window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-    return true;
-  }
-
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file.name;
-  link.target = '_blank';
-  link.rel = 'noopener';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 60_000);
-  return true;
+  return false;
 }
