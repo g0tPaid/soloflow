@@ -132,11 +132,16 @@ if not exist "android\keystore.properties" (
 )
 
 echo [4/6] Ensuring release signing is configured...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%FLOWBOOKS_ROOT%\scripts\ensure-android-signing.ps1"
-if %ERRORLEVEL% NEQ 0 (
-    echo  Signing setup failed. See messages above.
-    pause
-    exit /b 1
+findstr /C:"signingConfig signingConfigs.release" android\app\build.gradle >nul 2>&1
+if %ERRORLEVEL% EQU 0 (
+    echo   Release signing already configured
+) else (
+    powershell -NoProfile -ExecutionPolicy Bypass -File "%FLOWBOOKS_ROOT%\scripts\ensure-android-signing.ps1"
+    if %ERRORLEVEL% NEQ 0 (
+        echo  Signing setup failed. See messages above.
+        pause
+        exit /b 1
+    )
 )
 
 echo [5/6] Syncing Capacitor with production URL...

@@ -11,12 +11,13 @@ if (-not (Test-Path $appGradle)) {
   exit 1
 }
 if (-not (Test-Path $propsFile)) {
-  Write-Host "Missing $propsFile — create it first."
+  Write-Host "Missing $propsFile - create it first."
   exit 1
 }
 
 $content = Get-Content -Raw $appGradle
 $changed = $false
+$nl = [Environment]::NewLine
 
 if ($content -notmatch 'keystorePropertiesFile') {
   $loader = @'
@@ -46,18 +47,14 @@ if ($content -notmatch 'signingConfigs\s*\{') {
     }
 
 '@
-  $content = [regex]::Replace($content, '(android\s*\{)', "`$1`r`n$signingConfigs", 1)
+  $content = [regex]::Replace($content, '(android\s*\{)', ('$1' + $nl + $signingConfigs), 1)
   $changed = $true
   Write-Host '  Added signingConfigs.release'
 }
 
 if ($content -match 'release\s*\{' -and $content -notmatch 'signingConfig\s+signingConfigs\.release') {
-  $content = [regex]::Replace(
-    $content,
-    '(release\s*\{)',
-    "`$1`r`n            signingConfig signingConfigs.release",
-    1
-  )
+  $patch = '$1' + $nl + '            signingConfig signingConfigs.release'
+  $content = [regex]::Replace($content, '(release\s*\{)', $patch, 1)
   $changed = $true
   Write-Host '  Wired release buildType to signingConfigs.release'
 }
