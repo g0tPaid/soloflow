@@ -1,14 +1,37 @@
 import html2canvas from 'html2canvas';
 
 async function renderCanvas(element: HTMLElement) {
+  let scale = Math.min(1.5, window.devicePixelRatio || 1);
+
+  for (let attempt = 0; attempt < 3; attempt += 1) {
+    const canvas = await html2canvas(element, {
+      scale,
+      useCORS: true,
+      allowTaint: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+      scrollX: 0,
+      scrollY: -window.scrollY,
+      windowWidth: element.scrollWidth,
+      height: element.scrollHeight,
+      width: element.scrollWidth,
+    });
+
+    if (canvas.height <= 14000 || scale <= 0.5) return canvas;
+    scale *= 0.75;
+  }
+
   return html2canvas(element, {
-    scale: Math.min(2, window.devicePixelRatio || 1),
+    scale: 0.5,
     useCORS: true,
     allowTaint: true,
     backgroundColor: '#ffffff',
     logging: false,
+    scrollX: 0,
+    scrollY: -window.scrollY,
     windowWidth: element.scrollWidth,
-    windowHeight: element.scrollHeight,
+    height: element.scrollHeight,
+    width: element.scrollWidth,
   });
 }
 
@@ -29,7 +52,41 @@ export async function waitForImages(root: HTMLElement, timeoutMs = 8000) {
         }),
     ),
   );
-  await new Promise((resolve) => setTimeout(resolve, 300));
+  await new Promise((resolve) => setTimeout(resolve, 400));
+}
+
+async function canvasToPdfFile(canvas: HTMLCanvasElement, filename: string) {
+  const { jsPDF } = await import('jspdf');
+  const width = canvas.width;
+  const height = canvas.height;
+  const pdf = new jsPDF({
+    orientation: width > height ? 'landscape' : 'portrait',
+    unit: 'px',
+    format: [width, height],
+    compress: true,
+  });
+  pdf.addImage(canvas.toDataURL('image/jpeg', 0.88), 'JPEG', 0, 0, width, height);
+  const blob = pdf.output('blob');
+  const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
+  const file = new File([blob], safeName, { type: 'application/pdf' });
+  return { file, blob, blobUrl: URL.createObjectURL(blob) };
+}
+
+export type PreparedPdf = {
+  file: File;
+  blob: Blob;
+  blobUrl: string;
+  filename: string;
+};
+
+export async function preparePdfFromElement(
+  element: HTMLElement,
+  filename: string,
+): Promise<PreparedPdf> {
+  await waitForImages(element);
+  const canvas = await renderCanvas(element);
+  const { file, blob, blobUrl } = await canvasToPdfFile(canvas, filename);
+  return { file, blob, blobUrl, filename: file.name };
 }
 
 export async function captureElementAsPng(element: HTMLElement, filename: string): Promise<File> {
@@ -47,36 +104,15 @@ export async function captureElementAsPng(element: HTMLElement, filename: string
 }
 
 export async function captureElementAsPdf(element: HTMLElement, filename: string): Promise<File> {
-  const { jsPDF } = await import('jspdf');
-  const canvas = await renderCanvas(element);
-  const width = canvas.width;
-  const height = canvas.height;
-  const pdf = new jsPDF({
-    orientation: width > height ? 'landscape' : 'portrait',
-    unit: 'px',
-    format: [width, height],
-  });
-  pdf.addImage(canvas.toDataURL('image/jpeg', 0.92), 'JPEG', 0, 0, width, height);
-  const blob = pdf.output('blob');
-  return new File([blob], filename.endsWith('.pdf') ? filename : `${filename}.pdf`, {
-    type: 'application/pdf',
-  });
+  const prepared = await preparePdfFromElement(element, filename);
+  return prepared.file;
 }
 
-export async function downloadElementAsPdf(element: HTMLElement, filename: string): Promise<void> {
-  await waitForImages(element);
-  const file = await captureElementAsPdf(element, filename);
-
-  const url = URL.createObjectURL(file);
-  const link = document.createElement('a');
-  link.href = url;
-  link.download = file.name;
-  link.style.display = 'none';
-  document.body.appendChild(link);
-  link.click();
-  link.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+export function revokePreparedPdf(prepared: PreparedPdf) {
+  URL.revokeObjectURL(prepared.blobUrl);
 }
+
+export { savePdfToDevice } from '@/lib/save-pdf-to-device';
 
 export function loadInvoiceCaptureElement(printUrl: string): Promise<{
   element: HTMLElement;

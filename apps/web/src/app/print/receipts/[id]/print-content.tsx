@@ -127,6 +127,7 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
   const paidDate = formatDate(invoice.updatedAt || invoice.issueDate);
 
   const receiptFilename = `receipt-${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+  const whatsappMessage = `Payment receipt for invoice ${invoice.number} — ${formatCurrency(Number(invoice.total), currency)}. Thank you!`;
 
   return (
     <div className="receipt-print mx-auto min-h-screen w-full max-w-[760px] overflow-x-hidden bg-white text-slate-800">
@@ -136,6 +137,8 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
         captureElementId="receipt-capture-root"
         filename={receiptFilename}
         accentClassName="bg-emerald-600 hover:bg-emerald-700"
+        whatsappMessage={whatsappMessage}
+        whatsappPhone={invoice.customer?.phone ?? undefined}
       />
 
       <div id="receipt-capture-root" className="bg-white">

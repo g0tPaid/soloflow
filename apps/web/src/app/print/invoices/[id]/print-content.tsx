@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useMemo, useState } from 'react';
+import { use, useEffect, useMemo } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-import { Globe, Mail, Phone, Plane, Ship, ArrowRight, MessageCircle } from 'lucide-react';
+import { Globe, Mail, Phone, Plane, Ship, ArrowRight } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/utils';
@@ -17,8 +17,6 @@ import {
 } from '@/lib/organization-branding';
 import { InstagramQrBadge } from '@/components/shared/instagram-qr-badge';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
-import { captureElementAsPdf } from '@/lib/capture-element-image';
-import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
 
 const RED = '#DC2626';
@@ -100,11 +98,8 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const orgFromUrl = searchParams.get('org');
-  const shareMode = searchParams.get('share');
   const sharePhone = searchParams.get('phone');
   const embed = searchParams.get('embed') === '1';
-  const [shareStatus, setShareStatus] = useState<'idle' | 'preparing' | 'done' | 'error'>('idle');
-  const [sharing, setSharing] = useState(false);
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
 
@@ -162,29 +157,6 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
       img.src = src;
     }
   }, [invoice, orgDetail]);
-
-  async function handleWhatsAppShare() {
-    if (!invoice || sharing) return;
-
-    setSharing(true);
-    setShareStatus('preparing');
-
-    try {
-      const element = document.getElementById('invoice-capture-root');
-      if (!element) throw new Error('Invoice not ready');
-
-      const safeName = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const file = await captureElementAsPdf(element, `${safeName}.pdf`);
-      const message = buildWhatsAppMessage(invoice);
-      const result = await shareInvoiceFile(file, message, sharePhone ?? undefined);
-
-      setShareStatus(result === 'fallback' ? 'done' : result === 'shared' ? 'done' : 'error');
-    } catch {
-      setShareStatus('error');
-    } finally {
-      setSharing(false);
-    }
-  }
 
   if (sessionStatus === 'loading' || (!isReady && !orgFromUrl)) {
     return <p className="p-8 text-center text-sm text-gray-500">Preparing invoice…</p>;
@@ -257,6 +229,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   ].filter(Boolean) as { icon: typeof Globe; text: string }[];
 
   const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+  const whatsappMessage = buildWhatsAppMessage(invoice);
 
   return (
     <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
@@ -266,26 +239,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
           backLabel="Back to invoice"
           captureElementId="invoice-capture-root"
           filename={safeFilename}
-        >
-          {shareMode === 'whatsapp' && (
-            <div className="pt-1">
-              <button
-                type="button"
-                disabled={sharing}
-                onClick={() => void handleWhatsAppShare()}
-                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-70"
-              >
-                <MessageCircle className="h-4 w-4" />
-                {sharing ? 'Preparing PDF…' : 'Tap to send on WhatsApp'}
-              </button>
-              {shareStatus === 'error' && (
-                <p className="mt-2 text-sm text-red-700">
-                  Could not attach PDF. Try again, or use Download PDF above.
-                </p>
-              )}
-            </div>
-          )}
-        </PrintPageToolbar>
+          whatsappMessage={whatsappMessage}
+          whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}
+        />
       )}
 
       <div id="invoice-capture-root" className="bg-white">

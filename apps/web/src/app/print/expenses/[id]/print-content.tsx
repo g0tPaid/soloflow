@@ -106,6 +106,7 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
   const customerAddress = formatAddressLines(expense.customer?.address ?? undefined);
 
   const expenseFilename = `expense-${expense.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+  const whatsappMessage = `Expense report for invoice ${expense.number} — profit ${formatCurrency(profit, currency)}.`;
 
   return (
     <div className="expense-print mx-auto min-h-screen w-full max-w-[900px] overflow-x-hidden bg-white text-slate-800">
@@ -114,6 +115,7 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
         backLabel="Back to expenses"
         captureElementId="expense-capture-root"
         filename={expenseFilename}
+        whatsappMessage={whatsappMessage}
       />
 
       <div id="expense-capture-root" className="bg-white">
