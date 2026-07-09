@@ -77,7 +77,13 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                 filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
                 size="lg"
               />
-              <ShareInvoiceWhatsAppButton invoice={invoice} size="lg" fullWidth />
+              <ShareInvoiceWhatsAppButton
+                invoice={invoice}
+                invoiceId={id}
+                organizationId={organizationId}
+                size="lg"
+                fullWidth
+              />
             </div>
           </CardContent>
         </Card>
@@ -102,7 +108,12 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                 organizationId={organizationId}
                 filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
               />
-              <ShareInvoiceWhatsAppButton invoice={invoice} fullWidth />
+              <ShareInvoiceWhatsAppButton
+                invoice={invoice}
+                invoiceId={id}
+                organizationId={organizationId}
+                fullWidth
+              />
             </>
           )}
           {invoice?.status === 'PAID' && organizationId && (

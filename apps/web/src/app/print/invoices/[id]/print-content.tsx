@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useMemo } from 'react';
+import { use, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-import { Globe, Mail, Phone, Plane, Ship, ArrowRight } from 'lucide-react';
+import { Globe, Mail, Phone, Plane, Ship, ArrowRight, ArrowLeft } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/utils';
@@ -16,6 +16,8 @@ import {
   resolveImageSrc,
 } from '@/lib/organization-branding';
 import { InstagramQrBadge } from '@/components/shared/instagram-qr-badge';
+import { captureElementAsPng } from '@/lib/capture-element-image';
+import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
 
 const RED = '#DC2626';
 const RED_LIGHT = '#FEE2E2';
@@ -96,6 +98,10 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const orgFromUrl = searchParams.get('org');
+  const shareMode = searchParams.get('share');
+  const sharePhone = searchParams.get('phone');
+  const sharedRef = useRef(false);
+  const [shareStatus, setShareStatus] = useState<'idle' | 'preparing' | 'done' | 'error'>('idle');
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
 
@@ -153,6 +159,57 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
       img.src = src;
     }
   }, [invoice, orgDetail]);
+
+  useEffect(() => {
+    if (shareMode !== 'whatsapp' || !invoice || sharedRef.current) return;
+
+    let cancelled = false;
+
+    async function shareOnWhatsApp() {
+      setShareStatus('preparing');
+      await document.fonts.ready;
+      await new Promise((resolve) => setTimeout(resolve, 900));
+      if (cancelled) return;
+
+      const element = document.getElementById('invoice-capture-root');
+      if (!element) {
+        setShareStatus('error');
+        return;
+      }
+
+      sharedRef.current = true;
+
+      try {
+        const safeName = invoice!.number.replace(/[^a-zA-Z0-9-_]/g, '_');
+        const file = await captureElementAsPng(element, `${safeName}.png`);
+        const message = buildWhatsAppMessage(invoice!);
+        const shareData: ShareData = { files: [file], text: message };
+
+        if (navigator.share && (!navigator.canShare || navigator.canShare(shareData))) {
+          await navigator.share(shareData);
+          setShareStatus('done');
+          return;
+        }
+
+        const text = encodeURIComponent(message);
+        const url = sharePhone
+          ? `https://wa.me/${sharePhone}?text=${text}`
+          : `https://wa.me/?text=${text}`;
+        window.location.href = url;
+        setShareStatus('done');
+      } catch (error) {
+        if ((error as Error).name !== 'AbortError') {
+          setShareStatus('error');
+        }
+      }
+    }
+
+    void shareOnWhatsApp();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [shareMode, invoice, sharePhone]);
 
   if (sessionStatus === 'loading' || (!isReady && !orgFromUrl)) {
     return <p className="p-8 text-center text-sm text-gray-500">Preparing invoice…</p>;
@@ -227,6 +284,31 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   return (
     <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
       <div className="no-print border-b border-red-100 bg-red-50 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] text-sm sm:px-6">
+        <div className="mb-3 flex flex-wrap items-center gap-3">
+          <Link
+            href={`/invoices/${id}`}
+            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 font-medium text-red-700 shadow-sm"
+          >
+            <ArrowLeft className="h-4 w-4" />
+            Back to invoice
+          </Link>
+          <Link
+            href="/dashboard"
+            className="inline-flex items-center rounded-lg px-3 py-1.5 text-slate-600 hover:text-slate-900"
+          >
+            Home
+          </Link>
+        </div>
+
+        {shareMode === 'whatsapp' && shareStatus === 'preparing' && (
+          <p className="mb-2 font-medium text-slate-900">Preparing invoice image for WhatsApp…</p>
+        )}
+        {shareMode === 'whatsapp' && shareStatus === 'error' && (
+          <p className="mb-2 text-red-700">
+            Could not attach image. Use Save as PDF below, or tap Share on WhatsApp again.
+          </p>
+        )}
+
         <p className="font-semibold text-slate-900">Save this invoice as a PDF</p>
         <p className="mt-1 text-slate-600">
           Click <strong>Save as PDF</strong> below, then choose <strong>Save as PDF</strong> or{' '}
@@ -241,6 +323,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         </button>
       </div>
 
+      <div id="invoice-capture-root" className="bg-white">
       <TopWave />
 
       <div className="relative px-4 pb-2 pt-2 sm:px-10">
@@ -605,6 +688,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
       )}
 
       {!footerContacts.length && <div className="pb-6" />}
+      </div>
 
       <style jsx global>{`
         @media print {

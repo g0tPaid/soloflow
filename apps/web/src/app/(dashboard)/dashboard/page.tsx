@@ -17,6 +17,7 @@ import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import { ORG_STORAGE_KEY, LEGACY_ORG_STORAGE_KEY } from '@/hooks/use-organization';
+import { MobileHubActions } from '@/components/dashboard/mobile-hub-actions';
 
 interface Metrics {
   revenue: number;
@@ -81,6 +82,10 @@ export default function DashboardPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your business finances</p>
+      </div>
+
+      <div className="lg:hidden">
+        <MobileHubActions />
       </div>
 
       {!orgId && (

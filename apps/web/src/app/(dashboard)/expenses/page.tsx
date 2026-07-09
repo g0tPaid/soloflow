@@ -40,8 +40,8 @@ export default function ExpensesPage() {
         <CardContent className="py-4 text-sm text-orange-950">
           <p className="font-medium">On phone: tap an invoice below</p>
           <p className="mt-1 text-orange-900/80">
-            Enter purchase costs and actual shipping, then save. Use the bottom{' '}
-            <strong>+ Expenses</strong> button anytime.
+            Enter purchase costs and actual shipping, then save. Open <strong>All Expenses</strong> from
+            the home screen anytime.
           </p>
         </CardContent>
       </Card>

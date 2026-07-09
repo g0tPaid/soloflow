@@ -8,7 +8,7 @@ function digitsOnly(phone: string) {
   return phone.replace(/\D/g, '');
 }
 
-function buildWhatsAppMessage(invoice: {
+export function buildWhatsAppMessage(invoice: {
   number: string;
   total: string | number;
   currency: string;
@@ -27,7 +27,7 @@ function buildWhatsAppMessage(invoice: {
     `Please find your invoice *${invoice.number}* for *${amount}*.`,
     due ? `Due date: ${due}` : null,
     '',
-    'I am attaching the PDF invoice here. Thank you!',
+    'Invoice attached. Thank you!',
   ];
 
   return lines.filter(Boolean).join('\n');
@@ -35,6 +35,8 @@ function buildWhatsAppMessage(invoice: {
 
 export function ShareInvoiceWhatsAppButton({
   invoice,
+  invoiceId,
+  organizationId,
   size = 'default',
   className,
   fullWidth,
@@ -46,6 +48,8 @@ export function ShareInvoiceWhatsAppButton({
     dueDate?: string | null;
     customer?: { name?: string | null; phone?: string | null } | null;
   };
+  invoiceId: string;
+  organizationId?: string;
   size?: 'default' | 'lg' | 'sm';
   className?: string;
   fullWidth?: boolean;
@@ -53,18 +57,18 @@ export function ShareInvoiceWhatsAppButton({
   const phone = invoice.customer?.phone?.trim()
     ? digitsOnly(invoice.customer.phone)
     : '';
-  const message = buildWhatsAppMessage(invoice);
   const hasPhone = phone.length >= 8;
 
   function handleShare() {
-    const text = encodeURIComponent(message);
-    const url = hasPhone
-      ? `https://wa.me/${phone}?text=${text}`
-      : `https://wa.me/?text=${text}`;
-    const opened = window.open(url, '_blank', 'noopener,noreferrer');
-    if (!opened) {
-      window.location.href = url;
-    }
+    if (!organizationId) return;
+
+    const params = new URLSearchParams({
+      org: organizationId,
+      share: 'whatsapp',
+    });
+    if (hasPhone) params.set('phone', phone);
+
+    window.location.href = `/print/invoices/${invoiceId}?${params.toString()}`;
   }
 
   return (
@@ -73,6 +77,7 @@ export function ShareInvoiceWhatsAppButton({
         type="button"
         size={size}
         onClick={handleShare}
+        disabled={!organizationId}
         className={cn(
           'gap-2 bg-[#25D366] text-white hover:bg-[#1ebe57] hover:text-white',
           fullWidth && 'w-full',
@@ -84,8 +89,8 @@ export function ShareInvoiceWhatsAppButton({
       </Button>
       <p className="text-[11px] text-muted-foreground sm:text-right">
         {hasPhone
-          ? 'Opens WhatsApp with your customer — attach the PDF after download'
-          : 'Add a phone number on the customer to message them directly'}
+          ? 'Opens invoice image ready to send on WhatsApp'
+          : 'Add customer phone to message them directly — image still attaches'}
       </p>
     </div>
   );
