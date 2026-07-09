@@ -10,16 +10,16 @@ function isHostedAppHost(host: string): boolean {
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
     const host = window.location.hostname;
-    const isLocalDev =
-      LOCAL_MODE || host === 'localhost' || host === '127.0.0.1' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+    const isLanIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+    const isLocalHost = host === 'localhost' || host === '127.0.0.1';
 
-    // Hosted / production web: same-origin proxy avoids phone CORS issues
-    if (!isLocalDev) {
+    // Railway, custom domains, etc. — always same-origin proxy (LOCAL_MODE must not override this)
+    if (!isLocalHost && !isLanIp) {
       return '/api/v1';
     }
 
-    // Phone on same Wi‑Fi as PC: web is http://192.168.x.x:3000, API on :3001
-    if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
+    // Phone on same Wi‑Fi as dev PC
+    if (isLanIp) {
       return `http://${host}:3001/api/v1`;
     }
   }
@@ -43,6 +43,32 @@ function connectionHelpMessage(cause?: string): string {
     return 'Cannot connect to SoloFlow API. Set web API_URL on Railway and redeploy the web service.';
   }
   return 'Cannot connect to SoloFlow. Close SoloFlow, double-click START-SOLOFLOW.bat on your Desktop, wait for the browser to open, then try again.';
+}
+
+function isBrowserHostedApp(): boolean {
+  if (typeof window === 'undefined') return false;
+  const host = window.location.hostname;
+  const isLanIp = /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+  const isLocalHost = host === 'localhost' || host === '127.0.0.1';
+  return !isLocalHost && !isLanIp;
+}
+
+async function browserJsonRequest<T>(url: string, init: RequestInit): Promise<T> {
+  let res: Response;
+  try {
+    res = await fetch(url, { credentials: 'include', ...init });
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : undefined;
+    throw new Error(connectionHelpMessage(cause));
+  }
+  if (!res.ok) {
+    const body = await res.json().catch(() => ({ message: res.statusText }));
+    const message = Array.isArray(body.message)
+      ? body.message.join(', ')
+      : body.message || res.statusText;
+    throw new Error(message || `API error: ${res.status}`);
+  }
+  return res.json();
 }
 
 interface FetchOptions extends RequestInit {
@@ -246,25 +272,11 @@ export const api = {
   auth: {
     register: async (data: { name: string; email: string; password: string }) => {
       if (typeof window !== 'undefined') {
-        let res: Response;
-        try {
-          res = await fetch('/api/auth/register', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(data),
-          });
-        } catch (err) {
-          const cause = err instanceof Error ? err.message : undefined;
-          throw new Error(connectionHelpMessage(cause));
-        }
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({ message: res.statusText }));
-          const message = Array.isArray(body.message)
-            ? body.message.join(', ')
-            : body.message || res.statusText;
-          throw new Error(message || `API error: ${res.status}`);
-        }
-        return res.json();
+        return browserJsonRequest('/api/auth/register', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
       }
       return apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) });
     },
@@ -293,8 +305,16 @@ export const api = {
         logo?: string | null;
         branding?: OrganizationBranding;
       },
-    ) =>
-      apiFetch<Organization>('/organizations', { method: 'POST', body: JSON.stringify(data), token }),
+    ) => {
+      if (isBrowserHostedApp()) {
+        return browserJsonRequest<Organization>('/api/organizations', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      }
+      return apiFetch<Organization>('/organizations', { method: 'POST', body: JSON.stringify(data), token });
+    },
     update: (
       token: string,
       organizationId: string,
