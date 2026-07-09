@@ -23,11 +23,11 @@ import {
   Sun,
   LogOut,
   ChevronLeft,
-  ArrowLeft,
 } from 'lucide-react';
 import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
+import { ModuleBackLink, MobileModuleBackBar } from '@/components/layout/module-back-nav';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
@@ -165,17 +165,17 @@ export function TopBar() {
 
   return (
     <header className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b bg-background/95 backdrop-blur px-3 pt-[env(safe-area-inset-top)] lg:px-6 lg:ml-60 lg:pt-0">
-      <Button variant="ghost" size="sm" className="shrink-0 gap-1 px-2 lg:hidden" asChild>
-        <Link href="/dashboard" aria-label="Back to home">
-          <ArrowLeft className="h-4 w-4" />
-          Home
-        </Link>
-      </Button>
+      <div className="lg:hidden">
+        <ModuleBackLink />
+      </div>
     </header>
   );
 }
 
 export function AppShell({ children, organizationName }: { children: React.ReactNode; organizationName?: string }) {
+  const pathname = usePathname();
+  const isHome = pathname === '/dashboard';
+
   return (
     <div className="min-h-screen bg-background">
       <aside
@@ -187,8 +187,9 @@ export function AppShell({ children, organizationName }: { children: React.React
       </aside>
       <div className="lg:ml-60">
         <TopBar />
-        <main className="p-4 pb-6 lg:p-6">{children}</main>
+        <main className={cn('p-4 lg:p-6', isHome ? 'pb-6' : 'pb-24 lg:pb-6')}>{children}</main>
       </div>
+      <MobileModuleBackBar />
     </div>
   );
 }
