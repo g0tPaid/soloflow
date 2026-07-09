@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
-import { signIn, useSession } from 'next-auth/react';
+import { getSession, signIn, useSession } from 'next-auth/react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -117,13 +117,14 @@ export default function OnboardingPage() {
   };
 
   async function resolveAccessToken(): Promise<string> {
-    if (session?.accessToken) return session.accessToken;
+    const freshSession = (await getSession()) ?? session;
+    if (freshSession?.accessToken) return freshSession.accessToken;
     if (LOCAL_MODE) {
       const result = await api.auth.bootstrap();
       await signIn('local', { redirect: false });
       return result.token;
     }
-    throw new Error('Please sign in first.');
+    throw new Error('Your session expired. Please sign out and sign in again, then retry.');
   }
 
   const onSubmit = async (data: CreateOrganizationInput) => {

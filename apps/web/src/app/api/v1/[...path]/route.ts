@@ -1,14 +1,16 @@
 import { NextRequest, NextResponse } from 'next/server';
+import { getServerApiBaseUrl } from '@/lib/server-api-url';
+
+export const runtime = 'nodejs';
+export const dynamic = 'force-dynamic';
+export const maxDuration = 60;
 
 function getApiOrigin(): string | null {
-  const direct = process.env.API_URL?.replace(/\/$/, '');
-  if (direct) return direct;
-
-  const publicUrl = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
-  if (publicUrl?.endsWith('/api/v1')) {
-    return publicUrl.slice(0, -'/api/v1'.length);
+  const base = getServerApiBaseUrl();
+  if (base.endsWith('/api/v1')) {
+    return base.slice(0, -'/api/v1'.length);
   }
-  return publicUrl ?? null;
+  return base.replace(/\/$/, '') || null;
 }
 
 async function proxyRequest(request: NextRequest, path: string[]) {

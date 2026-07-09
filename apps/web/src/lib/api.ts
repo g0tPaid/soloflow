@@ -1,38 +1,43 @@
 import type { CreateInvoiceInput, UpdateInvoiceInput, UpdateExpenseCostsInput } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 
+const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+
 function isHostedAppHost(host: string): boolean {
   return host.includes('railway.app') || host.includes('vercel.app');
 }
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    // Hosted web proxies /api/v1 to the API service (works on phone + desktop)
-    if (isHostedAppHost(host)) {
+    // Hosted app: always use same-origin proxy (phone, custom domain, Railway URL)
+    if (!LOCAL_MODE) {
       return '/api/v1';
     }
+
+    const host = window.location.hostname;
     // Phone on same Wi‑Fi as PC: web is http://192.168.x.x:3000, API on :3001
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
       return `http://${host}:3001/api/v1`;
     }
   }
 
-  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
-  if (configured) return configured;
-
+  // Server-side (NextAuth, route handlers): runtime API_URL is authoritative on Railway
   const apiUrl = process.env.API_URL?.replace(/\/$/, '');
   if (apiUrl) return `${apiUrl}/api/v1`;
+
+  const configured = process.env.NEXT_PUBLIC_API_URL?.replace(/\/$/, '');
+  if (configured) return configured;
 
   return 'http://localhost:3001/api/v1';
 }
 
-function connectionHelpMessage(): string {
-  if (typeof window !== 'undefined') {
-    const host = window.location.hostname;
-    if (host.includes('railway.app') || host.includes('vercel.app')) {
-      return 'Cannot connect to SoloFlow API. Check Railway: web NEXT_PUBLIC_API_URL and api CORS_ORIGIN, then redeploy both services.';
-    }
+function connectionHelpMessage(cause?: string): string {
+  if (!LOCAL_MODE) {
+    const hint = cause ? ` (${cause})` : '';
+    return `Cannot reach SoloFlow API${hint}. In Railway, set web API_URL to your api service URL, then redeploy the web service.`;
+  }
+  if (typeof window !== 'undefined' && isHostedAppHost(window.location.hostname)) {
+    return 'Cannot connect to SoloFlow API. Set web API_URL on Railway and redeploy the web service.';
   }
   return 'Cannot connect to SoloFlow. Close SoloFlow, double-click START-SOLOFLOW.bat on your Desktop, wait for the browser to open, then try again.';
 }
@@ -56,8 +61,9 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
   let res: Response;
   try {
     res = await fetch(`${resolveApiBaseUrl()}${endpoint}`, { headers, ...rest });
-  } catch {
-    throw new Error(connectionHelpMessage());
+  } catch (err) {
+    const cause = err instanceof Error ? err.message : undefined;
+    throw new Error(connectionHelpMessage(cause));
   }
 
   if (!res.ok) {
@@ -235,8 +241,30 @@ export interface Organization {
 
 export const api = {
   auth: {
-    register: (data: { name: string; email: string; password: string }) =>
-      apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) }),
+    register: async (data: { name: string; email: string; password: string }) => {
+      if (typeof window !== 'undefined' && !LOCAL_MODE) {
+        let res: Response;
+        try {
+          res = await fetch('/api/auth/register', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(data),
+          });
+        } catch (err) {
+          const cause = err instanceof Error ? err.message : undefined;
+          throw new Error(connectionHelpMessage(cause));
+        }
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({ message: res.statusText }));
+          const message = Array.isArray(body.message)
+            ? body.message.join(', ')
+            : body.message || res.statusText;
+          throw new Error(message || `API error: ${res.status}`);
+        }
+        return res.json();
+      }
+      return apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) });
+    },
     login: (data: { email: string; password: string }) =>
       apiFetch<{ user: { id: string; email: string; name: string }; token: string }>(
         '/auth/login',

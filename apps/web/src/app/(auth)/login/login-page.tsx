@@ -57,8 +57,8 @@ export default function LoginPage() {
             ? '/dashboard'
             : callbackUrl;
       router.push(destination);
-    } catch {
-      router.push('/onboarding');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Cannot reach SoloFlow API. Try again in a moment.');
     } finally {
       setLoading(false);
     }
