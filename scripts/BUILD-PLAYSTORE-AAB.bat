@@ -154,6 +154,14 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo [6/6] Building signed release AAB...
 set "GRADLE_USER_HOME=%USERPROFILE%\.gradle"
+if not exist "%USERPROFILE%\.gradle\local-android-maven\com\android\tools\build\builder\8.7.2\builder-8.7.2.jar" (
+    echo.
+    echo  Android libraries not cached yet.
+    echo  Run DOWNLOAD-ANDROID-LIBS.bat on your Desktop first ^(20-60 min, VPN off^).
+    echo.
+    pause
+    exit /b 1
+)
 call "%FLOWBOOKS_ROOT%\scripts\fix-gradle-cache.bat"
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
   "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }; $gw = 'android\gradle\wrapper\gradle-wrapper.properties'; if (Test-Path $gw) { (Get-Content $gw -Raw) -replace 'networkTimeout=\d+', 'networkTimeout=600000' | Set-Content $gw -NoNewline }"
