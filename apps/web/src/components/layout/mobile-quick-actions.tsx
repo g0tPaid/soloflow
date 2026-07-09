@@ -44,13 +44,7 @@ export function MobileQuickActions() {
       aria-label="Quick actions"
       className="pointer-events-none fixed inset-x-0 bottom-0 z-40 lg:hidden"
     >
-      <div
-        className="pointer-events-auto mx-auto flex max-w-lg items-end justify-center gap-4 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3"
-        style={{
-          background:
-            'linear-gradient(to top, rgba(255,255,255,0.96) 55%, rgba(255,255,255,0))',
-        }}
-      >
+      <div className="pointer-events-auto mx-auto flex max-w-lg items-end justify-center gap-4 px-4 pb-[max(0.75rem,env(safe-area-inset-bottom))] pt-3">
         {ACTIONS.map((action) => {
           const Icon = action.icon;
           const active = action.activeMatch(pathname);
@@ -68,7 +62,7 @@ export function MobileQuickActions() {
                   'flex h-[58px] w-[58px] items-center justify-center bg-gradient-to-br text-white shadow-lg transition',
                   'active:scale-95',
                   action.className,
-                  active && 'ring-2 ring-offset-2 ring-black/10',
+                  active && 'ring-2 ring-white/30',
                 )}
                 style={{ borderRadius: '28%' }}
               >
