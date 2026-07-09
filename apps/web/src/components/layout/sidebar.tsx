@@ -25,7 +25,7 @@ import {
   ChevronLeft,
   ArrowLeft,
 } from 'lucide-react';
-import { NAV_MODULES } from '@flowbooks/shared';
+import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
