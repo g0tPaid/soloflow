@@ -10,6 +10,7 @@ import { ProductForm } from '@/components/products/product-form';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { formatCurrency } from '@/lib/utils';
+import { resolveImageSrc } from '@/lib/organization-branding';
 
 export default function ProductsPage() {
   const { data: session, status } = useSession();
@@ -94,7 +95,7 @@ export default function ProductsPage() {
                 {product.imageUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
                   <img
-                    src={product.imageUrl}
+                    src={resolveImageSrc(product.imageUrl)}
                     alt=""
                     className="h-14 w-14 rounded-lg border object-cover"
                   />

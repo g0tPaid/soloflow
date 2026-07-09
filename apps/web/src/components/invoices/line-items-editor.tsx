@@ -11,6 +11,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 
 import { ImageUploadField } from '@/components/shared/image-upload-field';
+import { resolveImageSrc } from '@/lib/organization-branding';
 
 import { formatCurrency } from '@/lib/utils';
 
@@ -174,19 +175,12 @@ export function LineItemsEditor({
             <div className="flex items-center gap-3">
 
               {row.imageUrl && (
-
                 // eslint-disable-next-line @next/next/no-img-element
-
                 <img
-
-                  src={row.imageUrl}
-
+                  src={resolveImageSrc(row.imageUrl)}
                   alt=""
-
                   className="h-12 w-12 rounded-md border object-cover"
-
                 />
-
               )}
 
               <p className="font-medium">{formatCurrency(calcLineTotal(row), currency)}</p>

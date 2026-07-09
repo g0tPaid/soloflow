@@ -225,8 +225,8 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   ].filter(Boolean) as { icon: typeof Globe; text: string }[];
 
   return (
-    <div className="invoice-print mx-auto min-h-screen max-w-[820px] bg-white text-slate-800">
-      <div className="no-print border-b border-red-100 bg-red-50 px-6 py-4 text-sm">
+    <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
+      <div className="no-print border-b border-red-100 bg-red-50 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] text-sm sm:px-6">
         <p className="font-semibold text-slate-900">Save this invoice as a PDF</p>
         <p className="mt-1 text-slate-600">
           Click <strong>Save as PDF</strong> below, then choose <strong>Save as PDF</strong> or{' '}
@@ -243,7 +243,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
 
       <TopWave />
 
-      <div className="relative px-10 pb-2 pt-2">
+      <div className="relative px-4 pb-2 pt-2 sm:px-10">
         {/* Instagram QR — top right */}
         <div className="absolute right-6 top-1 z-10 print:right-4 print:top-0">
           <InstagramQrBadge url={instagramUrl} />
@@ -430,7 +430,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         )}
 
         {/* Line items */}
-        <table className="mb-8 w-full border-collapse overflow-hidden rounded-xl text-sm shadow-sm ring-1 ring-slate-100">
+        <table className="mb-8 w-full table-fixed border-collapse overflow-hidden rounded-xl text-sm shadow-sm ring-1 ring-slate-100">
           <thead>
             <tr style={{ backgroundColor: RED }} className="text-left text-white">
               <th className="px-4 py-3.5 text-xs font-bold uppercase tracking-wider w-16">

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect, useRef } from 'react';
+import { use } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
@@ -18,7 +18,6 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const { id } = use(params);
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
-  const autoOpenedPrint = useRef(false);
   const { data: session } = useSession();
   const { organizationId, businessCurrency, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
@@ -59,12 +58,6 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     if (!organizationId) return;
     openPrintUrl(`/print/receipts/${id}?org=${encodeURIComponent(organizationId)}`);
   }
-
-  useEffect(() => {
-    if (!isNew || !invoice || !organizationId || autoOpenedPrint.current) return;
-    autoOpenedPrint.current = true;
-    openPrintUrl(`/print/invoices/${id}?org=${encodeURIComponent(organizationId)}`);
-  }, [isNew, invoice, organizationId, id]);
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">

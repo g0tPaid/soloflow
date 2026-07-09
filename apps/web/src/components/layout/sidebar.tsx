@@ -51,14 +51,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
 
 interface SidebarProps {
   organizationName?: string;
+  mobileOpen: boolean;
+  setMobileOpen: (open: boolean) => void;
 }
 
-export function Sidebar({ organizationName }: SidebarProps) {
+export function Sidebar({ organizationName, mobileOpen, setMobileOpen }: SidebarProps) {
   const pathname = usePathname();
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
-  const [mobileOpen, setMobileOpen] = useState(false);
 
   async function handleSignOut() {
     await signOut({ redirect: false });
@@ -165,15 +166,6 @@ export function Sidebar({ organizationName }: SidebarProps) {
 
   return (
     <>
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-3 left-3 z-50 lg:hidden"
-        onClick={() => setMobileOpen(true)}
-      >
-        <Menu className="h-5 w-5" />
-      </Button>
-
       {mobileOpen && (
         <div className="fixed inset-0 z-40 bg-black/50 lg:hidden" onClick={() => setMobileOpen(false)} />
       )}
@@ -191,19 +183,29 @@ export function Sidebar({ organizationName }: SidebarProps) {
   );
 }
 
-export function TopBar() {
+export function TopBar({ onMenuClick }: { onMenuClick?: () => void }) {
   return (
-    <header className="sticky top-0 z-30 flex h-14 items-center gap-4 border-b bg-background/95 backdrop-blur px-4 lg:px-6 lg:ml-60">
-      <div className="flex flex-1 items-center gap-4">
-        <div className="relative flex-1 max-w-md">
+    <header className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b bg-background/95 backdrop-blur px-3 pt-[env(safe-area-inset-top)] lg:px-6 lg:ml-60 lg:pt-0">
+      <Button
+        type="button"
+        variant="ghost"
+        size="icon"
+        className="shrink-0 lg:hidden"
+        onClick={onMenuClick}
+        aria-label="Open menu"
+      >
+        <Menu className="h-5 w-5" />
+      </Button>
+      <div className="hidden min-w-0 flex-1 items-center gap-4 md:flex">
+        <div className="relative max-w-md flex-1">
           <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="search"
             placeholder="Search customers, invoices, products..."
-            className="w-full h-9 rounded-md border border-input bg-muted/50 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
+            className="h-9 w-full rounded-md border border-input bg-muted/50 pl-9 pr-4 text-sm placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-ring"
             disabled
           />
-          <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[10px] text-muted-foreground bg-muted px-1.5 py-0.5 rounded hidden sm:block">
+          <span className="absolute right-3 top-1/2 hidden -translate-y-1/2 rounded bg-muted px-1.5 py-0.5 text-[10px] text-muted-foreground sm:block">
             ⌘K
           </span>
         </div>
@@ -213,11 +215,17 @@ export function TopBar() {
 }
 
 export function AppShell({ children, organizationName }: { children: React.ReactNode; organizationName?: string }) {
+  const [mobileOpen, setMobileOpen] = useState(false);
+
   return (
     <div className="min-h-screen bg-background">
-      <Sidebar organizationName={organizationName} />
+      <Sidebar
+        organizationName={organizationName}
+        mobileOpen={mobileOpen}
+        setMobileOpen={setMobileOpen}
+      />
       <div className="lg:ml-60">
-        <TopBar />
+        <TopBar onMenuClick={() => setMobileOpen(true)} />
         <motion.main
           initial={{ opacity: 0, y: 8 }}
           animate={{ opacity: 1, y: 0 }}

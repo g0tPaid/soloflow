@@ -11,13 +11,9 @@ import {
   Wallet,
   Users,
   Package,
-  FilePlus2,
-  Receipt,
-  BadgeCheck,
-  type LucideIcon,
 } from 'lucide-react';
 import { api } from '@/lib/api';
-import { cn, formatCurrency } from '@/lib/utils';
+import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
 import { ORG_STORAGE_KEY, LEGACY_ORG_STORAGE_KEY } from '@/hooks/use-organization';
@@ -80,56 +76,11 @@ export default function DashboardPage() {
     },
   ];
 
-  const quickLinks: {
-    href: string;
-    label: string;
-    icon: LucideIcon;
-    box: string;
-  }[] = [
-    {
-      href: '/invoices/new',
-      label: 'Invoice',
-      icon: FilePlus2,
-      box: 'bg-red-500 hover:bg-red-600',
-    },
-    {
-      href: '/expenses',
-      label: 'Expenses',
-      icon: Receipt,
-      box: 'bg-yellow-400 hover:bg-yellow-500',
-    },
-    {
-      href: '/receipts',
-      label: 'Receipts',
-      icon: BadgeCheck,
-      box: 'bg-green-500 hover:bg-green-600',
-    },
-  ];
-
   return (
     <div className="space-y-6">
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your business finances</p>
-      </div>
-
-      <div className="grid grid-cols-3 gap-3 lg:hidden">
-        {quickLinks.map((link) => {
-          const Icon = link.icon;
-          return (
-            <Link
-              key={link.href}
-              href={link.href}
-              className={cn(
-                'flex h-full flex-col items-center justify-center gap-2 rounded-xl px-2 py-4 text-center shadow-sm transition active:scale-95',
-                link.box,
-              )}
-            >
-              <Icon className="h-6 w-6 text-black" strokeWidth={2.25} />
-              <span className="text-xs font-semibold text-black">{link.label}</span>
-            </Link>
-          );
-        })}
       </div>
 
       {!orgId && (

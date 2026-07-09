@@ -5,6 +5,7 @@ import { Camera, X } from 'lucide-react';
 import { INVOICE_BANNER_SIZE } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { resolveImageSrc } from '@/lib/organization-branding';
 
 type Props = {
   value?: string | null;
@@ -32,6 +33,9 @@ export function ImageUploadField({
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
+  const isBanner = variant === 'banner';
+  const size = compact ? 56 : isBanner ? 0 : 96;
+  const previewSrc = value ? resolveImageSrc(value) : undefined;
 
   async function handleFile(file: File) {
     if (file.size > 3 * 1024 * 1024) {
@@ -40,42 +44,15 @@ export function ImageUploadField({
 
     setUploading(true);
     try {
-      // Banners are embedded in the database so they survive Railway redeploys
-      if (isBanner) {
-        const dataUrl = await readFileAsDataUrl(file);
-        onChange(dataUrl);
-        return;
-      }
-
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-        credentials: 'include',
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok && data.url) {
-        onChange(data.url);
-        return;
-      }
-
+      // Embed images in the database so they survive Railway redeploys and work in the app.
       const dataUrl = await readFileAsDataUrl(file);
       onChange(dataUrl);
     } catch {
-      try {
-        const dataUrl = await readFileAsDataUrl(file);
-        onChange(dataUrl);
-      } catch {
-        // ignore — user can retry
-      }
+      // ignore — user can retry
     } finally {
       setUploading(false);
     }
   }
-
-  const isBanner = variant === 'banner';
-  const size = compact ? 56 : isBanner ? 0 : 96;
 
   return (
     <div className="space-y-2">
@@ -92,7 +69,7 @@ export function ImageUploadField({
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
-              src={value}
+              src={previewSrc}
               alt=""
               className={isBanner ? 'h-full w-full object-cover' : 'h-full w-full object-cover'}
             />
