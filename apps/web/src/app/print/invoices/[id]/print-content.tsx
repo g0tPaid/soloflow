@@ -17,6 +17,7 @@ import {
 } from '@/lib/organization-branding';
 import { InstagramQrBadge } from '@/components/shared/instagram-qr-badge';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
+import { buildServerPdfUrl } from '@/lib/build-server-pdf-url';
 import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
 
 const RED = '#DC2626';
@@ -237,7 +238,10 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         <PrintPageToolbar
           backHref={`/invoices/${id}`}
           backLabel="Back to invoice"
-          captureElementId="invoice-capture-root"
+          serverPdfUrl={buildServerPdfUrl('invoices', id, {
+            organizationId,
+            filename: safeFilename,
+          })}
           filename={safeFilename}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}

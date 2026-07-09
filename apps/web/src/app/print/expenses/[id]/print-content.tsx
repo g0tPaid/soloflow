@@ -12,6 +12,7 @@ import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
 import { formatAddressLines, resolveImageSrc } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
+import { buildServerPdfUrl } from '@/lib/build-server-pdf-url';
 
 const RED = '#DC2626';
 
@@ -113,7 +114,10 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
       <PrintPageToolbar
         backHref="/expenses"
         backLabel="Back to expenses"
-        captureElementId="expense-capture-root"
+        serverPdfUrl={buildServerPdfUrl('expenses', id, {
+          organizationId,
+          filename: expenseFilename,
+        })}
         filename={expenseFilename}
         whatsappMessage={whatsappMessage}
         emailSubject={`Expense report ${expense.number}`}
