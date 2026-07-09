@@ -50,8 +50,8 @@ export default function InvoicesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Invoices</h1>
-          <p className="text-muted-foreground">Create and manage invoices</p>
+          <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
+          <p className="text-sm text-muted-foreground">Create and manage invoices</p>
         </div>
         {organizationId && (
           <Button asChild>
@@ -122,14 +122,14 @@ export default function InvoicesPage() {
                 <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                   <Link href={`/invoices/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
-                      <span className="font-medium">{invoice.number}</span>
+                      <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
                       {isPaid ? (
-                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-white">
+                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
                           Paid
                         </span>
                       ) : (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[10px] font-bold uppercase tracking-wide text-amber-800">
+                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
                           Unpaid
                         </span>
                       )}
@@ -143,7 +143,7 @@ export default function InvoicesPage() {
                   </Link>
 
                   <div className="flex flex-col gap-3 sm:items-end">
-                    <p className="text-lg font-semibold">
+                    <p className="text-lg font-medium tabular-nums">
                       {formatCurrency(Number(invoice.total), invoice.currency)}
                     </p>
                     <p className="hidden text-xs text-muted-foreground sm:block">
@@ -155,7 +155,7 @@ export default function InvoicesPage() {
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'PAID', e)}
                           disabled={statusMutation.isPending}
-                          className="w-full rounded-full border border-emerald-500 bg-white px-3 py-2 text-xs font-semibold text-emerald-700 transition hover:bg-emerald-600 hover:text-white sm:w-auto sm:py-1"
+                          className="w-full rounded-full border border-emerald-500 bg-white px-3 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white sm:w-auto sm:py-1"
                         >
                           Mark as paid
                         </button>
@@ -164,7 +164,7 @@ export default function InvoicesPage() {
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'SENT', e)}
                           disabled={statusMutation.isPending}
-                          className="w-full rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-semibold text-slate-600 transition hover:bg-slate-100 sm:w-auto sm:py-1"
+                          className="w-full rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100 sm:w-auto sm:py-1"
                         >
                           Mark as unpaid
                         </button>
