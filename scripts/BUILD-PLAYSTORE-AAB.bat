@@ -3,6 +3,7 @@ setlocal EnableExtensions
 title SoloFlow - Build Play Store AAB
 color 0E
 cd /d "C:\Users\user\Projects\flowbooks"
+set "FLOWBOOKS_ROOT=%CD%"
 
 :: Find Java from Android Studio (java is often not on PATH)
 set "JAVA_HOME="
@@ -131,7 +132,7 @@ if not exist "android\keystore.properties" (
 )
 
 echo [4/6] Ensuring release signing is configured...
-powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0ensure-android-signing.ps1"
+powershell -NoProfile -ExecutionPolicy Bypass -File "%FLOWBOOKS_ROOT%\scripts\ensure-android-signing.ps1"
 if %ERRORLEVEL% NEQ 0 (
     echo  Signing setup failed. See messages above.
     pause

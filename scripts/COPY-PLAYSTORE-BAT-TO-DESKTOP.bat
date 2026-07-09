@@ -1,4 +1,3 @@
 @echo off
-copy /Y "%~dp0BUILD-PLAYSTORE-AAB.bat" "%USERPROFILE%\Desktop\BUILD-PLAYSTORE-AAB.bat" >nul
-echo Copied BUILD-PLAYSTORE-AAB.bat to your Desktop.
-pause
+:: Always run the repo script (do not copy the .bat to Desktop — this launcher stays on Desktop).
+call "C:\Users\user\Projects\flowbooks\scripts\BUILD-PLAYSTORE-AAB.bat"

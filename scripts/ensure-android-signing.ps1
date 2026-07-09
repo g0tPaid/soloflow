@@ -16,25 +16,24 @@ if (-not (Test-Path $propsFile)) {
 }
 
 $content = Get-Content -Raw $appGradle
-
 $changed = $false
 
 if ($content -notmatch 'keystorePropertiesFile') {
-  $loader = @"
+  $loader = @'
 def keystorePropertiesFile = rootProject.file("keystore.properties")
 def keystoreProperties = new Properties()
 if (keystorePropertiesFile.exists()) {
     keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
 }
 
-"@
+'@
   $content = $loader + $content
   $changed = $true
-  Write-Host "  Added keystore.properties loader"
+  Write-Host '  Added keystore.properties loader'
 }
 
 if ($content -notmatch 'signingConfigs\s*\{') {
-  $signingConfigs = @"
+  $signingConfigs = @'
     signingConfigs {
         release {
             if (keystorePropertiesFile.exists()) {
@@ -45,15 +44,11 @@ if ($content -notmatch 'signingConfigs\s*\{') {
             }
         }
     }
-"@
-  $content = [regex]::Replace(
-    $content,
-    '(android\s*\{)',
-    "`$1`r`n$signingConfigs",
-    1
-  )
+
+'@
+  $content = [regex]::Replace($content, '(android\s*\{)', "`$1`r`n$signingConfigs", 1)
   $changed = $true
-  Write-Host "  Added signingConfigs.release"
+  Write-Host '  Added signingConfigs.release'
 }
 
 if ($content -match 'release\s*\{' -and $content -notmatch 'signingConfig\s+signingConfigs\.release') {
@@ -64,14 +59,14 @@ if ($content -match 'release\s*\{' -and $content -notmatch 'signingConfig\s+sign
     1
   )
   $changed = $true
-  Write-Host "  Wired release buildType to signingConfigs.release"
+  Write-Host '  Wired release buildType to signingConfigs.release'
 }
 
 if ($changed) {
   Set-Content -Path $appGradle -Value $content -NoNewline
-  Write-Host "  Updated app/build.gradle"
+  Write-Host '  Updated app/build.gradle'
 } else {
-  Write-Host "  Release signing already configured"
+  Write-Host '  Release signing already configured'
 }
 
 exit 0
