@@ -1,20 +1,22 @@
 @echo off
+setlocal EnableExtensions
 title SoloFlow - Build Play Store AAB
 color 0E
 cd /d "C:\Users\user\Projects\flowbooks"
 
-:: Use Android Studio's bundled Java when java is not on PATH
-if not defined JAVA_HOME (
-  if exist "C:\Program Files\Android\Android Studio\jbr" (
-    set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
-    set "PATH=%JAVA_HOME%\bin;%PATH%"
-  )
+:: Find Java from Android Studio (java is often not on PATH)
+set "JAVA_HOME="
+if exist "C:\Program Files\Android\Android Studio\jbr\bin\java.exe" (
+  set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
 )
-if not defined ANDROID_HOME (
-  if exist "%LOCALAPPDATA%\Android\Sdk" (
-    set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
-    set "PATH=%ANDROID_HOME%\platform-tools;%PATH%"
-  )
+if not defined JAVA_HOME if exist "%LOCALAPPDATA%\Programs\Android\Android Studio\jbr\bin\java.exe" (
+  set "JAVA_HOME=%LOCALAPPDATA%\Programs\Android\Android Studio\jbr"
+)
+if defined JAVA_HOME set "PATH=%JAVA_HOME%\bin;%PATH%"
+
+if not defined ANDROID_HOME if exist "%LOCALAPPDATA%\Android\Sdk" (
+  set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
+  set "PATH=%ANDROID_HOME%\platform-tools;%PATH%"
 )
 
 set "VERSION=0.4.0"
@@ -30,14 +32,18 @@ echo  Your app MUST already be hosted on HTTPS.
 echo  See: docs\PLAY-STORE.md
 echo.
 
+if defined JAVA_HOME if exist "%JAVA_HOME%\bin\java.exe" goto :java_ok
 where java >nul 2>&1
-if %ERRORLEVEL% NEQ 0 (
+if %ERRORLEVEL% EQU 0 goto :java_ok
     echo  Java not found. Install Android Studio first:
     echo  https://developer.android.com/studio
     echo.
+    echo  If Android Studio is installed, open it once and let setup finish.
+    echo.
     pause
     exit /b 1
-)
+:java_ok
+if defined JAVA_HOME echo  Using Java: %JAVA_HOME%
 
 echo  Enter your LIVE public URL ^(must start with https://^)
 echo  Example: https://web-production-8e8c3.up.railway.app
