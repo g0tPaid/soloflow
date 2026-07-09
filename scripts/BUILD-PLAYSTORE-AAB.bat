@@ -154,8 +154,21 @@ if %ERRORLEVEL% NEQ 0 (
 
 echo [6/6] Building signed release AAB...
 powershell -NoProfile -ExecutionPolicy Bypass -Command ^
-  "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }"
+  "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }; $gw = 'android\gradle\wrapper\gradle-wrapper.properties'; if (Test-Path $gw) { (Get-Content $gw -Raw) -replace 'networkTimeout=\d+', 'networkTimeout=600000' | Set-Content $gw -NoNewline }"
 cd android
+echo.
+echo  First build downloads Gradle ^(can take 10-20 min on slow internet^). Please wait...
+echo.
+call gradlew.bat --version
+if %ERRORLEVEL% NEQ 0 (
+    echo.
+    echo  Gradle download failed or timed out.
+    echo  FIX: Open Android Studio -^> File -^> Open -^> apps\web\android
+    echo  Wait until bottom says "Gradle sync finished", then close and retry this script.
+    cd ..\..
+    pause
+    exit /b 1
+)
 call gradlew.bat bundleRelease
 if %ERRORLEVEL% NEQ 0 (
     echo.
