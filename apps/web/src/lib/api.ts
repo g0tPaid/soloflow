@@ -9,12 +9,15 @@ function isHostedAppHost(host: string): boolean {
 
 function resolveApiBaseUrl(): string {
   if (typeof window !== 'undefined') {
-    // Hosted app: always use same-origin proxy (phone, custom domain, Railway URL)
-    if (!LOCAL_MODE) {
+    const host = window.location.hostname;
+    const isLocalDev =
+      LOCAL_MODE || host === 'localhost' || host === '127.0.0.1' || /^\d{1,3}(\.\d{1,3}){3}$/.test(host);
+
+    // Hosted / production web: same-origin proxy avoids phone CORS issues
+    if (!isLocalDev) {
       return '/api/v1';
     }
 
-    const host = window.location.hostname;
     // Phone on same Wi‑Fi as PC: web is http://192.168.x.x:3000, API on :3001
     if (/^\d{1,3}(\.\d{1,3}){3}$/.test(host)) {
       return `http://${host}:3001/api/v1`;
@@ -242,7 +245,7 @@ export interface Organization {
 export const api = {
   auth: {
     register: async (data: { name: string; email: string; password: string }) => {
-      if (typeof window !== 'undefined' && !LOCAL_MODE) {
+      if (typeof window !== 'undefined') {
         let res: Response;
         try {
           res = await fetch('/api/auth/register', {
