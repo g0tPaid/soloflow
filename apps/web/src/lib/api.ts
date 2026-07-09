@@ -324,13 +324,24 @@ export const api = {
         logo?: string | null;
         branding?: OrganizationBranding;
       },
-    ) =>
-      apiFetch<Organization>(`/organizations/${id}`, {
+    ) => {
+      if (isBrowserHostedApp()) {
+        return browserJsonRequest<Organization>(`/api/organizations/${id}`, {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+            'x-organization-id': organizationId,
+          },
+          body: JSON.stringify(data),
+        });
+      }
+      return apiFetch<Organization>(`/organizations/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
         token,
         organizationId,
-      }),
+      });
+    },
   },
   dashboard: {
     metrics: (token: string, organizationId: string) =>

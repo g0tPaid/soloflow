@@ -6,6 +6,7 @@ import { INVOICE_BANNER_SIZE } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { resolveImageSrc } from '@/lib/organization-branding';
+import { compressImageFile } from '@/lib/compress-image';
 
 type Props = {
   value?: string | null;
@@ -22,6 +23,25 @@ function readFileAsDataUrl(file: File): Promise<string> {
     reader.onerror = () => reject(new Error('Could not read image'));
     reader.readAsDataURL(file);
   });
+}
+
+async function prepareImageDataUrl(file: File, variant: 'square' | 'banner'): Promise<string> {
+  try {
+    if (variant === 'banner') {
+      return await compressImageFile(file, {
+        maxWidth: INVOICE_BANNER_SIZE.width,
+        maxHeight: INVOICE_BANNER_SIZE.height,
+        maxBytes: 400_000,
+      });
+    }
+    return await compressImageFile(file, {
+      maxWidth: 512,
+      maxHeight: 512,
+      maxBytes: 350_000,
+    });
+  } catch {
+    return readFileAsDataUrl(file);
+  }
 }
 
 export function ImageUploadField({
@@ -44,8 +64,7 @@ export function ImageUploadField({
 
     setUploading(true);
     try {
-      // Embed images in the database so they survive Railway redeploys and work in the app.
-      const dataUrl = await readFileAsDataUrl(file);
+      const dataUrl = await prepareImageDataUrl(file, variant);
       onChange(dataUrl);
     } catch {
       // ignore — user can retry
@@ -117,7 +136,7 @@ export function ImageUploadField({
             {uploading ? 'Uploading...' : value ? 'Change image' : 'Add image'}
           </Button>
           <p className="text-xs text-muted-foreground">
-            JPG, PNG or WebP · max 3 MB
+            JPG, PNG or WebP · max 3 MB · auto-compressed for save
             {isBanner ? ` · recommended ${INVOICE_BANNER_SIZE.label}` : ''}
           </p>
         </div>

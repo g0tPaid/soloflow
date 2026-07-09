@@ -4,6 +4,11 @@ const apiOrigin = process.env.API_URL?.replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
   transpilePackages: ['@flowbooks/shared'],
+  experimental: {
+    serverActions: {
+      bodySizeLimit: '10mb',
+    },
+  },
   images: {
     remotePatterns: [
       { protocol: 'https', hostname: '**' },

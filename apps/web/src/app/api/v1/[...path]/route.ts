@@ -38,7 +38,7 @@ async function proxyRequest(request: NextRequest, path: string[]) {
   };
 
   if (request.method !== 'GET' && request.method !== 'HEAD') {
-    init.body = await request.text();
+    init.body = await request.arrayBuffer();
   }
 
   try {
