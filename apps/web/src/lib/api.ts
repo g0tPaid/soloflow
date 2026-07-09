@@ -281,16 +281,19 @@ export const api = {
       return apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) });
     },
     login: (data: { email: string; password: string }) =>
-      apiFetch<{ user: { id: string; email: string; name: string }; token: string }>(
+      apiFetch<{ user: { id: string; email: string; name: string; isSuperAdmin?: boolean }; token: string }>(
         '/auth/login',
         { method: 'POST', body: JSON.stringify(data) },
       ),
     bootstrap: () =>
-      apiFetch<{ user: { id: string; email: string; name: string }; token: string }>(
+      apiFetch<{ user: { id: string; email: string; name: string; isSuperAdmin?: boolean }; token: string }>(
         '/auth/bootstrap',
         { method: 'POST', body: JSON.stringify({}) },
       ),
-    me: (token: string) => apiFetch('/auth/me', { headers: { Authorization: `Bearer ${token}` } }),
+    me: (token: string) =>
+      apiFetch<{ id: string; email: string; name: string; isSuperAdmin?: boolean }>('/auth/me', {
+        headers: { Authorization: `Bearer ${token}` },
+      }),
   },
   organizations: {
     list: (token: string) => apiFetch<Organization[]>('/organizations', { token }),

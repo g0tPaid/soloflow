@@ -24,6 +24,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   email: result.user.email,
                   name: result.user.name,
                   accessToken: result.token,
+                  isSuperAdmin: result.user.isSuperAdmin ?? false,
                 };
               } catch {
                 return null;
@@ -60,7 +61,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: result.user.email,
             name: result.user.name,
             accessToken: result.token,
-          } as { id: string; email: string; name: string; accessToken: string };
+            isSuperAdmin: result.user.isSuperAdmin ?? false,
+          };
         } catch {
           return null;
         }
@@ -70,15 +72,27 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const authUser = user as { accessToken?: string; id?: string };
+        const authUser = user as { accessToken?: string; id?: string; isSuperAdmin?: boolean };
         token.accessToken = authUser.accessToken;
         token.id = authUser.id ?? user.id;
+        token.isSuperAdmin = authUser.isSuperAdmin ?? false;
       }
+
+      if (token.accessToken && token.isSuperAdmin === undefined) {
+        try {
+          const profile = (await api.auth.me(token.accessToken as string)) as { isSuperAdmin?: boolean };
+          token.isSuperAdmin = profile.isSuperAdmin ?? false;
+        } catch {
+          token.isSuperAdmin = false;
+        }
+      }
+
       return token;
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
       session.accessToken = token.accessToken as string;
+      session.user.isSuperAdmin = Boolean(token.isSuperAdmin);
       return session;
     },
   },

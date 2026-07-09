@@ -26,6 +26,11 @@ export default auth((req) => {
   }
 
   if (isAuthenticated && (pathname === '/login' || pathname === '/register')) {
+    const dest = req.auth?.user?.isSuperAdmin ? '/admin' : '/dashboard';
+    return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
+  }
+
+  if (pathname.startsWith('/admin') && isAuthenticated && !req.auth?.user?.isSuperAdmin) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl.origin));
   }
 

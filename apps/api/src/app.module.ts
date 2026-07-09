@@ -12,6 +12,7 @@ import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ExpensesModule } from './expenses/expenses.module';
 import { DashboardModule } from './dashboard/dashboard.module';
+import { AdminModule } from './admin/admin.module';
 import { QueueModule } from './queue/queue.module';
 
 const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
@@ -40,6 +41,7 @@ const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
     InvoicesModule,
     ExpensesModule,
     DashboardModule,
+    AdminModule,
   ],
 })
 export class AppModule {}

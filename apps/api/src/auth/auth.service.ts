@@ -4,12 +4,37 @@ import * as bcrypt from 'bcryptjs';
 import { PrismaService } from '../prisma/prisma.service';
 import { RegisterDto, LoginDto } from './dto/auth.dto';
 
+function superAdminEmails(): Set<string> {
+  const raw = process.env.SUPER_ADMIN_EMAILS ?? '';
+  return new Set(
+    raw
+      .split(',')
+      .map((e) => e.trim().toLowerCase())
+      .filter(Boolean),
+  );
+}
+
 @Injectable()
 export class AuthService {
   constructor(
     private prisma: PrismaService,
     private jwt: JwtService,
   ) {}
+
+  private async ensureSuperAdminFlag(userId: string, email: string) {
+    if (!superAdminEmails().has(email.toLowerCase())) return;
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { isSuperAdmin: true },
+    });
+  }
+
+  private async touchActive(userId: string) {
+    await this.prisma.user.update({
+      where: { id: userId },
+      data: { lastActiveAt: new Date() },
+    });
+  }
 
   async register(dto: RegisterDto) {
     const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
@@ -23,12 +48,19 @@ export class AuthService {
         email: dto.email,
         name: dto.name,
         passwordHash,
+        lastActiveAt: new Date(),
       },
-      select: { id: true, email: true, name: true, createdAt: true },
+      select: { id: true, email: true, name: true, createdAt: true, isSuperAdmin: true },
+    });
+
+    await this.ensureSuperAdminFlag(user.id, user.email);
+    const refreshed = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, createdAt: true, isSuperAdmin: true },
     });
 
     const token = this.generateToken(user.id, user.email);
-    return { user, token };
+    return { user: refreshed!, token };
   }
 
   async login(dto: LoginDto) {
@@ -37,18 +69,29 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    if (user.suspendedAt) {
+      throw new ForbiddenException('Account suspended');
+    }
+
     const valid = await bcrypt.compare(dto.password, user.passwordHash);
     if (!valid) {
       throw new UnauthorizedException('Invalid credentials');
     }
 
+    await this.ensureSuperAdminFlag(user.id, user.email);
+    await this.touchActive(user.id);
+
+    const refreshed = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, isSuperAdmin: true },
+    });
+
     const token = this.generateToken(user.id, user.email);
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: refreshed!,
       token,
     };
   }
-
   /** Single-user local mode — creates the owner account automatically. */
   async bootstrapLocal() {
     if (process.env.LOCAL_SINGLE_USER !== 'true') {
@@ -68,13 +111,20 @@ export class AuthService {
     }
 
     const token = this.generateToken(user.id, user.email);
+    await this.ensureSuperAdminFlag(user.id, user.email);
+    await this.touchActive(user.id);
+    const refreshed = await this.prisma.user.findUnique({
+      where: { id: user.id },
+      select: { id: true, email: true, name: true, isSuperAdmin: true },
+    });
     return {
-      user: { id: user.id, email: user.email, name: user.name },
+      user: refreshed!,
       token,
     };
   }
 
   async getProfile(userId: string) {
+    await this.touchActive(userId);
     const user = await this.prisma.user.findUnique({
       where: { id: userId },
       select: {
@@ -83,6 +133,9 @@ export class AuthService {
         name: true,
         image: true,
         createdAt: true,
+        isSuperAdmin: true,
+        suspendedAt: true,
+        lastActiveAt: true,
         memberships: {
           include: {
             organization: { select: { id: true, name: true, slug: true, logo: true } },
@@ -93,7 +146,6 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
     return user;
   }
-
   private generateToken(userId: string, email: string) {
     return this.jwt.sign({ sub: userId, email });
   }

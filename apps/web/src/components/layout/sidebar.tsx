@@ -23,11 +23,13 @@ import {
   Sun,
   LogOut,
   ChevronLeft,
+  Shield,
 } from 'lucide-react';
 import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ModuleBackLink, MobileModuleBackBar } from '@/components/layout/module-back-nav';
+import { useSession } from 'next-auth/react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
@@ -50,6 +52,7 @@ function SidebarDesktop({ organizationName }: { organizationName?: string }) {
   const router = useRouter();
   const { theme, setTheme } = useTheme();
   const [collapsed, setCollapsed] = useState(false);
+  const { data: session } = useSession();
 
   async function handleSignOut() {
     await signOut({ redirect: false });
@@ -127,6 +130,19 @@ function SidebarDesktop({ organizationName }: { organizationName?: string }) {
       </nav>
 
       <div className="space-y-1 border-t border-sidebar-border p-2">
+        {session?.user?.isSuperAdmin ? (
+          <Button
+            variant="ghost"
+            size="sm"
+            className={cn('w-full justify-start gap-3', collapsed && 'justify-center px-2')}
+            asChild
+          >
+            <Link href="/admin">
+              <Shield className="h-4 w-4" />
+              {!collapsed && <span>Super Admin</span>}
+            </Link>
+          </Button>
+        ) : null}
         <Button
           variant="ghost"
           size="sm"
