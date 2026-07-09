@@ -11,6 +11,7 @@ import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
 import { formatAddressLines, resolveImageSrc } from '@/lib/organization-branding';
+import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 
 const RED = '#DC2626';
 
@@ -104,23 +105,18 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
   const marginPercent = revenue > 0 ? (profit / revenue) * 100 : 0;
   const customerAddress = formatAddressLines(expense.customer?.address ?? undefined);
 
-  return (
-    <div className="expense-print mx-auto min-h-screen max-w-[900px] bg-white text-slate-800">
-      <div className="no-print border-b border-red-100 bg-red-50 px-6 py-4 text-sm">
-        <p className="font-semibold text-slate-900">Save this expense report as a PDF</p>
-        <p className="mt-1 text-slate-600">
-          Click <strong>Save as PDF</strong> below, then choose <strong>Save as PDF</strong> or{' '}
-          <strong>Microsoft Print to PDF</strong>.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="mt-3 inline-flex items-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
-        >
-          Save as PDF
-        </button>
-      </div>
+  const expenseFilename = `expense-${expense.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
 
+  return (
+    <div className="expense-print mx-auto min-h-screen w-full max-w-[900px] overflow-x-hidden bg-white text-slate-800">
+      <PrintPageToolbar
+        backHref="/expenses"
+        backLabel="Back to expenses"
+        captureElementId="expense-capture-root"
+        filename={expenseFilename}
+      />
+
+      <div id="expense-capture-root" className="bg-white">
       <div className="px-8 py-8">
         <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
           <div>
@@ -318,6 +314,7 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
             </div>
           </div>
         </div>
+      </div>
       </div>
 
       <style jsx global>{`

@@ -63,6 +63,21 @@ export async function captureElementAsPdf(element: HTMLElement, filename: string
   });
 }
 
+export async function downloadElementAsPdf(element: HTMLElement, filename: string): Promise<void> {
+  await waitForImages(element);
+  const file = await captureElementAsPdf(element, filename);
+
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.style.display = 'none';
+  document.body.appendChild(link);
+  link.click();
+  link.remove();
+  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 export function loadInvoiceCaptureElement(printUrl: string): Promise<{
   element: HTMLElement;
   cleanup: () => void;

@@ -15,6 +15,7 @@ import {
   parseBranding,
   resolveImageSrc,
 } from '@/lib/organization-branding';
+import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
@@ -125,24 +126,19 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
   const currency = invoice.currency;
   const paidDate = formatDate(invoice.updatedAt || invoice.issueDate);
 
-  return (
-    <div className="receipt-print mx-auto min-h-screen max-w-[760px] bg-white text-slate-800">
-      <div className="no-print border-b border-emerald-100 bg-emerald-50 px-6 py-4 text-sm">
-        <p className="font-semibold text-slate-900">Save this receipt as a PDF</p>
-        <p className="mt-1 text-slate-600">
-          Click <strong>Save as PDF</strong>, then choose <strong>Save as PDF</strong> or{' '}
-          <strong>Microsoft Print to PDF</strong>.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="mt-3 inline-flex items-center rounded-lg px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition"
-          style={{ backgroundColor: GREEN }}
-        >
-          Save as PDF
-        </button>
-      </div>
+  const receiptFilename = `receipt-${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
 
+  return (
+    <div className="receipt-print mx-auto min-h-screen w-full max-w-[760px] overflow-x-hidden bg-white text-slate-800">
+      <PrintPageToolbar
+        backHref="/receipts"
+        backLabel="Back to receipts"
+        captureElementId="receipt-capture-root"
+        filename={receiptFilename}
+        accentClassName="bg-emerald-600 hover:bg-emerald-700"
+      />
+
+      <div id="receipt-capture-root" className="bg-white">
       <div
         className="px-8 py-3 text-center text-white"
         style={{ background: `linear-gradient(90deg, ${GREEN_DARK}, ${GREEN})` }}
@@ -310,6 +306,7 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
           Thank you for your payment. This receipt confirms that invoice {invoice.number} has been
           paid in full.
         </p>
+      </div>
       </div>
 
       <style jsx global>{`

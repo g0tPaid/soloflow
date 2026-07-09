@@ -19,10 +19,7 @@ export function DownloadInvoicePdfButton({
     : `/print/invoices/${invoiceId}`;
 
   function handleDownload() {
-    const opened = window.open(printUrl, '_blank', 'noopener,noreferrer');
-    if (!opened) {
-      window.location.href = printUrl;
-    }
+    window.location.href = printUrl;
   }
 
   return (
@@ -38,7 +35,7 @@ export function DownloadInvoicePdfButton({
         Download PDF
       </Button>
       <p className="text-right text-[11px] text-muted-foreground">
-        Opens print view — choose <strong>Save as PDF</strong> to save {filename}
+        Opens invoice — tap <strong>Download PDF</strong> to save {filename}
       </p>
     </div>
   );

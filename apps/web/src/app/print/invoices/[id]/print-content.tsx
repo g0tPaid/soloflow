@@ -5,7 +5,7 @@ import { use, useEffect, useMemo, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-import { Globe, Mail, Phone, Plane, Ship, ArrowRight, ArrowLeft, MessageCircle } from 'lucide-react';
+import { Globe, Mail, Phone, Plane, Ship, ArrowRight, MessageCircle } from 'lucide-react';
 import { api } from '@/lib/api';
 import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/utils';
@@ -16,6 +16,7 @@ import {
   resolveImageSrc,
 } from '@/lib/organization-branding';
 import { InstagramQrBadge } from '@/components/shared/instagram-qr-badge';
+import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { captureElementAsPdf } from '@/lib/capture-element-image';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
@@ -255,58 +256,36 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
     branding.email && { icon: Mail, text: branding.email },
   ].filter(Boolean) as { icon: typeof Globe; text: string }[];
 
+  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+
   return (
     <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
       {!embed && (
-      <div className="no-print border-b border-red-100 bg-red-50 px-4 py-4 pt-[max(1rem,env(safe-area-inset-top))] text-sm sm:px-6">
-        <div className="mb-3 flex flex-wrap items-center gap-3">
-          <Link
-            href={`/invoices/${id}`}
-            className="inline-flex items-center gap-1 rounded-lg border border-red-200 bg-white px-3 py-1.5 font-medium text-red-700 shadow-sm"
-          >
-            <ArrowLeft className="h-4 w-4" />
-            Back to invoice
-          </Link>
-          <Link
-            href="/dashboard"
-            className="inline-flex items-center rounded-lg px-3 py-1.5 text-slate-600 hover:text-slate-900"
-          >
-            Home
-          </Link>
-        </div>
-
-        {shareMode === 'whatsapp' && (
-          <div className="mb-4">
-            <button
-              type="button"
-              disabled={sharing}
-              onClick={() => void handleWhatsAppShare()}
-              className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-3 text-sm font-semibold text-white shadow-sm disabled:opacity-70"
-            >
-              <MessageCircle className="h-4 w-4" />
-              {sharing ? 'Preparing PDF…' : 'Tap to send on WhatsApp'}
-            </button>
-            {shareStatus === 'error' && (
-              <p className="mt-2 text-red-700">
-                Could not attach PDF. Try again, or use Save as PDF below.
-              </p>
-            )}
-          </div>
-        )}
-
-        <p className="font-semibold text-slate-900">Save this invoice as a PDF</p>
-        <p className="mt-1 text-slate-600">
-          Click <strong>Save as PDF</strong> below, then choose <strong>Save as PDF</strong> or{' '}
-          <strong>Microsoft Print to PDF</strong> in the print window.
-        </p>
-        <button
-          type="button"
-          onClick={() => window.print()}
-          className="mt-3 inline-flex items-center rounded-lg bg-red-600 px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-red-700"
+        <PrintPageToolbar
+          backHref={`/invoices/${id}`}
+          backLabel="Back to invoice"
+          captureElementId="invoice-capture-root"
+          filename={safeFilename}
         >
-          Save as PDF
-        </button>
-      </div>
+          {shareMode === 'whatsapp' && (
+            <div className="pt-1">
+              <button
+                type="button"
+                disabled={sharing}
+                onClick={() => void handleWhatsAppShare()}
+                className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-[#25D366] px-5 py-2.5 text-sm font-semibold text-white shadow-sm disabled:opacity-70"
+              >
+                <MessageCircle className="h-4 w-4" />
+                {sharing ? 'Preparing PDF…' : 'Tap to send on WhatsApp'}
+              </button>
+              {shareStatus === 'error' && (
+                <p className="mt-2 text-sm text-red-700">
+                  Could not attach PDF. Try again, or use Download PDF above.
+                </p>
+              )}
+            </div>
+          )}
+        </PrintPageToolbar>
       )}
 
       <div id="invoice-capture-root" className="bg-white">
