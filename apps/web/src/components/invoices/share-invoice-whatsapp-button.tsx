@@ -1,8 +1,14 @@
 'use client';
 
-import { MessageCircle } from 'lucide-react';
+import { useState } from 'react';
+import { MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, cn } from '@/lib/utils';
+import {
+  captureElementAsPdf,
+  loadInvoiceCaptureElement,
+} from '@/lib/capture-element-image';
+import { shareInvoiceFile } from '@/lib/share-invoice-file';
 
 function digitsOnly(phone: string) {
   return phone.replace(/\D/g, '');
@@ -54,21 +60,57 @@ export function ShareInvoiceWhatsAppButton({
   className?: string;
   fullWidth?: boolean;
 }) {
+  const [sharing, setSharing] = useState(false);
+  const [status, setStatus] = useState<string | null>(null);
+
   const phone = invoice.customer?.phone?.trim()
     ? digitsOnly(invoice.customer.phone)
     : '';
   const hasPhone = phone.length >= 8;
 
-  function handleShare() {
-    if (!organizationId) return;
+  async function handleShare() {
+    if (!organizationId || sharing) return;
 
-    const params = new URLSearchParams({
-      org: organizationId,
-      share: 'whatsapp',
-    });
-    if (hasPhone) params.set('phone', phone);
+    setSharing(true);
+    setStatus('Preparing invoice PDF…');
 
-    window.location.href = `/print/invoices/${invoiceId}?${params.toString()}`;
+    let cleanup: (() => void) | undefined;
+
+    try {
+      const params = new URLSearchParams({
+        org: organizationId,
+        embed: '1',
+      });
+      const printUrl = `/print/invoices/${invoiceId}?${params.toString()}`;
+      const loaded = await loadInvoiceCaptureElement(printUrl);
+      cleanup = loaded.cleanup;
+
+      const safeName = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const file = await captureElementAsPdf(loaded.element, `${safeName}.pdf`);
+      const message = buildWhatsAppMessage(invoice);
+
+      setStatus('Opening WhatsApp…');
+      const result = await shareInvoiceFile(file, message, hasPhone ? phone : undefined);
+
+      if (result === 'shared') {
+        setStatus('Pick WhatsApp and send');
+      } else if (result === 'fallback') {
+        setStatus('PDF saved — attach it in WhatsApp');
+      } else {
+        setStatus(null);
+      }
+    } catch {
+      setStatus(null);
+      const params = new URLSearchParams({
+        org: organizationId,
+        share: 'whatsapp',
+      });
+      if (hasPhone) params.set('phone', phone);
+      window.location.href = `/print/invoices/${invoiceId}?${params.toString()}`;
+    } finally {
+      cleanup?.();
+      setSharing(false);
+    }
   }
 
   return (
@@ -76,21 +118,26 @@ export function ShareInvoiceWhatsAppButton({
       <Button
         type="button"
         size={size}
-        onClick={handleShare}
-        disabled={!organizationId}
+        onClick={() => void handleShare()}
+        disabled={!organizationId || sharing}
         className={cn(
           'gap-2 bg-[#25D366] text-white hover:bg-[#1ebe57] hover:text-white',
           fullWidth && 'w-full',
           className,
         )}
       >
-        <MessageCircle className="h-4 w-4" />
-        Share on WhatsApp
+        {sharing ? (
+          <Loader2 className="h-4 w-4 animate-spin" />
+        ) : (
+          <MessageCircle className="h-4 w-4" />
+        )}
+        {sharing ? 'Preparing…' : 'Share on WhatsApp'}
       </Button>
       <p className="text-[11px] text-muted-foreground sm:text-right">
-        {hasPhone
-          ? 'Opens invoice image ready to send on WhatsApp'
-          : 'Add customer phone to message them directly — image still attaches'}
+        {status ??
+          (hasPhone
+            ? 'Attaches invoice PDF — pick WhatsApp in the share menu'
+            : 'Attaches invoice PDF — add customer phone to message them directly')}
       </p>
     </div>
   );

@@ -12,12 +12,13 @@ import {
   Users,
   Package,
 } from 'lucide-react';
+import { APP_NAME } from '@flowbooks/shared';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { useEffect, useState } from 'react';
-import { ORG_STORAGE_KEY, LEGACY_ORG_STORAGE_KEY } from '@/hooks/use-organization';
-import { MobileHubActions } from '@/components/dashboard/mobile-hub-actions';
+import { ORG_STORAGE_KEY, LEGACY_ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
+import { MobileHubActions, MobileHubNav } from '@/components/dashboard/mobile-hub-actions';
 
 interface Metrics {
   revenue: number;
@@ -32,6 +33,7 @@ interface Metrics {
 
 export default function DashboardPage() {
   const { data: session } = useSession();
+  const { organization } = useOrganizationId();
   const [orgId, setOrgId] = useState<string | null>(null);
 
   useEffect(() => {
@@ -79,9 +81,19 @@ export default function DashboardPage() {
 
   return (
     <div className="space-y-6">
-      <div>
+      <div className="hidden lg:block">
         <h1 className="text-2xl font-semibold tracking-tight">Dashboard</h1>
         <p className="text-muted-foreground">Overview of your business finances</p>
+      </div>
+
+      <div className="text-center lg:hidden">
+        <div className="mx-auto mb-3 mt-2 flex h-11 w-11 items-center justify-center rounded-xl bg-red-600 text-sm font-bold text-white">
+          SF
+        </div>
+        <h1 className="text-xl font-semibold tracking-tight">Welcome to {APP_NAME}</h1>
+        {organization?.name ? (
+          <p className="mt-2 text-base text-muted-foreground">{organization.name}</p>
+        ) : null}
       </div>
 
       <div className="lg:hidden">
@@ -149,6 +161,10 @@ export default function DashboardPage() {
           </Card>
         </div>
       )}
+
+      <div className="lg:hidden">
+        <MobileHubNav />
+      </div>
     </div>
   );
 }

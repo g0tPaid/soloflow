@@ -25,7 +25,7 @@ import {
   ChevronLeft,
   ArrowLeft,
 } from 'lucide-react';
-import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
+import { NAV_MODULES } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 
@@ -157,23 +157,20 @@ export function TopBar() {
   const pathname = usePathname();
   const isHome = pathname === '/dashboard';
 
+  if (isHome) {
+    return (
+      <header className="sticky top-0 z-30 min-h-[max(0.75rem,env(safe-area-inset-top))] bg-background lg:ml-60 lg:min-h-14 lg:border-b" />
+    );
+  }
+
   return (
     <header className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b bg-background/95 backdrop-blur px-3 pt-[env(safe-area-inset-top)] lg:px-6 lg:ml-60 lg:pt-0">
-      {isHome ? (
-        <div className="flex items-center gap-2 lg:hidden">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-600 text-sm font-bold text-white">
-            SF
-          </div>
-          <span className="font-semibold">{APP_NAME}</span>
-        </div>
-      ) : (
-        <Button variant="ghost" size="sm" className="shrink-0 gap-1 px-2 lg:hidden" asChild>
-          <Link href="/dashboard" aria-label="Back to home">
-            <ArrowLeft className="h-4 w-4" />
-            Home
-          </Link>
-        </Button>
-      )}
+      <Button variant="ghost" size="sm" className="shrink-0 gap-1 px-2 lg:hidden" asChild>
+        <Link href="/dashboard" aria-label="Back to home">
+          <ArrowLeft className="h-4 w-4" />
+          Home
+        </Link>
+      </Button>
     </header>
   );
 }
