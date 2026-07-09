@@ -32,6 +32,10 @@ export function AuthBrandFooter() {
   return (
     <p className="mt-6 text-center text-xs text-muted-foreground">
       {APP_NAME} · Invoices, expenses & receipts
+      <br />
+      <a href="/privacy" className="hover:text-foreground underline underline-offset-2">
+        Privacy policy
+      </a>
     </p>
   );
 }

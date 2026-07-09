@@ -65,7 +65,9 @@ Pick **one** hosting path. Recommended for you: **Railway** or a **VPS**.
 AUTH_SECRET=<long-random-string>
 AUTH_URL=https://YOUR-WEB-URL
 NEXT_PUBLIC_API_URL=https://YOUR-API-URL/api/v1
-NEXT_PUBLIC_LOCAL_MODE=true
+NEXT_PUBLIC_LOCAL_MODE=false
+API_URL=https://YOUR-API-URL
+NEXT_PUBLIC_API_URL=https://YOUR-API-URL/api/v1
 DATABASE_URL=<same-postgres-url>
 ```
 

@@ -3,7 +3,7 @@ import { auth } from '@/auth';
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
 
-const publicPrefixes = ['/login', '/register', '/api/auth'];
+const publicPrefixes = ['/login', '/register', '/privacy', '/api/auth'];
 
 function isPublicPath(pathname: string) {
   return publicPrefixes.some((prefix) => pathname.startsWith(prefix));

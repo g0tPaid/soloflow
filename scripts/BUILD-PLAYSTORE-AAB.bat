@@ -3,6 +3,20 @@ title SoloFlow - Build Play Store AAB
 color 0E
 cd /d "C:\Users\user\Projects\flowbooks"
 
+:: Use Android Studio's bundled Java when java is not on PATH
+if not defined JAVA_HOME (
+  if exist "C:\Program Files\Android\Android Studio\jbr" (
+    set "JAVA_HOME=C:\Program Files\Android\Android Studio\jbr"
+    set "PATH=%JAVA_HOME%\bin;%PATH%"
+  )
+)
+if not defined ANDROID_HOME (
+  if exist "%LOCALAPPDATA%\Android\Sdk" (
+    set "ANDROID_HOME=%LOCALAPPDATA%\Android\Sdk"
+    set "PATH=%ANDROID_HOME%\platform-tools;%PATH%"
+  )
+)
+
 set "VERSION=0.4.0"
 if exist "VERSION" set /p VERSION=<"VERSION"
 
@@ -26,14 +40,10 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo  Enter your LIVE public URL ^(must start with https://^)
-echo  Example: https://soloflow.yourdomain.com
+echo  Example: https://web-production-8e8c3.up.railway.app
 echo.
-set /p SERVER_URL="Production HTTPS URL: "
-if "%SERVER_URL%"=="" (
-    echo  No URL entered. Exiting.
-    pause
-    exit /b 1
-)
+set /p SERVER_URL="Production HTTPS URL [https://web-production-8e8c3.up.railway.app]: "
+if "%SERVER_URL%"=="" set "SERVER_URL=https://web-production-8e8c3.up.railway.app"
 
 echo %SERVER_URL% | findstr /i /b "https://" >nul
 if %ERRORLEVEL% NEQ 0 (
@@ -131,12 +141,14 @@ if %ERRORLEVEL% NEQ 0 (
 )
 
 echo [6/6] Building signed release AAB...
+powershell -NoProfile -ExecutionPolicy Bypass -Command ^
+  "$v = (Get-Content '..\..\VERSION' -ErrorAction SilentlyContinue | Select-Object -First 1).Trim(); if (-not $v) { $v = '0.4.0' }; $g = 'android\app\build.gradle'; if (Test-Path $g) { (Get-Content $g -Raw) -replace 'versionName \".*?\"', ('versionName \"' + $v + '\"') | Set-Content $g -NoNewline; Write-Host ('  versionName -> ' + $v) }"
 cd android
 call gradlew.bat bundleRelease
 if %ERRORLEVEL% NEQ 0 (
     echo.
     echo  AAB build failed.
-    echo  Open Android Studio once: nps cap open android
+    echo  If Gradle timed out downloading, open Android Studio once and wait for setup to finish.
     echo  Then retry this script.
     cd ..\..
     pause
