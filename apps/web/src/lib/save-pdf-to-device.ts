@@ -96,10 +96,21 @@ async function saveWithCapacitorShare(file: File): Promise<boolean> {
   }
 }
 
-/** Save PDF — form POST download works in Android WebView where blob URLs are blocked. */
+/** Save PDF — share sheet on mobile, form POST download as fallback. */
 export async function savePdfToDevice(file: File): Promise<boolean> {
-  const base64 = await fileToBase64(file);
+  if (navigator.share) {
+    try {
+      const data: ShareData = { files: [file], title: file.name };
+      if (!navigator.canShare || navigator.canShare(data)) {
+        await navigator.share(data);
+        return true;
+      }
+    } catch (error) {
+      if ((error as Error).name === 'AbortError') return false;
+    }
+  }
 
+  const base64 = await fileToBase64(file);
   if (await saveWithCapacitorFilesystem(file, base64)) return true;
 
   submitPdfDownloadForm(file, base64);

@@ -16,7 +16,6 @@ import {
   resolveImageSrc,
 } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
-import { buildServerPdfUrl } from '@/lib/build-server-pdf-url';
 
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
@@ -135,10 +134,7 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
       <PrintPageToolbar
         backHref="/receipts"
         backLabel="Back to receipts"
-        serverPdfUrl={buildServerPdfUrl('receipts', id, {
-          organizationId,
-          filename: receiptFilename,
-        })}
+        captureElementId="receipt-capture-root"
         filename={receiptFilename}
         accentClassName="bg-emerald-600 hover:bg-emerald-700"
         whatsappMessage={whatsappMessage}
