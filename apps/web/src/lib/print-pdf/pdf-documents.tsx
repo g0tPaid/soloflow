@@ -314,7 +314,12 @@ function ShippingSection({
   if (!hasInfo) return null;
 
   const methodLabel =
-    method === 'AIR' ? 'Air freight' : method === 'SEA' ? 'Sea freight' : '—';
+    method === 'AIR' ? 'Air freight' : method === 'SEA' ? 'Sea freight' : '-';
+
+  const fromLabel = (fromCountry || '').trim() || '-';
+  const toLabel = (toCountry || '').trim() || '-';
+  const routeLabel =
+    fromCountry || toCountry ? fromLabel + ' to ' + toLabel : '-';
 
   return (
     <View style={{ marginBottom: 12 }} wrap={false}>
@@ -326,15 +331,11 @@ function ShippingSection({
         </View>
         <View style={styles.shippingCard}>
           <Text style={styles.muted}>Terms</Text>
-          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{terms ?? '—'}</Text>
+          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{terms ?? '-'}</Text>
         </View>
         <View style={styles.shippingCard}>
           <Text style={styles.muted}>Country route</Text>
-          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>
-            {fromCountry || toCountry
-              ? `${fromCountry || '—'} to ${toCountry || '—'}`
-              : '—'}
-          </Text>
+          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{routeLabel}</Text>
         </View>
       </View>
     </View>
