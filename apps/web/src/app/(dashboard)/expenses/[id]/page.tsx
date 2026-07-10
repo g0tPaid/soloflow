@@ -13,7 +13,7 @@ import type { UpdateExpenseCostsInput } from '@flowbooks/shared';
 export default function ExpenseDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { data: session } = useSession();
-  const { organizationId, isReady } = useOrganizationId();
+  const { organizationId, organization, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
 
   const { data: expense, isLoading, error } = useQuery({
@@ -26,7 +26,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
     await api.expenses.updateCosts(session!.accessToken!, organizationId!, id, data);
     await queryClient.invalidateQueries({ queryKey: ['expense', id, organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['expenses', organizationId] });
-    await queryClient.invalidateQueries({ queryKey: ['dashboard', organizationId] });
+    await queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] });
   }
 
   return (
@@ -35,7 +35,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
         <h1 className="text-2xl font-semibold tracking-tight">
           {expense ? `Expenses · ${expense.number}` : 'Invoice expenses'}
         </h1>
-        <p className="text-muted-foreground">Enter purchase costs against this invoice</p>
+        <p className="text-muted-foreground">Enter purchase costs in CNY against this invoice</p>
       </div>
 
       {isReady && !organizationId && (
@@ -62,7 +62,12 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
       )}
 
       {expense && organizationId && (
-        <ExpenseForm expense={expense} organizationId={organizationId} onSubmit={handleSave} />
+        <ExpenseForm
+          expense={expense}
+          organizationId={organizationId}
+          fxRates={organization?.settings?.fxRates}
+          onSubmit={handleSave}
+        />
       )}
     </div>
   );

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Plane, Ship, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -12,7 +12,14 @@ import { formatCurrency } from '@/lib/utils';
 import { calcLineCost, calcProfit, parseStoredLineItem } from '@/lib/line-items';
 import { resolveImageSrc } from '@/lib/organization-branding';
 import type { ExpenseDetail } from '@/lib/api';
-import type { UpdateExpenseCostsInput } from '@flowbooks/shared';
+import {
+  cnyToCurrency,
+  currencyToCny,
+  parseFxRates,
+  roundMoney,
+  type FxRates,
+  type UpdateExpenseCostsInput,
+} from '@flowbooks/shared';
 
 type CostRow = {
   id: string;
@@ -23,11 +30,17 @@ type CostRow = {
   unitPrice: number;
   amount: number;
   unitCost: number;
+  unitCostCny: number;
 };
 
-function toCostRows(expense: ExpenseDetail): CostRow[] {
+function toCostRows(expense: ExpenseDetail, rates: FxRates): CostRow[] {
   return (expense.items ?? []).map((item) => {
     const { name, description } = parseStoredLineItem(item);
+    const unitCost = Number(item.unitCost ?? 0);
+    let unitCostCny = Number(item.unitCostCny ?? 0);
+    if (!unitCostCny && unitCost > 0) {
+      unitCostCny = roundMoney(currencyToCny(unitCost, expense.currency, rates));
+    }
     return {
       id: item.id,
       name,
@@ -36,7 +49,8 @@ function toCostRows(expense: ExpenseDetail): CostRow[] {
       quantity: Number(item.quantity),
       unitPrice: Number(item.unitPrice),
       amount: Number(item.amount),
-      unitCost: Number(item.unitCost ?? 0),
+      unitCost,
+      unitCostCny,
     };
   });
 }
@@ -49,32 +63,57 @@ function formatDate(value?: string | null) {
 type Props = {
   expense: ExpenseDetail;
   organizationId: string;
+  fxRates?: unknown;
   onSubmit: (data: UpdateExpenseCostsInput) => Promise<void>;
 };
 
-export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
-  const [rows, setRows] = useState<CostRow[]>(() => toCostRows(expense));
-  const [shippingCost, setShippingCost] = useState(Number(expense.shippingCost ?? 0));
+export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Props) {
+  const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
+  const [rows, setRows] = useState<CostRow[]>(() => toCostRows(expense, rates));
+  const [shippingCostCny, setShippingCostCny] = useState(() => {
+    const existing = Number(expense.shippingCostCny ?? 0);
+    if (existing > 0) return existing;
+    const shippingCost = Number(expense.shippingCost ?? 0);
+    return shippingCost > 0
+      ? roundMoney(currencyToCny(shippingCost, expense.currency, rates))
+      : 0;
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setRows(toCostRows(expense));
-    setShippingCost(Number(expense.shippingCost ?? 0));
-  }, [expense]);
+    setRows(toCostRows(expense, rates));
+    const existing = Number(expense.shippingCostCny ?? 0);
+    if (existing > 0) {
+      setShippingCostCny(existing);
+    } else {
+      const shippingCost = Number(expense.shippingCost ?? 0);
+      setShippingCostCny(
+        shippingCost > 0 ? roundMoney(currencyToCny(shippingCost, expense.currency, rates)) : 0,
+      );
+    }
+  }, [expense, rates]);
 
   const revenue = Number(expense.total);
   const customerShipping = Number(expense.shipping ?? expense.customerShipping ?? 0);
-  const itemsCost = rows.reduce((sum, row) => sum + calcLineCost(row.quantity, row.unitCost), 0);
+  const shippingCost = roundMoney(cnyToCurrency(shippingCostCny, expense.currency, rates));
+  const itemsCost = rows.reduce((sum, row) => {
+    const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+    return sum + calcLineCost(row.quantity, unitCost);
+  }, 0);
   const totalCost = itemsCost + shippingCost;
   const shippingProfit = customerShipping - shippingCost;
   const profit = calcProfit(revenue, totalCost);
   const marginPercent = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-  function updateUnitCost(index: number, unitCost: number) {
+  function updateUnitCostCny(index: number, unitCostCny: number) {
+    const nextCny = Math.max(0, unitCostCny);
+    const nextUnitCost = roundMoney(cnyToCurrency(nextCny, expense.currency, rates));
     setRows((prev) =>
-      prev.map((row, i) => (i === index ? { ...row, unitCost: Math.max(0, unitCost) } : row)),
+      prev.map((row, i) =>
+        i === index ? { ...row, unitCostCny: nextCny, unitCost: nextUnitCost } : row,
+      ),
     );
     setSaved(false);
   }
@@ -85,8 +124,13 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
     setSaved(false);
     try {
       await onSubmit({
-        items: rows.map((row) => ({ id: row.id, unitCost: row.unitCost })),
-        shippingCost: Math.max(0, shippingCost),
+        items: rows.map((row) => ({
+          id: row.id,
+          unitCostCny: row.unitCostCny,
+          unitCost: roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates)),
+        })),
+        shippingCostCny: Math.max(0, shippingCostCny),
+        shippingCost,
       });
       setSaved(true);
     } catch (err) {
@@ -113,7 +157,7 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
             <InvoiceStatusBadge status={expense.status} />
           </div>
           <CardDescription>
-            {expense.customer?.name} · Issued {formatDate(expense.issueDate)}
+            {expense.customer?.name} · Issued {formatDate(expense.issueDate)} · {expense.currency}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
@@ -156,26 +200,28 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
         <CardHeader>
           <CardTitle>Line item costs</CardTitle>
           <CardDescription>
-            Enter what you paid for each item — profit is calculated automatically
+            Enter what you paid in CNY — we convert to {expense.currency} for profit
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="hidden overflow-x-auto md:block">
-            <table className="w-full min-w-[720px] border-collapse text-sm">
+            <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead>
                 <tr className="border-b text-left text-xs uppercase tracking-wide text-muted-foreground">
                   <th className="px-2 py-2">Item</th>
                   <th className="px-2 py-2 text-right">Qty</th>
                   <th className="px-2 py-2 text-right">Sale price</th>
                   <th className="px-2 py-2 text-right">Revenue</th>
-                  <th className="px-2 py-2 text-right">Cost each</th>
+                  <th className="px-2 py-2 text-right">Cost each (CNY)</th>
+                  <th className="px-2 py-2 text-right">Cost ({expense.currency})</th>
                   <th className="px-2 py-2 text-right">Expense</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((row, index) => {
                   const imageSrc = resolveImageSrc(row.imageUrl);
-                  const lineCost = calcLineCost(row.quantity, row.unitCost);
+                  const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+                  const lineCost = calcLineCost(row.quantity, unitCost);
                   return (
                     <tr key={row.id} className="border-b align-top">
                       <td className="px-2 py-3">
@@ -212,10 +258,13 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
                           type="number"
                           min="0"
                           step="any"
-                          value={row.unitCost}
-                          onChange={(e) => updateUnitCost(index, Number(e.target.value) || 0)}
+                          value={row.unitCostCny}
+                          onChange={(e) => updateUnitCostCny(index, Number(e.target.value) || 0)}
                           className="ml-auto h-9 w-28 text-right"
                         />
+                      </td>
+                      <td className="px-2 py-3 text-right tabular-nums text-muted-foreground">
+                        {formatCurrency(unitCost, expense.currency)}
                       </td>
                       <td className="px-2 py-3 text-right font-medium tabular-nums text-orange-700">
                         {formatCurrency(lineCost, expense.currency)}
@@ -230,7 +279,8 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
           <div className="space-y-4 md:hidden">
             {rows.map((row, index) => {
               const imageSrc = resolveImageSrc(row.imageUrl);
-              const lineCost = calcLineCost(row.quantity, row.unitCost);
+              const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+              const lineCost = calcLineCost(row.quantity, unitCost);
               return (
                 <div key={row.id} className="space-y-3 rounded-lg border p-4">
                   <div className="flex items-start gap-3">
@@ -247,14 +297,17 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Cost each (what you paid)</Label>
+                    <Label>Cost each (CNY)</Label>
                     <Input
                       type="number"
                       min="0"
                       step="any"
-                      value={row.unitCost}
-                      onChange={(e) => updateUnitCost(index, Number(e.target.value) || 0)}
+                      value={row.unitCostCny}
+                      onChange={(e) => updateUnitCostCny(index, Number(e.target.value) || 0)}
                     />
+                    <p className="text-xs text-muted-foreground">
+                      ≈ {formatCurrency(unitCost, expense.currency)}
+                    </p>
                   </div>
                   <p className="text-sm">
                     Line expense:{' '}
@@ -273,7 +326,7 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
         <CardHeader>
           <CardTitle>Shipping costs</CardTitle>
           <CardDescription>
-            Compare what the customer paid for shipping vs what you actually paid
+            Enter actual shipping in CNY — converted to {expense.currency} for profit
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -287,20 +340,20 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
             <p className="mt-1 text-xs text-muted-foreground">Charged to the customer</p>
           </div>
           <div className="space-y-2 rounded-lg border border-orange-200 bg-orange-50/40 p-4">
-            <Label htmlFor="shippingCost">Actual shipping cost (what you paid)</Label>
+            <Label htmlFor="shippingCostCny">Actual shipping cost (CNY)</Label>
             <Input
-              id="shippingCost"
+              id="shippingCostCny"
               type="number"
               min="0"
               step="any"
-              value={shippingCost}
+              value={shippingCostCny}
               onChange={(e) => {
-                setShippingCost(Math.max(0, Number(e.target.value) || 0));
+                setShippingCostCny(Math.max(0, Number(e.target.value) || 0));
                 setSaved(false);
               }}
             />
             <p className="text-xs text-muted-foreground">
-              Shipping profit:{' '}
+              ≈ {formatCurrency(shippingCost, expense.currency)} · Shipping profit:{' '}
               <span className={shippingProfit >= 0 ? 'font-medium text-green-700' : 'font-medium text-destructive'}>
                 {formatCurrency(shippingProfit, expense.currency)}
               </span>
@@ -314,64 +367,54 @@ export function ExpenseForm({ expense, organizationId, onSubmit }: Props) {
           <CardTitle>Expense vs profit</CardTitle>
         </CardHeader>
         <CardContent>
-          <div className="rounded-lg bg-muted/40 p-4 text-sm space-y-2">
+          <div className="space-y-2 rounded-lg bg-muted/40 p-4 text-sm">
             <div className="flex justify-between">
               <span className="text-muted-foreground">Invoice revenue</span>
               <span className="font-medium">{formatCurrency(revenue, expense.currency)}</span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Item costs</span>
+              <span className="text-muted-foreground">Items cost</span>
               <span className="font-medium text-orange-700">
                 {formatCurrency(itemsCost, expense.currency)}
               </span>
             </div>
             <div className="flex justify-between">
-              <span className="text-muted-foreground">Actual shipping cost</span>
+              <span className="text-muted-foreground">Shipping cost</span>
               <span className="font-medium text-orange-700">
                 {formatCurrency(shippingCost, expense.currency)}
               </span>
             </div>
-            <div className="flex justify-between">
-              <span className="text-muted-foreground">Total expenses</span>
-              <span className="font-medium text-orange-700">
+            <div className="flex justify-between border-t pt-2">
+              <span className="font-medium">Total expense</span>
+              <span className="font-semibold text-orange-700">
                 {formatCurrency(totalCost, expense.currency)}
               </span>
             </div>
-            <div className="flex justify-between border-t pt-2 text-base font-semibold">
-              <span>Profit</span>
-              <span className={profit >= 0 ? 'text-green-700' : 'text-destructive'}>
-                {formatCurrency(profit, expense.currency)}
-                {revenue > 0 && (
-                  <span className="ml-2 text-sm font-normal text-muted-foreground">
-                    ({marginPercent.toFixed(1)}% margin)
-                  </span>
-                )}
+            <div className="flex justify-between">
+              <span className="font-medium">Profit</span>
+              <span className={profit >= 0 ? 'font-semibold text-green-700' : 'font-semibold text-destructive'}>
+                {formatCurrency(profit, expense.currency)} ({marginPercent.toFixed(1)}%)
               </span>
             </div>
           </div>
+
+          {error && <p className="mt-3 text-sm text-destructive">{error}</p>}
+          {saved && !error && <p className="mt-3 text-sm text-green-700">Costs saved</p>}
+
+          <div className="mt-4 flex flex-col gap-3 sm:flex-row">
+            <Button type="button" onClick={handleSave} disabled={submitting}>
+              {submitting ? 'Saving...' : 'Save costs'}
+            </Button>
+            <Button type="button" variant="outline" onClick={openPrint}>
+              <Printer className="mr-2 h-4 w-4" />
+              Print / PDF
+            </Button>
+            <Button type="button" variant="outline" asChild>
+              <Link href="/expenses">Back to expenses</Link>
+            </Button>
+          </div>
         </CardContent>
       </Card>
-
-      {error && <p className="text-sm text-destructive">{error}</p>}
-      {saved && (
-        <p className="text-sm text-green-600">Expenses saved. Profit updated for this invoice.</p>
-      )}
-
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap">
-        <Button type="button" className="w-full sm:w-auto" onClick={handleSave} disabled={submitting}>
-          {submitting ? 'Saving...' : 'Save expenses'}
-        </Button>
-        <Button type="button" variant="secondary" className="w-full sm:w-auto" onClick={openPrint}>
-          <Printer className="h-4 w-4" />
-          Download / Print
-        </Button>
-        <Button type="button" variant="outline" className="w-full sm:w-auto" asChild>
-          <Link href="/expenses">Back to expenses</Link>
-        </Button>
-        <Button type="button" variant="ghost" className="w-full sm:w-auto" asChild>
-          <Link href={`/invoices/${expense.id}`}>View invoice</Link>
-        </Button>
-      </div>
     </div>
   );
 }

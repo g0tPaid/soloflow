@@ -117,6 +117,8 @@ model OrganizationSettings {
   fiscalYearStart Int    @default(1) // month 1-12
   branding       Json    @default("{}")
   taxConfig      Json    @default("{}")
+  /// Units of each currency per 1 USD, e.g. { "USD": 1, "CNY": 7.25, "EUR": 0.92 }
+  fxRates        Json    @default("{\"USD\":1,\"CNY\":7.25,\"EUR\":0.92,\"GBP\":0.79}")
   invoicePrefix  String  @default("INV")
   invoiceNextNum Int     @default(1)
 
@@ -262,6 +264,7 @@ model Invoice {
   taxAmount           Decimal          @default(0) @db.Decimal(12, 2)
   shipping            Decimal          @default(0) @db.Decimal(12, 2)
   shippingCost        Decimal          @default(0) @db.Decimal(12, 2)
+  shippingCostCny     Decimal          @default(0) @db.Decimal(12, 2)
   discount            Decimal          @default(0) @db.Decimal(12, 2)
   total               Decimal          @default(0) @db.Decimal(12, 2)
   totalCost           Decimal          @default(0) @db.Decimal(12, 2)
@@ -295,6 +298,7 @@ model InvoiceItem {
   quantity    Decimal @default(1) @db.Decimal(12, 4)
   unitPrice   Decimal @default(0) @db.Decimal(12, 2)
   unitCost    Decimal @default(0) @db.Decimal(12, 2)
+  unitCostCny Decimal @default(0) @db.Decimal(12, 2)
   taxRate     Decimal @default(0) @db.Decimal(5, 4)
   amount      Decimal @default(0) @db.Decimal(12, 2)
   costAmount  Decimal @default(0) @db.Decimal(12, 2)

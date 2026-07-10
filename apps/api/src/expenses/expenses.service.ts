@@ -2,10 +2,25 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 import { PrismaService } from '../prisma/prisma.service';
 import { UpdateExpenseCostsDto } from './dto/expense.dto';
 import { normalizePagination } from '../common/pagination';
+import {
+  cnyToCurrency,
+  currencyToCny,
+  parseFxRates,
+  roundMoney,
+  type FxRates,
+} from '@flowbooks/shared';
 
 @Injectable()
 export class ExpensesService {
   constructor(private prisma: PrismaService) {}
+
+  private async loadFxRates(organizationId: string): Promise<FxRates> {
+    const settings = await this.prisma.organizationSettings.findUnique({
+      where: { organizationId },
+      select: { fxRates: true },
+    });
+    return parseFxRates(settings?.fxRates);
+  }
 
   async findAll(organizationId: string, page?: number, limit?: number) {
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
@@ -66,29 +81,60 @@ export class ExpensesService {
       }
     }
 
-    const costById = new Map(dto.items.map((row) => [row.id, row.unitCost]));
-    const shippingCost =
-      dto.shippingCost !== undefined ? Math.max(0, dto.shippingCost) : Number(invoice.shippingCost);
+    const rates = await this.loadFxRates(organizationId);
+    const currency = invoice.currency || 'USD';
+    const costById = new Map(dto.items.map((row) => [row.id, row]));
+
+    let shippingCostCny =
+      dto.shippingCostCny !== undefined
+        ? Math.max(0, dto.shippingCostCny)
+        : Number(invoice.shippingCostCny ?? 0);
+
+    let shippingCost: number;
+    if (dto.shippingCostCny !== undefined) {
+      shippingCost = roundMoney(cnyToCurrency(shippingCostCny, currency, rates));
+    } else if (dto.shippingCost !== undefined) {
+      shippingCost = Math.max(0, dto.shippingCost);
+      shippingCostCny = roundMoney(currencyToCny(shippingCost, currency, rates));
+    } else {
+      shippingCost = Number(invoice.shippingCost ?? 0);
+      if (!shippingCostCny && shippingCost > 0) {
+        shippingCostCny = roundMoney(currencyToCny(shippingCost, currency, rates));
+      }
+    }
 
     return this.prisma.$transaction(async (tx) => {
       for (const item of invoice.items) {
-        const unitCost = costById.has(item.id) ? costById.get(item.id)! : Number(item.unitCost);
+        const row = costById.get(item.id);
+        let unitCost = Number(item.unitCost ?? 0);
+        let unitCostCny = Number(item.unitCostCny ?? 0);
+
+        if (row?.unitCostCny !== undefined) {
+          unitCostCny = Math.max(0, row.unitCostCny);
+          unitCost = roundMoney(cnyToCurrency(unitCostCny, currency, rates));
+        } else if (row?.unitCost !== undefined) {
+          unitCost = Math.max(0, row.unitCost);
+          unitCostCny = roundMoney(currencyToCny(unitCost, currency, rates));
+        } else if (!unitCostCny && unitCost > 0) {
+          unitCostCny = roundMoney(currencyToCny(unitCost, currency, rates));
+        }
+
         const quantity = Number(item.quantity);
-        const costAmount = quantity * unitCost;
+        const costAmount = roundMoney(quantity * unitCost);
 
         await tx.invoiceItem.update({
           where: { id: item.id },
-          data: { unitCost, costAmount },
+          data: { unitCost, unitCostCny, costAmount },
         });
       }
 
       const updatedItems = await tx.invoiceItem.findMany({ where: { invoiceId: id } });
       const itemsCost = updatedItems.reduce((sum, item) => sum + Number(item.costAmount), 0);
-      const totalCost = itemsCost + shippingCost;
+      const totalCost = roundMoney(itemsCost + shippingCost);
 
       const updated = await tx.invoice.update({
         where: { id },
-        data: { shippingCost, totalCost },
+        data: { shippingCost, shippingCostCny, totalCost },
         include: {
           customer: true,
           items: { include: { product: true }, orderBy: { id: 'asc' } },
@@ -109,6 +155,7 @@ export class ExpensesService {
     total: unknown;
     shipping: unknown;
     shippingCost?: unknown;
+    shippingCostCny?: unknown;
     totalCost: unknown;
     customer: { id: string; name: string } | null;
     items: { costAmount: unknown }[];
@@ -116,6 +163,7 @@ export class ExpensesService {
     const revenue = Number(invoice.total);
     const customerShipping = Number(invoice.shipping ?? 0);
     const shippingCost = Number(invoice.shippingCost ?? 0);
+    const shippingCostCny = Number(invoice.shippingCostCny ?? 0);
     const itemsCost = invoice.items.reduce((sum, item) => sum + Number(item.costAmount ?? 0), 0);
     const totalCost = Number(invoice.totalCost ?? itemsCost + shippingCost);
     const profit = revenue - totalCost;
@@ -130,6 +178,7 @@ export class ExpensesService {
       revenue,
       customerShipping,
       shippingCost,
+      shippingCostCny,
       totalCost,
       profit,
       customer: invoice.customer,
@@ -149,6 +198,7 @@ export class ExpensesService {
     taxAmount: unknown;
     shipping: unknown;
     shippingCost?: unknown;
+    shippingCostCny?: unknown;
     discount: unknown;
     total: unknown;
     totalCost: unknown;
@@ -169,6 +219,7 @@ export class ExpensesService {
       quantity: unknown;
       unitPrice: unknown;
       unitCost: unknown;
+      unitCostCny?: unknown;
       taxRate: unknown;
       amount: unknown;
       costAmount: unknown;
@@ -178,6 +229,7 @@ export class ExpensesService {
     const revenue = Number(invoice.total);
     const customerShipping = Number(invoice.shipping ?? 0);
     const shippingCost = Number(invoice.shippingCost ?? 0);
+    const shippingCostCny = Number(invoice.shippingCostCny ?? 0);
     const itemsCost = invoice.items.reduce((sum, item) => sum + Number(item.costAmount ?? 0), 0);
     const totalCost = Number(invoice.totalCost ?? itemsCost + shippingCost);
     const profit = revenue - totalCost;
@@ -188,6 +240,7 @@ export class ExpensesService {
       revenue,
       customerShipping,
       shippingCost,
+      shippingCostCny,
       itemsCost,
       totalCost,
       shippingProfit,

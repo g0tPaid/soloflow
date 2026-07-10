@@ -153,4 +153,12 @@ export class UpdateOrganizationDto {
   @ValidateNested()
   @Type(() => BrandingDto)
   branding?: BrandingDto;
+
+  @ApiProperty({
+    required: false,
+    description: 'Units of each currency per 1 USD, e.g. { CNY: 7.25, EUR: 0.92 }',
+  })
+  @IsOptional()
+  @IsObject()
+  fxRates?: Record<string, number>;
 }

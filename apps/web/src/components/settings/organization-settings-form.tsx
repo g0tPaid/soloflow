@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
-import { updateOrganizationSchema, type UpdateOrganizationInput } from '@flowbooks/shared';
+import { updateOrganizationSchema, type UpdateOrganizationInput, parseFxRates } from '@flowbooks/shared';
 import { parseBranding } from '@/lib/organization-branding';
 import type { Organization } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -25,6 +25,7 @@ type Props = {
 
 export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
   const branding = parseBranding(organization.settings?.branding);
+  const initialFx = parseFxRates(organization.settings?.fxRates);
   const [logo, setLogo] = useState<string | null | undefined>(organization.logo);
   const [invoiceSignature, setInvoiceSignature] = useState<string | null | undefined>(
     branding.invoiceSignature ?? null,
@@ -35,6 +36,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     branding.invoiceOffer3 ?? null,
     branding.invoiceOffer4 ?? null,
   ]);
+  const [cnyPerUsd, setCnyPerUsd] = useState(String(initialFx.CNY ?? 7.25));
+  const [eurPerUsd, setEurPerUsd] = useState(String(initialFx.EUR ?? 0.92));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -73,6 +76,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     setError('');
     setSaved(false);
     try {
+      const cny = Math.max(0.0001, Number(cnyPerUsd) || 7.25);
+      const eur = Math.max(0.0001, Number(eurPerUsd) || 0.92);
       await onSubmit({
         name: data.name,
         logo: logo ?? null,
@@ -83,8 +88,12 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           invoiceOffer2: invoiceOffers[1] ?? '',
           invoiceOffer3: invoiceOffers[2] ?? '',
           invoiceOffer4: invoiceOffers[3] ?? '',
-          // Clear legacy wide banner so invoices use the sharp 300×300 offers instead
           invoiceBanner: '',
+        },
+        fxRates: {
+          USD: 1,
+          CNY: cny,
+          EUR: eur,
         },
       });
       setSaved(true);
@@ -157,6 +166,42 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           <div className="space-y-2">
             <Label htmlFor="country">Country</Label>
             <Input id="country" {...register('branding.address.country')} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Exchange rates (USD base)</CardTitle>
+          <CardDescription>
+            Dashboard totals convert everything to USD, then show CNY underneath. Staff expense
+            costs in CNY use these rates. Enter how many units equal <strong>1 USD</strong>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 sm:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="cnyPerUsd">CNY per 1 USD</Label>
+            <Input
+              id="cnyPerUsd"
+              type="number"
+              min="0.0001"
+              step="any"
+              value={cnyPerUsd}
+              onChange={(e) => setCnyPerUsd(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Default 7.25</p>
+          </div>
+          <div className="space-y-2">
+            <Label htmlFor="eurPerUsd">EUR per 1 USD</Label>
+            <Input
+              id="eurPerUsd"
+              type="number"
+              min="0.0001"
+              step="any"
+              value={eurPerUsd}
+              onChange={(e) => setEurPerUsd(e.target.value)}
+            />
+            <p className="text-xs text-muted-foreground">Default 0.92 (1 USD ≈ 0.92 EUR)</p>
           </div>
         </CardContent>
       </Card>

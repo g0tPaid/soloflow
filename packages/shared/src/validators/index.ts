@@ -96,6 +96,17 @@ export const updateOrganizationSchema = z.object({
       invoiceOffer4: z.string().optional(),
     })
     .optional(),
+  fxRates: z
+    .object({
+      USD: z.number().positive().optional(),
+      CNY: z.number().positive().optional(),
+      EUR: z.number().positive().optional(),
+      GBP: z.number().positive().optional(),
+      AUD: z.number().positive().optional(),
+      INR: z.number().positive().optional(),
+    })
+    .passthrough()
+    .optional(),
 });
 
 export const inviteMemberSchema = z.object({
@@ -202,11 +213,13 @@ export const updateExpenseCostsSchema = z.object({
     .array(
       z.object({
         id: z.string().min(1),
-        unitCost: z.number().min(0),
+        unitCost: z.number().min(0).optional(),
+        unitCostCny: z.number().min(0).optional(),
       }),
     )
     .min(1, 'At least one line item is required'),
   shippingCost: z.number().min(0).optional(),
+  shippingCostCny: z.number().min(0).optional(),
 });
 
 // ─── Types inferred from schemas ─────────────────────────────────────────────

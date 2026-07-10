@@ -166,6 +166,7 @@ export interface InvoiceItem {
   quantity: string | number;
   unitPrice: string | number;
   unitCost?: string | number;
+  unitCostCny?: string | number;
   taxRate: string | number;
   amount: string | number;
   costAmount?: string | number;
@@ -185,6 +186,7 @@ export interface Invoice {
   taxAmount: string | number;
   shipping: string | number;
   shippingCost?: string | number;
+  shippingCostCny?: string | number;
   discount: string | number;
   total: string | number;
   totalCost?: string | number;
@@ -218,6 +220,7 @@ export interface ExpenseDetail extends Invoice {
   revenue: number;
   customerShipping: number;
   shippingCost: number;
+  shippingCostCny?: number;
   itemsCost: number;
   totalCost: number;
   shippingProfit: number;
@@ -272,6 +275,7 @@ export interface Organization {
     currency: string;
     timezone: string;
     branding?: OrganizationBranding;
+    fxRates?: Record<string, number>;
   };
 }
 
@@ -333,6 +337,7 @@ export const api = {
         name?: string;
         logo?: string | null;
         branding?: OrganizationBranding;
+        fxRates?: Record<string, number>;
       },
     ) => {
       if (isBrowserHostedApp()) {
@@ -362,6 +367,11 @@ export const api = {
         outstanding: number;
         cashFlow: number;
         currency: string;
+        revenueCny?: number;
+        expensesCny?: number;
+        profitCny?: number;
+        outstandingCny?: number;
+        cashFlowCny?: number;
         period: string;
         counts: { customers: number; products: number };
       }>('/dashboard/metrics', { token, organizationId }),

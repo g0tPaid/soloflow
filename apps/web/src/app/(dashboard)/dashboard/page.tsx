@@ -27,6 +27,11 @@ interface Metrics {
   outstanding: number;
   cashFlow: number;
   currency: string;
+  revenueCny?: number;
+  expensesCny?: number;
+  profitCny?: number;
+  outstandingCny?: number;
+  cashFlowCny?: number;
   period: string;
   counts: { customers: number; products: number };
 }
@@ -52,28 +57,38 @@ export default function DashboardPage() {
     {
       title: 'Revenue',
       value: metrics ? formatCurrency(metrics.revenue, metrics.currency) : '—',
-      description: 'This month',
+      secondary:
+        metrics?.revenueCny != null ? formatCurrency(metrics.revenueCny, 'CNY') : undefined,
+      description: 'Paid this month (USD)',
       icon: TrendingUp,
       trend: 'up' as const,
     },
     {
       title: 'Expenses',
       value: metrics ? formatCurrency(metrics.expenses, metrics.currency) : '—',
-      description: 'This month',
+      secondary:
+        metrics?.expensesCny != null ? formatCurrency(metrics.expensesCny, 'CNY') : undefined,
+      description: 'Costs this month (USD)',
       icon: TrendingDown,
       trend: 'down' as const,
     },
     {
       title: 'Profit',
       value: metrics ? formatCurrency(metrics.profit, metrics.currency) : '—',
-      description: 'Revenue minus costs (this month)',
+      secondary:
+        metrics?.profitCny != null ? formatCurrency(metrics.profitCny, 'CNY') : undefined,
+      description: 'Revenue minus costs (USD)',
       icon: Wallet,
       trend: 'up' as const,
     },
     {
       title: 'Outstanding',
       value: metrics ? formatCurrency(metrics.outstanding, metrics.currency) : '—',
-      description: 'Unpaid invoices',
+      secondary:
+        metrics?.outstandingCny != null
+          ? formatCurrency(metrics.outstandingCny, 'CNY')
+          : undefined,
+      description: 'Unpaid invoices (USD)',
       icon: Clock,
       trend: 'neutral' as const,
     },
@@ -132,6 +147,9 @@ export default function DashboardPage() {
                     card.value
                   )}
                 </div>
+                {!isLoading && card.secondary ? (
+                  <p className="mt-0.5 text-sm text-muted-foreground tabular-nums">{card.secondary}</p>
+                ) : null}
                 <p className="text-xs text-muted-foreground mt-1">{card.description}</p>
               </CardContent>
             </Card>

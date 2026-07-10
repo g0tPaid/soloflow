@@ -7,10 +7,17 @@ export class ExpenseLineItemDto {
   @IsString()
   id!: string;
 
-  @ApiProperty()
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsNumber()
   @Min(0)
-  unitCost!: number;
+  unitCost?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCostCny?: number;
 }
 
 export class UpdateExpenseCostsDto {
@@ -25,4 +32,10 @@ export class UpdateExpenseCostsDto {
   @IsNumber()
   @Min(0)
   shippingCost?: number;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  shippingCostCny?: number;
 }

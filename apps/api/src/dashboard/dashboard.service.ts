@@ -1,6 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus } from '@flowbooks/database';
+import { parseFxRates, roundMoney, toUsd, usdToCny } from '@flowbooks/shared';
 
 @Injectable()
 export class DashboardService {
@@ -10,52 +11,74 @@ export class DashboardService {
     const settings = await this.prisma.organizationSettings.findUnique({
       where: { organizationId },
     });
-    const currency = settings?.currency || 'USD';
+    const rates = parseFxRates(settings?.fxRates);
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [paidInvoices, outstandingInvoices, costInvoices, customerCount, productCount] =
+    const [paidInvoices, outstandingInvoices, monthInvoices, customerCount, productCount] =
       await Promise.all([
-      this.prisma.invoice.aggregate({
-        where: {
-          organizationId,
-          status: InvoiceStatus.PAID,
-          issueDate: { gte: startOfMonth },
-        },
-        _sum: { total: true },
-      }),
-      this.prisma.invoice.aggregate({
-        where: {
-          organizationId,
-          status: { in: [InvoiceStatus.SENT, InvoiceStatus.VIEWED, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE] },
-        },
-        _sum: { total: true },
-      }),
-      this.prisma.invoice.aggregate({
-        where: {
-          organizationId,
-          issueDate: { gte: startOfMonth },
-        },
-        _sum: { totalCost: true, total: true },
-      }),
-      this.prisma.customer.count({ where: { organizationId, isActive: true } }),
-      this.prisma.product.count({ where: { organizationId, isActive: true } }),
-    ]);
+        this.prisma.invoice.findMany({
+          where: {
+            organizationId,
+            status: InvoiceStatus.PAID,
+            issueDate: { gte: startOfMonth },
+          },
+          select: { currency: true, total: true },
+        }),
+        this.prisma.invoice.findMany({
+          where: {
+            organizationId,
+            status: {
+              in: [
+                InvoiceStatus.SENT,
+                InvoiceStatus.VIEWED,
+                InvoiceStatus.PARTIAL,
+                InvoiceStatus.OVERDUE,
+              ],
+            },
+          },
+          select: { currency: true, total: true },
+        }),
+        this.prisma.invoice.findMany({
+          where: {
+            organizationId,
+            issueDate: { gte: startOfMonth },
+          },
+          select: { currency: true, total: true, totalCost: true },
+        }),
+        this.prisma.customer.count({ where: { organizationId, isActive: true } }),
+        this.prisma.product.count({ where: { organizationId, isActive: true } }),
+      ]);
 
-    const revenue = Number(paidInvoices._sum.total || 0);
-    const outstanding = Number(outstandingInvoices._sum.total || 0);
-    const expenses = Number(costInvoices._sum.totalCost || 0);
-    const invoiceRevenue = Number(costInvoices._sum.total || 0);
-    const profit = invoiceRevenue - expenses;
+    const sumUsd = (
+      rows: Array<{ currency: string; total?: unknown; totalCost?: unknown }>,
+      field: 'total' | 'totalCost',
+    ) =>
+      rows.reduce((sum, row) => {
+        const amount = Number(field === 'total' ? row.total : row.totalCost) || 0;
+        return sum + toUsd(amount, row.currency || 'USD', rates);
+      }, 0);
+
+    const revenueUsd = roundMoney(sumUsd(paidInvoices, 'total'));
+    const outstandingUsd = roundMoney(sumUsd(outstandingInvoices, 'total'));
+    const expensesUsd = roundMoney(sumUsd(monthInvoices, 'totalCost'));
+    const invoiceRevenueUsd = roundMoney(sumUsd(monthInvoices, 'total'));
+    const profitUsd = roundMoney(invoiceRevenueUsd - expensesUsd);
+    const cashFlowUsd = roundMoney(revenueUsd - expensesUsd);
 
     return {
-      revenue,
-      expenses,
-      profit,
-      outstanding,
-      cashFlow: revenue - expenses,
-      currency,
+      revenue: revenueUsd,
+      expenses: expensesUsd,
+      profit: profitUsd,
+      outstanding: outstandingUsd,
+      cashFlow: cashFlowUsd,
+      currency: 'USD',
+      revenueCny: roundMoney(usdToCny(revenueUsd, rates)),
+      expensesCny: roundMoney(usdToCny(expensesUsd, rates)),
+      profitCny: roundMoney(usdToCny(profitUsd, rates)),
+      outstandingCny: roundMoney(usdToCny(outstandingUsd, rates)),
+      cashFlowCny: roundMoney(usdToCny(cashFlowUsd, rates)),
       period: 'month',
       counts: {
         customers: customerCount,
