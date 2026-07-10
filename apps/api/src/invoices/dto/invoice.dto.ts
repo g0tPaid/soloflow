@@ -158,4 +158,11 @@ export class UpdateInvoiceDto {
   @IsOptional()
   @IsString()
   shippingToCountry?: string;
+
+  @ApiProperty({ type: [InvoiceItemDto], required: false })
+  @IsOptional()
+  @IsArray()
+  @ValidateNested({ each: true })
+  @Type(() => InvoiceItemDto)
+  items?: InvoiceItemDto[];
 }

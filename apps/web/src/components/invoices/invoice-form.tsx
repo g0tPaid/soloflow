@@ -190,13 +190,25 @@ export function InvoiceForm(props: InvoiceFormProps) {
 
   async function handleEditSubmit(data: UpdateInvoiceInput) {
     if (props.mode !== 'edit') return;
+    if (!items.length || !items.some((item) => item.name.trim() || item.description.trim())) {
+      setError('Add at least one line item with a name');
+      return;
+    }
     setSubmitting(true);
     setError('');
     try {
+      const sanitizedItems = items.map((item) => ({
+        ...item,
+        quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
+        unitPrice: Number.isFinite(item.unitPrice) ? Math.max(0, item.unitPrice) : 0,
+        taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
+      }));
+
       await props.onSubmit({
         ...data,
         dueDate: data.dueDate || null,
         notes: data.notes || null,
+        items: sanitizedItems,
       });
       router.refresh();
     } catch (err) {
@@ -209,11 +221,31 @@ export function InvoiceForm(props: InvoiceFormProps) {
   if (isEdit) {
     return (
       <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
+        <Card id="edit-line-items" className="scroll-mt-20 border-[#E40046]/40">
+          <CardHeader>
+            <CardTitle>Line items</CardTitle>
+            <CardDescription>
+              Change quantity or price, or add another item — then click Save changes at the bottom.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            <LineItemsEditor
+              items={items}
+              onChange={setItems}
+              currency={currency}
+              products={props.products}
+              discount={discount}
+              shipping={editShipping}
+              onShippingChange={(value) => editForm.setValue('shipping', value)}
+            />
+          </CardContent>
+        </Card>
+
         <Card>
           <CardHeader>
-            <CardTitle>Edit invoice</CardTitle>
+            <CardTitle>Invoice details</CardTitle>
             <CardDescription>
-              Update number, status, due date, discount, notes, and shipping. Then click Save changes.
+              Number, status, due date, discount, and notes
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -275,28 +307,10 @@ export function InvoiceForm(props: InvoiceFormProps) {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle>Line items</CardTitle>
-            <CardDescription>Line items cannot be edited after creation</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <LineItemsEditor
-              items={items}
-              onChange={setItems}
-              currency={currency}
-              readOnly
-              discount={discount}
-              shipping={editShipping}
-              onShippingChange={(value) => editForm.setValue('shipping', value)}
-            />
-          </CardContent>
-        </Card>
-
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex flex-col gap-3 sm:flex-row">
-          <Button type="submit" disabled={submitting}>
+          <Button type="submit" disabled={submitting} size="lg" className="bg-[#E40046] text-white hover:bg-[#c4003c]">
             {submitting ? 'Saving...' : 'Save changes'}
           </Button>
           <Button type="button" variant="outline" asChild>

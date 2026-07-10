@@ -194,6 +194,7 @@ export const updateInvoiceSchema = z.object({
   shippingTerms: z.enum(['DDP', 'LCL']).optional().nullable(),
   shippingFromCountry: z.string().optional().nullable(),
   shippingToCountry: z.string().optional().nullable(),
+  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
 });
 
 export const updateExpenseCostsSchema = z.object({

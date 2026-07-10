@@ -501,7 +501,10 @@ export const api = {
     update: (token: string, organizationId: string, id: string, data: UpdateInvoiceInput) =>
       apiFetch<Invoice>(`/invoices/${id}`, {
         method: 'PATCH',
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+          ...data,
+          items: data.items ? toApiLineItems(data.items) : undefined,
+        }),
         token,
         organizationId,
       }),

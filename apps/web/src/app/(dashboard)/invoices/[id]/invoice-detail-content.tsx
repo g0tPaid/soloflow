@@ -44,8 +44,11 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
-    if (window.location.hash !== '#edit-invoice') return;
-    const el = document.getElementById('edit-invoice');
+    if (window.location.hash !== '#edit-line-items' && window.location.hash !== '#edit-invoice') {
+      return;
+    }
+    const el =
+      document.getElementById('edit-line-items') ?? document.getElementById('edit-invoice');
     if (el) {
       window.setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
     }
@@ -71,7 +74,8 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   }
 
   function scrollToEdit() {
-    const el = document.getElementById('edit-invoice');
+    const el =
+      document.getElementById('edit-line-items') ?? document.getElementById('edit-invoice');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
@@ -117,23 +121,32 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
           )}
         </div>
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
-          {invoice && organizationId && !isNew && (
+          {invoice && organizationId && (
             <>
-              <Button type="button" variant="outline" onClick={scrollToEdit} className="gap-2">
+              <Button
+                type="button"
+                size="lg"
+                onClick={scrollToEdit}
+                className="gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]"
+              >
                 <Pencil className="h-4 w-4" />
-                Edit invoice
+                Edit invoice — change prices &amp; items
               </Button>
-              <DownloadInvoicePdfButton
-                invoiceId={id}
-                organizationId={organizationId}
-                filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
-              />
-              <ShareInvoiceWhatsAppButton
-                invoice={invoice}
-                invoiceId={id}
-                organizationId={organizationId}
-                fullWidth
-              />
+              {!isNew && (
+                <>
+                  <DownloadInvoicePdfButton
+                    invoiceId={id}
+                    organizationId={organizationId}
+                    filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
+                  />
+                  <ShareInvoiceWhatsAppButton
+                    invoice={invoice}
+                    invoiceId={id}
+                    organizationId={organizationId}
+                    fullWidth
+                  />
+                </>
+              )}
             </>
           )}
           {invoice?.status === 'PAID' && organizationId && (

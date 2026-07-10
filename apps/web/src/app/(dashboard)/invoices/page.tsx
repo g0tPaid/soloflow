@@ -150,8 +150,12 @@ export default function InvoicesPage() {
                       Due {formatDate(invoice.dueDate)}
                     </p>
                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
-                      <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
-                        <Link href={`/invoices/${invoice.id}#edit-invoice`}>
+                      <Button
+                        asChild
+                        size="sm"
+                        className="flex-1 gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c] sm:flex-none"
+                      >
+                        <Link href={`/invoices/${invoice.id}#edit-line-items`}>
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Link>

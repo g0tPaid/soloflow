@@ -252,21 +252,17 @@ export class InvoicesService {
 
     const shipping = dto.shipping !== undefined ? dto.shipping : Number(existing.shipping);
 
-    const { subtotal, total } = this.calculateTotals(
+    const lineItemsForTotals = dto.items?.length
+      ? dto.items.map((item) => ({
+          quantity: item.quantity,
+          unitPrice: item.unitPrice,
+        }))
+      : existing.items.map((item) => ({
+          quantity: Number(item.quantity),
+          unitPrice: Number(item.unitPrice),
+        }));
 
-      existing.items.map((item) => ({
-
-        quantity: Number(item.quantity),
-
-        unitPrice: Number(item.unitPrice),
-
-      })),
-
-      discount,
-
-      shipping,
-
-    );
+    const { subtotal, total } = this.calculateTotals(lineItemsForTotals, discount, shipping);
 
 
 
@@ -304,6 +300,43 @@ export class InvoicesService {
 
     if (dto.number !== undefined) {
       updateData.number = await this.assertUniqueNumber(organizationId, dto.number, id);
+    }
+
+    if (dto.items?.length) {
+      const productIds = [
+        ...new Set(dto.items.map((item) => item.productId).filter((pid): pid is string => !!pid)),
+      ];
+      const productImages = new Map<string, string | null>();
+      if (productIds.length > 0) {
+        const products = await this.prisma.product.findMany({
+          where: { organizationId, id: { in: productIds } },
+          select: { id: true, imageUrl: true },
+        });
+        for (const product of products) {
+          productImages.set(product.id, product.imageUrl);
+        }
+      }
+
+      updateData.items = {
+        deleteMany: {},
+        create: dto.items.map((item) => {
+          const name = item.name?.trim() || null;
+          const description = item.description?.trim() || name || 'Item';
+
+          return {
+            productId: item.productId || null,
+            name,
+            description,
+            imageUrl:
+              item.imageUrl ||
+              (item.productId ? productImages.get(item.productId) ?? null : null),
+            quantity: item.quantity,
+            unitPrice: item.unitPrice,
+            taxRate: 0,
+            amount: item.quantity * item.unitPrice,
+          };
+        }),
+      };
     }
 
 
