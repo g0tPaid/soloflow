@@ -1,6 +1,7 @@
-import { cookies } from 'next/headers';
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
+import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
+import { renderPrintHtml } from '@/lib/print-pdf/render-print-html';
 
 const PRINT_ROOTS: Record<string, string> = {
   invoices: 'invoice-capture-root',
@@ -9,19 +10,9 @@ const PRINT_ROOTS: Record<string, string> = {
 };
 
 function resolveBaseUrl(request: Request) {
+  const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
+  if (configured) return configured;
   return new URL(request.url).origin;
-}
-
-async function authCookiesForBrowser(baseUrl: string) {
-  const cookieStore = await cookies();
-  const secure = baseUrl.startsWith('https');
-
-  return cookieStore.getAll().map((cookie) => ({
-    name: cookie.name,
-    value: cookie.value,
-    path: '/',
-    ...(secure ? { secure: true as const } : {}),
-  }));
 }
 
 async function resolveExecutablePath() {
@@ -52,6 +43,7 @@ async function resolveExecutablePath() {
 
 export async function generatePrintPdf(
   request: Request,
+  accessToken: string,
   type: string,
   id: string,
   organizationId?: string | null,
@@ -62,11 +54,8 @@ export async function generatePrintPdf(
   }
 
   const baseUrl = resolveBaseUrl(request);
-  const params = new URLSearchParams({ embed: '1' });
-  if (organizationId) params.set('org', organizationId);
-
-  const printUrl = `${baseUrl}/print/${type}/${id}?${params.toString()}`;
-  const browserCookies = await authCookiesForBrowser(baseUrl);
+  const printDocument = await loadPrintDocument(accessToken, type, id, organizationId);
+  const html = renderPrintHtml(printDocument, baseUrl);
 
   chromium.setGraphicsMode = false;
 
@@ -78,7 +67,6 @@ export async function generatePrintPdf(
       '--disable-dev-shm-usage',
       '--disable-setuid-sandbox',
       '--no-sandbox',
-      '--single-process',
     ],
     defaultViewport: { width: 820, height: 1200 },
     executablePath,
@@ -87,22 +75,19 @@ export async function generatePrintPdf(
 
   try {
     const page = await browser.newPage();
-    if (browserCookies.length > 0) {
-      await page.setCookie(...browserCookies);
-    }
-
-    await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 90_000 });
+    await page.setContent(html, { waitUntil: 'load', timeout: 90_000 });
     await page.waitForSelector(`#${rootId}`, { timeout: 45_000 });
+    await new Promise((resolve) => setTimeout(resolve, 1500));
     await page.waitForFunction(
       (selector: string) => {
-        const node = document.querySelector(selector);
+        const node = globalThis.document.querySelector(selector);
         return !!node && (node as HTMLElement).offsetHeight > 80;
       },
       { timeout: 45_000 },
       `#${rootId}`,
     );
 
-    await page.evaluate(() => document.fonts.ready);
+    await page.evaluate(() => globalThis.document.fonts.ready);
     await page.emulateMediaType('print');
 
     const pdf = await page.pdf({

@@ -61,8 +61,9 @@ export function PrintPageToolbar({
       await downloadPdfToDevice(file);
       setStatus('Download started — check your Files or Downloads folder.');
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Could not download PDF.');
-      setStatus('');
+      setError('');
+      setStatus('Opening print menu — choose Save as PDF.');
+      window.print();
     } finally {
       setBusy(null);
     }

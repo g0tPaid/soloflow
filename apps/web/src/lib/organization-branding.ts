@@ -18,6 +18,16 @@ export function resolveImageSrc(url?: string | null): string | undefined {
   return url.startsWith('/') ? url : `/${url}`;
 }
 
+export function resolveImageSrcForPrint(
+  url: string | null | undefined,
+  baseUrl: string,
+): string | undefined {
+  if (!url) return undefined;
+  if (url.startsWith('http') || url.startsWith('data:') || url.startsWith('blob:')) return url;
+  const path = url.startsWith('/') ? url : `/${url}`;
+  return `${baseUrl.replace(/\/$/, '')}${path}`;
+}
+
 export function parseBranding(raw: unknown): OrganizationBranding {
   if (!raw || typeof raw !== 'object') return {};
   return raw as OrganizationBranding;

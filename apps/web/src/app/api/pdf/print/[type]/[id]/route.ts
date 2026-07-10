@@ -27,8 +27,16 @@ export async function GET(
     url.searchParams.get('filename')?.replace(/[^\w.-]/g, '_') ||
     `${type.slice(0, -1)}-${id}.pdf`;
 
+  if (!organizationId) {
+    return NextResponse.json({ error: 'Organization is required to generate this PDF.' }, { status: 400 });
+  }
+
+  if (!session.accessToken) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
   try {
-    const pdf = await generatePrintPdf(request, type, id, organizationId);
+    const pdf = await generatePrintPdf(request, session.accessToken, type, id, organizationId);
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,
       headers: {
