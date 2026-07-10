@@ -161,7 +161,7 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 11,
   },
-  banner: { width: '100%', maxHeight: 100, objectFit: 'cover', borderRadius: 8 },
+  banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
   footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {

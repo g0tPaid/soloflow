@@ -158,7 +158,10 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
             max-height: 30vh !important;
           }
           .invoice-banner img {
-            max-height: 140px !important;
+            max-height: none !important;
+            height: auto !important;
+            width: 100% !important;
+            object-fit: contain !important;
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }

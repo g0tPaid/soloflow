@@ -464,8 +464,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                 <img
                   src={bannerSrc}
                   alt="Promotional offers"
-                  className="block w-full object-cover"
-                  style={{ maxHeight: 140 }}
+                  className="block h-auto w-full object-contain"
                 />
               </div>
             </section>

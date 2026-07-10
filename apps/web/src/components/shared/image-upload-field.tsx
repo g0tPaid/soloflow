@@ -29,9 +29,10 @@ async function prepareImageDataUrl(file: File, variant: 'square' | 'banner'): Pr
   try {
     if (variant === 'banner') {
       return await compressImageFile(file, {
-        maxWidth: INVOICE_BANNER_SIZE.width,
-        maxHeight: INVOICE_BANNER_SIZE.height,
-        maxBytes: 400_000,
+        maxWidth: Math.max(INVOICE_BANNER_SIZE.width, 1600),
+        maxHeight: Math.max(INVOICE_BANNER_SIZE.height * 2, 600),
+        maxBytes: 1_200_000,
+        quality: 0.92,
       });
     }
     return await compressImageFile(file, {
@@ -84,13 +85,13 @@ export function ImageUploadField({
                 ? 'relative w-full max-w-xl overflow-hidden rounded-xl border bg-muted'
                 : 'relative shrink-0 overflow-hidden rounded-xl border bg-muted'
             }
-            style={isBanner ? { height: 120 } : { width: size, height: size }}
+            style={isBanner ? undefined : { width: size, height: size }}
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewSrc}
               alt=""
-              className={isBanner ? 'h-full w-full object-cover' : 'h-full w-full object-cover'}
+              className={isBanner ? 'h-auto w-full object-contain' : 'h-full w-full object-cover'}
             />
             <button
               type="button"
@@ -136,8 +137,10 @@ export function ImageUploadField({
             {uploading ? 'Uploading...' : value ? 'Change image' : 'Add image'}
           </Button>
           <p className="text-xs text-muted-foreground">
-            JPG, PNG or WebP · max 3 MB · auto-compressed for save
-            {isBanner ? ` · recommended ${INVOICE_BANNER_SIZE.label}` : ''}
+            JPG, PNG or WebP · max 3 MB
+            {isBanner
+              ? ` · shown full-width on invoices · recommended ${INVOICE_BANNER_SIZE.label}`
+              : ' · auto-compressed for save'}
           </p>
         </div>
       </div>
