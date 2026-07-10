@@ -30,6 +30,15 @@ export default auth((req) => {
     return NextResponse.redirect(new URL(dest, req.nextUrl.origin));
   }
 
+  // Super admins use the platform console — skip company onboarding
+  if (
+    isAuthenticated &&
+    req.auth?.user?.isSuperAdmin &&
+    (pathname === '/dashboard' || pathname.startsWith('/onboarding'))
+  ) {
+    return NextResponse.redirect(new URL('/admin', req.nextUrl.origin));
+  }
+
   if (pathname.startsWith('/admin') && isAuthenticated && !req.auth?.user?.isSuperAdmin) {
     return NextResponse.redirect(new URL('/dashboard', req.nextUrl.origin));
   }

@@ -73,8 +73,12 @@ export default function OnboardingPage() {
       router.replace('/login');
       return;
     }
+    if (session?.user?.isSuperAdmin) {
+      router.replace('/admin');
+      return;
+    }
     setReady(true);
-  }, [status, router]);
+  }, [status, session, router]);
 
   useEffect(() => {
     if (!LOCAL_MODE || session?.accessToken || status === 'loading') return;
