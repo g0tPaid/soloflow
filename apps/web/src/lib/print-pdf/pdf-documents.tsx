@@ -28,9 +28,12 @@ const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
 const GREEN_DARK = '#065F46';
 
+/** Reserved space for the fixed wave + contact bar on every page. */
+const FOOTER_HEIGHT = 78;
+
 const styles = StyleSheet.create({
   page: {
-    paddingBottom: 100,
+    paddingBottom: FOOTER_HEIGHT,
     fontSize: 9,
     fontFamily: 'Helvetica',
     color: '#1e293b',
@@ -90,11 +93,15 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+    height: FOOTER_HEIGHT,
+  },
+  footerClearance: {
+    height: FOOTER_HEIGHT,
   },
   pageNumber: {
     position: 'absolute',
     right: 14,
-    bottom: 10,
+    bottom: 8,
     color: '#fecaca',
     fontSize: 7,
   },
@@ -201,7 +208,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 12 },
-  bannerWrap: { marginTop: 10, marginBottom: 8, width: '100%' },
+  bannerWrap: { marginTop: 10, width: '100%' },
   offerRow: {
     flexDirection: 'row',
     gap: 8,
@@ -210,7 +217,7 @@ const styles = StyleSheet.create({
   offerBox: {
     flexGrow: 1,
     flexBasis: 0,
-    height: 124,
+    height: 118,
     borderWidth: 1,
     borderColor: '#fecaca',
     borderRadius: 14,
@@ -246,9 +253,11 @@ const styles = StyleSheet.create({
   },
   footerBar: {
     backgroundColor: RED_DARK,
-    paddingVertical: 10,
+    paddingVertical: 8,
     paddingHorizontal: 16,
     paddingRight: 56,
+    flexGrow: 1,
+    justifyContent: 'center',
   },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {
@@ -340,7 +349,7 @@ function BottomWave() {
     <Svg
       viewBox="0 0 1440 100"
       preserveAspectRatio="none"
-      style={{ width: '100%', height: 44 }}
+      style={{ width: '100%', height: 36 }}
     >
       <Path
         fill={RED_DARK}
@@ -390,19 +399,22 @@ function PageFooter({ contacts }: { contacts: string[] }) {
   const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
 
   return (
-    <View>
-      <View style={styles.fixedFooter} fixed>
-        <BottomWave />
-        <View style={styles.footerBar}>
-          {line ? <Text style={styles.footerText}>{line}</Text> : <Text style={styles.footerText}> </Text>}
-        </View>
+    <View style={styles.fixedFooter} fixed>
+      <BottomWave />
+      <View style={styles.footerBar}>
+        <Text style={styles.footerText}>{line || ' '}</Text>
       </View>
-      <Text
-        style={styles.pageNumber}
-        fixed
-        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
-      />
     </View>
+  );
+}
+
+function PageNumber() {
+  return (
+    <Text
+      style={styles.pageNumber}
+      fixed
+      render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+    />
   );
 }
 
@@ -658,27 +670,37 @@ function InvoicePdfBody({
         </View>
 
         {offerSrcs.length > 0 ? (
-          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={150}>
-            <Text style={styles.offerTitle}>New Offers</Text>
-            <View style={styles.offerRow}>
-              {offerSrcs.map((src, index) => (
-                <View key={`offer-${index}`} style={styles.offerBox}>
-                  <Image src={src} style={styles.offerImg} cache={false} />
-                </View>
-              ))}
+          <View wrap={false}>
+            <View style={styles.bannerWrap}>
+              <Text style={styles.offerTitle}>New Offers</Text>
+              <View style={styles.offerRow}>
+                {offerSrcs.map((src, index) => (
+                  <View key={`offer-${index}`} style={styles.offerBox}>
+                    <Image src={src} style={styles.offerImg} cache={false} />
+                  </View>
+                ))}
+              </View>
             </View>
+            {/* Keeps offers above the fixed footer paint zone */}
+            <View style={styles.footerClearance} />
           </View>
         ) : bannerSrc ? (
-          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={90}>
-            <Text style={styles.offerTitle}>New Offers</Text>
-            <View style={{ overflow: 'hidden', borderRadius: 14 }}>
-              <Image src={bannerSrc} style={styles.banner} cache={false} />
+          <View wrap={false}>
+            <View style={styles.bannerWrap}>
+              <Text style={styles.offerTitle}>New Offers</Text>
+              <View style={{ overflow: 'hidden', borderRadius: 14 }}>
+                <Image src={bannerSrc} style={styles.banner} cache={false} />
+              </View>
             </View>
+            <View style={styles.footerClearance} />
           </View>
-        ) : null}
+        ) : (
+          <View style={styles.footerClearance} />
+        )}
       </View>
 
       <PageFooter contacts={footerContacts as string[]} />
+      <PageNumber />
     </Page>
   );
 }
