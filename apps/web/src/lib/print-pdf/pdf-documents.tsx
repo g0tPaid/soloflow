@@ -164,6 +164,19 @@ const styles = StyleSheet.create({
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
   bannerWrap: { marginTop: 12, width: '100%' },
+  offerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  offerBox: {
+    width: '48%',
+    height: 200,
+    borderWidth: 1,
+    borderColor: '#fecaca',
+    borderRadius: 8,
+    alignItems: 'center',
+    justifyContent: 'center',
+    overflow: 'hidden',
+    marginBottom: 8,
+  },
+  offerImg: { width: 190, height: 190, objectFit: 'contain' },
   signatureImg: { width: 180, height: 180, objectFit: 'contain', alignSelf: 'center' },
   signatureBox: {
     borderWidth: 1,
@@ -341,8 +354,17 @@ function InvoicePdfBody({
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
-  const bannerSrc = resolveImg(branding.invoiceBanner, baseUrl);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
+  const offerSrcs = [
+    branding.invoiceOffer1,
+    branding.invoiceOffer2,
+    branding.invoiceOffer3,
+    branding.invoiceOffer4,
+  ]
+    .map((url) => resolveImg(url, baseUrl))
+    .filter(Boolean) as string[];
+  const bannerSrc =
+    offerSrcs.length === 0 ? resolveImg(branding.invoiceBanner, baseUrl) : undefined;
   const taxAmount = Number(invoice.taxAmount ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
   const shippingAmount = Number(invoice.shipping ?? 0);
@@ -495,7 +517,20 @@ function InvoicePdfBody({
           </View>
         </View>
 
-        {bannerSrc ? (
+        {offerSrcs.length > 0 ? (
+          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={140}>
+            <Text style={[styles.sectionLabel, { color: RED, textAlign: 'center' }]}>
+              New Offers
+            </Text>
+            <View style={styles.offerRow}>
+              {offerSrcs.map((src, index) => (
+                <View key={`offer-${index}`} style={styles.offerBox}>
+                  <Image src={src} style={styles.offerImg} cache={false} />
+                </View>
+              ))}
+            </View>
+          </View>
+        ) : bannerSrc ? (
           <View style={styles.bannerWrap} wrap={false} minPresenceAhead={80}>
             <Text style={[styles.sectionLabel, { color: RED, textAlign: 'center' }]}>
               New Offers

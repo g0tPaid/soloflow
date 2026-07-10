@@ -255,6 +255,11 @@ export interface OrganizationBranding {
   invoiceBanner?: string;
   /** Company stamp / authorized signature shown left of invoice totals */
   invoiceSignature?: string;
+  /** Up to four 300×300 New Offers images on invoices */
+  invoiceOffer1?: string;
+  invoiceOffer2?: string;
+  invoiceOffer3?: string;
+  invoiceOffer4?: string;
 }
 
 export interface Organization {

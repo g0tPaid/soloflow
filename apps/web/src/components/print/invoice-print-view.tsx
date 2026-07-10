@@ -97,8 +97,18 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
   const companyAddress = formatAddressLines(branding.address);
   const customerAddress = formatAddressLines(invoice.customer?.address ?? undefined);
   const logoSrc = resolveImage(org?.logo);
-  const bannerSrc = resolveImage(branding.invoiceBanner);
   const signatureSrc = resolveImage(branding.invoiceSignature);
+  const offerSrcs = [
+    branding.invoiceOffer1,
+    branding.invoiceOffer2,
+    branding.invoiceOffer3,
+    branding.invoiceOffer4,
+  ]
+    .map((url) => resolveImage(url))
+    .filter(Boolean) as string[];
+  // Legacy single banner only if no 300×300 offers uploaded
+  const bannerSrc =
+    offerSrcs.length === 0 ? resolveImage(branding.invoiceBanner) : undefined;
   const currency = invoice.currency;
   const customer = invoice.customer;
   const taxAmount = Number(invoice.taxAmount ?? 0);
@@ -473,22 +483,42 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </div>
           </section>
 
-          {bannerSrc && (
+          {(offerSrcs.length > 0 || bannerSrc) && (
             <section className="invoice-banner mb-6">
               <p
-                className="mb-2 text-center text-[10px] font-bold uppercase tracking-[0.2em]"
+                className="mb-3 text-center text-[10px] font-bold uppercase tracking-[0.2em]"
                 style={{ color: RED }}
               >
                 New Offers
               </p>
-              <div className="overflow-hidden rounded-xl shadow-md ring-1 ring-red-100">
-                {/* eslint-disable-next-line @next/next/no-img-element */}
-                <img
-                  src={bannerSrc}
-                  alt="Promotional offers"
-                  className="block h-auto w-full object-contain"
-                />
-              </div>
+              {offerSrcs.length > 0 ? (
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                  {offerSrcs.map((src, index) => (
+                    <div
+                      key={`${src.slice(0, 32)}-${index}`}
+                      className="flex aspect-square items-center justify-center overflow-hidden rounded-xl bg-white shadow-md ring-1 ring-red-100"
+                    >
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      <img
+                        src={src}
+                        alt={`Offer ${index + 1}`}
+                        className="h-[300px] w-[300px] max-h-full max-w-full object-contain"
+                        width={300}
+                        height={300}
+                      />
+                    </div>
+                  ))}
+                </div>
+              ) : bannerSrc ? (
+                <div className="overflow-hidden rounded-xl shadow-md ring-1 ring-red-100">
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={bannerSrc}
+                    alt="Promotional offers"
+                    className="block h-auto w-full object-contain"
+                  />
+                </div>
+              ) : null}
             </section>
           )}
         </div>

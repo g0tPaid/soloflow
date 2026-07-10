@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
-import { INVOICE_BANNER_SIZE, updateOrganizationSchema, type UpdateOrganizationInput } from '@flowbooks/shared';
+import { updateOrganizationSchema, type UpdateOrganizationInput } from '@flowbooks/shared';
 import { parseBranding } from '@/lib/organization-branding';
 import type { Organization } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -26,12 +26,15 @@ type Props = {
 export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
   const branding = parseBranding(organization.settings?.branding);
   const [logo, setLogo] = useState<string | null | undefined>(organization.logo);
-  const [invoiceBanner, setInvoiceBanner] = useState<string | null | undefined>(
-    branding.invoiceBanner ?? null,
-  );
   const [invoiceSignature, setInvoiceSignature] = useState<string | null | undefined>(
     branding.invoiceSignature ?? null,
   );
+  const [invoiceOffers, setInvoiceOffers] = useState<(string | null)[]>([
+    branding.invoiceOffer1 ?? null,
+    branding.invoiceOffer2 ?? null,
+    branding.invoiceOffer3 ?? null,
+    branding.invoiceOffer4 ?? null,
+  ]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -75,8 +78,13 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         logo: logo ?? null,
         branding: {
           ...data.branding,
-          invoiceBanner: invoiceBanner ?? undefined,
-          invoiceSignature: invoiceSignature ?? undefined,
+          invoiceSignature: invoiceSignature ?? '',
+          invoiceOffer1: invoiceOffers[0] ?? '',
+          invoiceOffer2: invoiceOffers[1] ?? '',
+          invoiceOffer3: invoiceOffers[2] ?? '',
+          invoiceOffer4: invoiceOffers[3] ?? '',
+          // Clear legacy wide banner so invoices use the sharp 300×300 offers instead
+          invoiceBanner: '',
         },
       });
       setSaved(true);
@@ -155,21 +163,29 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Invoice promotional banner</CardTitle>
+          <CardTitle>New Offers (4 images)</CardTitle>
           <CardDescription>
-            Shown at the bottom of invoice PDFs under &quot;New Offers&quot;. Upload the image, then click{' '}
-            <strong>Save company details</strong> at the bottom of this page.
-            Use a sharp PNG/JPG (recommended <strong>{INVOICE_BANNER_SIZE.label}</strong> or larger).
-            If an old banner looks blurry, re-upload it — older saves were compressed.
+            Shown under &quot;New Offers&quot; on invoices as four sharp <strong>300×300</strong> boxes.
+            Upload PNG/JPG at full quality (no compression), then click{' '}
+            <strong>Save company details</strong>.
           </CardDescription>
         </CardHeader>
-        <CardContent>
-          <ImageUploadField
-            label="Offer banner"
-            variant="banner"
-            value={invoiceBanner}
-            onChange={(url) => setInvoiceBanner(url ?? null)}
-          />
+        <CardContent className="grid gap-6 sm:grid-cols-2">
+          {[0, 1, 2, 3].map((index) => (
+            <ImageUploadField
+              key={index}
+              label={`Offer ${index + 1}`}
+              variant="signature"
+              value={invoiceOffers[index]}
+              onChange={(url) =>
+                setInvoiceOffers((prev) => {
+                  const next = [...prev];
+                  next[index] = url ?? null;
+                  return next;
+                })
+              }
+            />
+          ))}
         </CardContent>
       </Card>
 

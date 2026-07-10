@@ -57,6 +57,10 @@ export const createOrganizationSchema = z.object({
       accountNumber: z.string().optional(),
       invoiceBanner: z.string().optional(),
       invoiceSignature: z.string().optional(),
+      invoiceOffer1: z.string().optional(),
+      invoiceOffer2: z.string().optional(),
+      invoiceOffer3: z.string().optional(),
+      invoiceOffer4: z.string().optional(),
     })
     .optional(),
 });
@@ -86,6 +90,10 @@ export const updateOrganizationSchema = z.object({
       accountNumber: z.string().optional(),
       invoiceBanner: z.string().optional(),
       invoiceSignature: z.string().optional(),
+      invoiceOffer1: z.string().optional(),
+      invoiceOffer2: z.string().optional(),
+      invoiceOffer3: z.string().optional(),
+      invoiceOffer4: z.string().optional(),
     })
     .optional(),
 });

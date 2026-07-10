@@ -81,6 +81,22 @@ class BrandingDto {
   @IsOptional()
   @IsString()
   invoiceSignature?: string;
+
+  @IsOptional()
+  @IsString()
+  invoiceOffer1?: string;
+
+  @IsOptional()
+  @IsString()
+  invoiceOffer2?: string;
+
+  @IsOptional()
+  @IsString()
+  invoiceOffer3?: string;
+
+  @IsOptional()
+  @IsString()
+  invoiceOffer4?: string;
 }
 
 export class CreateOrganizationDto {
