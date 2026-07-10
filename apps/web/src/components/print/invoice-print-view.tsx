@@ -299,78 +299,94 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </section>
           )}
 
-          <div className="mb-8 max-w-full overflow-x-auto rounded-xl shadow-sm ring-1 ring-slate-100">
-          <table className="w-full min-w-0 table-fixed border-collapse text-sm">
-            <thead>
-              <tr style={{ backgroundColor: RED }} className="text-left text-white">
-                <th className="w-14 px-2 py-3 text-xs font-bold uppercase tracking-wider sm:w-16 sm:px-4 sm:py-3.5">
-                  Image
-                </th>
-                <th className="px-2 py-3 text-xs font-bold uppercase tracking-wider sm:px-5 sm:py-3.5">
-                  Description
-                </th>
-                <th className="w-10 px-1 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-14 sm:px-4 sm:py-3.5">
-                  Qty
-                </th>
-                <th className="w-16 px-1 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-24 sm:px-4 sm:py-3.5">
-                  Unit Price
-                </th>
-                <th className="w-16 px-2 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-24 sm:px-5 sm:py-3.5">
-                  Amount
-                </th>
-              </tr>
-            </thead>
-            <tbody>
-              {(invoice.items ?? []).map((item, index) => {
-                const { name, description } = parseStoredLineItem(item);
-                const imageSrc = resolveImage(item.imageUrl ?? item.product?.imageUrl);
-                const isEven = index % 2 === 0;
-                return (
-                  <tr
-                    key={item.id}
-                    className={isEven ? 'bg-white' : 'bg-slate-50/60'}
-                    style={{ borderBottom: '1px solid #f1f5f9' }}
-                  >
-                    <td className="px-2 py-3 align-top sm:px-4 sm:py-4">
-                      {imageSrc ? (
-                        // eslint-disable-next-line @next/next/no-img-element
-                        <img
-                          src={imageSrc}
-                          alt=""
-                          className="invoice-product-image h-10 w-10 rounded-lg border border-slate-200 object-cover sm:h-14 sm:w-14"
-                        />
-                      ) : (
-                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400 sm:h-14 sm:w-14">
-                          No img
+          <div className="mb-8 max-w-full overflow-x-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
+            <table className="w-full table-fixed border-collapse text-sm">
+              <colgroup>
+                <col className="w-[8%]" />
+                <col className="w-[18%]" />
+                <col className="w-[30%]" />
+                <col className="w-[12%]" />
+                <col className="w-[16%]" />
+                <col className="w-[16%]" />
+              </colgroup>
+              <thead>
+                <tr style={{ backgroundColor: RED }} className="text-left text-white">
+                  <th className="px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                    #
+                  </th>
+                  <th className="px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                    Image
+                  </th>
+                  <th className="px-2 py-3 text-xs font-bold uppercase tracking-wider">
+                    Description
+                  </th>
+                  <th className="px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                    Qty
+                  </th>
+                  <th className="px-1 py-3 text-right text-xs font-bold uppercase tracking-wider">
+                    Unit Price
+                  </th>
+                  <th className="px-2 py-3 text-right text-xs font-bold uppercase tracking-wider">
+                    Amount
+                  </th>
+                </tr>
+              </thead>
+              <tbody>
+                {(invoice.items ?? []).map((item, index) => {
+                  const { name, description } = parseStoredLineItem(item);
+                  const imageSrc = resolveImage(item.imageUrl ?? item.product?.imageUrl);
+                  const isEven = index % 2 === 0;
+                  return (
+                    <tr
+                      key={item.id}
+                      className={isEven ? 'bg-white' : 'bg-slate-50/60'}
+                      style={{ borderBottom: '1px solid #f1f5f9', breakInside: 'avoid' }}
+                    >
+                      <td className="px-1 py-3 text-center align-middle tabular-nums text-slate-600">
+                        {index + 1}
+                      </td>
+                      <td className="px-1 py-3 align-middle">
+                        <div className="flex justify-center">
+                          {imageSrc ? (
+                            // eslint-disable-next-line @next/next/no-img-element
+                            <img
+                              src={imageSrc}
+                              alt=""
+                              className="invoice-product-image h-11 w-11 rounded-lg border border-slate-200 object-cover"
+                            />
+                          ) : (
+                            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400">
+                              —
+                            </div>
+                          )}
                         </div>
-                      )}
-                    </td>
-                    <td className="min-w-0 px-2 py-3 sm:px-5 sm:py-4">
-                      <div className="min-w-0 break-words">
-                        <p className="font-semibold text-slate-900">
-                          {name || description || 'Item'}
-                        </p>
-                        {description && name && (
-                          <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
-                            {description}
+                      </td>
+                      <td className="min-w-0 px-2 py-3 align-middle">
+                        <div className="min-w-0 break-words">
+                          <p className="font-semibold text-slate-900">
+                            {name || description || 'Item'}
                           </p>
-                        )}
-                      </div>
-                    </td>
-                    <td className="px-1 py-3 text-right align-top tabular-nums text-slate-700 sm:px-4 sm:py-4">
-                      {Number(item.quantity)}
-                    </td>
-                    <td className="px-1 py-3 text-right align-top text-[11px] tabular-nums text-slate-700 sm:px-4 sm:py-4 sm:text-sm">
-                      {formatCurrency(Number(item.unitPrice), currency)}
-                    </td>
-                    <td className="px-2 py-3 text-right align-top text-[11px] font-semibold tabular-nums text-slate-900 sm:px-5 sm:py-4 sm:text-sm">
-                      {formatCurrency(Number(item.amount), currency)}
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
+                          {description && name && (
+                            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                              {description}
+                            </p>
+                          )}
+                        </div>
+                      </td>
+                      <td className="px-1 py-3 text-center align-middle tabular-nums text-slate-700">
+                        {Number(item.quantity)}
+                      </td>
+                      <td className="px-1 py-3 text-right align-middle text-[11px] tabular-nums text-slate-700 sm:text-sm">
+                        {formatCurrency(Number(item.unitPrice), currency)}
+                      </td>
+                      <td className="px-2 py-3 text-right align-middle text-[11px] font-semibold tabular-nums text-slate-900 sm:text-sm">
+                        {formatCurrency(Number(item.amount), currency)}
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
 
           <section className="mb-10 grid gap-8 sm:grid-cols-2">

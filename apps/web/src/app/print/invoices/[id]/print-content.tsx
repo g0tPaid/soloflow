@@ -170,6 +170,10 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
             -webkit-print-color-adjust: exact;
             print-color-adjust: exact;
           }
+          tr {
+            break-inside: avoid;
+            page-break-inside: avoid;
+          }
         }
       `}</style>
     </>

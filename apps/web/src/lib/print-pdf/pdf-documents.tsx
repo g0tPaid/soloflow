@@ -30,13 +30,13 @@ const GREEN_DARK = '#065F46';
 
 const styles = StyleSheet.create({
   page: {
-    paddingBottom: 28,
+    paddingBottom: 56,
     fontSize: 9,
     fontFamily: 'Helvetica',
     color: '#1e293b',
     backgroundColor: '#ffffff',
   },
-  pagePad: { paddingHorizontal: 32, paddingTop: 8 },
+  pagePad: { paddingHorizontal: 28, paddingTop: 8 },
   center: { textAlign: 'center', alignItems: 'center' },
   muted: { color: '#64748b', fontSize: 8 },
   sectionLabel: {
@@ -106,29 +106,33 @@ const styles = StyleSheet.create({
   },
   tableHeader: {
     flexDirection: 'row',
+    alignItems: 'center',
     backgroundColor: RED,
     color: '#ffffff',
-    paddingVertical: 6,
-    paddingHorizontal: 6,
+    paddingVertical: 7,
+    paddingHorizontal: 4,
     fontWeight: 'bold',
     fontSize: 7,
   },
   tableHeaderGreen: { backgroundColor: GREEN },
   tableRow: {
     flexDirection: 'row',
+    alignItems: 'center',
     borderBottomWidth: 1,
     borderBottomColor: '#f1f5f9',
-    paddingVertical: 5,
-    paddingHorizontal: 6,
+    paddingVertical: 6,
+    paddingHorizontal: 4,
     fontSize: 8,
   },
   tableRowAlt: { backgroundColor: '#f8fafc' },
-  colImg: { width: 36 },
-  colDesc: { flex: 3, paddingRight: 4 },
-  colQty: { width: 28, textAlign: 'right' },
-  colPrice: { width: 52, textAlign: 'right' },
-  colAmount: { width: 56, textAlign: 'right' },
-  productImg: { width: 32, height: 32, borderRadius: 4, objectFit: 'cover' },
+  // Equal horizontal distribution: # + 5 content columns
+  colNo: { width: '8%', textAlign: 'center' },
+  colImg: { width: '18%', alignItems: 'center', justifyContent: 'center' },
+  colDesc: { width: '30%', paddingHorizontal: 4 },
+  colQty: { width: '12%', textAlign: 'center' },
+  colPrice: { width: '16%', textAlign: 'right', paddingRight: 4 },
+  colAmount: { width: '16%', textAlign: 'right', paddingRight: 4 },
+  productImg: { width: 36, height: 36, borderRadius: 4, objectFit: 'cover' },
   notesBox: {
     borderWidth: 1,
     borderColor: '#f1f5f9',
@@ -385,8 +389,9 @@ function InvoicePdfBody({
           toCountry={invoice.shippingToCountry}
         />
 
-        <View style={styles.tableHeader}>
-          <Text style={styles.colImg}>Image</Text>
+        <View style={styles.tableHeader} wrap={false}>
+          <Text style={styles.colNo}>#</Text>
+          <Text style={[styles.colImg, { textAlign: 'center' }]}>Image</Text>
           <Text style={styles.colDesc}>Description</Text>
           <Text style={styles.colQty}>Qty</Text>
           <Text style={styles.colPrice}>Unit Price</Text>
@@ -398,11 +403,15 @@ function InvoicePdfBody({
           return (
             <View
               key={item.id}
+              wrap={false}
               style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
             >
+              <Text style={styles.colNo}>{index + 1}</Text>
               <View style={styles.colImg}>
-                {imageSrc ? <Image src={imageSrc} style={styles.productImg} /> : (
-                  <Text style={[styles.muted, { fontSize: 6 }]}>—</Text>
+                {imageSrc ? (
+                  <Image src={imageSrc} style={styles.productImg} />
+                ) : (
+                  <Text style={[styles.muted, { fontSize: 6, textAlign: 'center' }]}>—</Text>
                 )}
               </View>
               <View style={styles.colDesc}>
@@ -418,7 +427,7 @@ function InvoicePdfBody({
           );
         })}
 
-        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-start' }]}>
+        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-start' }]} wrap={false}>
           <View style={styles.colHalf}>
             {invoice.notes ? (
               <View>
@@ -563,24 +572,27 @@ function ReceiptPdfBody({
           </View>
         </View>
 
-        <View style={[styles.tableHeader, styles.tableHeaderGreen, { marginTop: 8 }]}>
-          <Text style={styles.colDesc}>Description</Text>
-          <Text style={styles.colQty}>Qty</Text>
-          <Text style={styles.colAmount}>Amount</Text>
+        <View style={[styles.tableHeader, styles.tableHeaderGreen, { marginTop: 8 }]} wrap={false}>
+          <Text style={{ width: '8%', textAlign: 'center' }}>#</Text>
+          <Text style={{ width: '52%', paddingHorizontal: 4 }}>Description</Text>
+          <Text style={{ width: '15%', textAlign: 'center' }}>Qty</Text>
+          <Text style={{ width: '25%', textAlign: 'right', paddingRight: 4 }}>Amount</Text>
         </View>
         {(invoice.items ?? []).map((item, index) => {
           const { name, description } = parseStoredLineItem(item);
           return (
             <View
               key={item.id}
+              wrap={false}
               style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
             >
-              <View style={styles.colDesc}>
+              <Text style={{ width: '8%', textAlign: 'center' }}>{index + 1}</Text>
+              <View style={{ width: '52%', paddingHorizontal: 4 }}>
                 <Text style={{ fontWeight: 'bold' }}>{name || description || 'Item'}</Text>
                 {description && name ? <Text style={styles.muted}>{description}</Text> : null}
               </View>
-              <Text style={styles.colQty}>{Number(item.quantity)}</Text>
-              <Text style={[styles.colAmount, { fontWeight: 'bold' }]}>
+              <Text style={{ width: '15%', textAlign: 'center' }}>{Number(item.quantity)}</Text>
+              <Text style={{ width: '25%', textAlign: 'right', paddingRight: 4, fontWeight: 'bold' }}>
                 {money(item.amount, currency)}
               </Text>
             </View>
@@ -669,13 +681,14 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
           toCountry={expense.shippingToCountry}
         />
 
-        <View style={styles.tableHeader}>
-          <Text style={[styles.colDesc, { flex: 2 }]}>Item</Text>
-          <Text style={styles.colQty}>Qty</Text>
-          <Text style={styles.colPrice}>Sale</Text>
-          <Text style={styles.colPrice}>Revenue</Text>
-          <Text style={styles.colPrice}>Cost each</Text>
-          <Text style={styles.colAmount}>Expense</Text>
+        <View style={styles.tableHeader} wrap={false}>
+          <Text style={{ width: '6%', textAlign: 'center' }}>#</Text>
+          <Text style={{ width: '28%', paddingHorizontal: 4 }}>Item</Text>
+          <Text style={{ width: '10%', textAlign: 'center' }}>Qty</Text>
+          <Text style={{ width: '14%', textAlign: 'right' }}>Sale</Text>
+          <Text style={{ width: '14%', textAlign: 'right' }}>Revenue</Text>
+          <Text style={{ width: '14%', textAlign: 'right' }}>Cost each</Text>
+          <Text style={{ width: '14%', textAlign: 'right', paddingRight: 4 }}>Expense</Text>
         </View>
         {(expense.items ?? []).map((item, index) => {
           const { name, description } = parseStoredLineItem(item);
@@ -683,20 +696,22 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
           return (
             <View
               key={item.id}
+              wrap={false}
               style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
             >
-              <View style={[styles.colDesc, { flex: 2, flexDirection: 'row', gap: 4 }]}>
+              <Text style={{ width: '6%', textAlign: 'center' }}>{index + 1}</Text>
+              <View style={{ width: '28%', paddingHorizontal: 4, flexDirection: 'row', gap: 4 }}>
                 {imageSrc ? <Image src={imageSrc} style={styles.productImg} /> : null}
-                <View>
+                <View style={{ flex: 1 }}>
                   <Text style={{ fontWeight: 'bold' }}>{name || description || 'Item'}</Text>
                   {description && name ? <Text style={styles.muted}>{description}</Text> : null}
                 </View>
               </View>
-              <Text style={styles.colQty}>{Number(item.quantity)}</Text>
-              <Text style={styles.colPrice}>{money(item.unitPrice, currency)}</Text>
-              <Text style={styles.colPrice}>{money(item.amount, currency)}</Text>
-              <Text style={styles.colPrice}>{money(item.unitCost ?? 0, currency)}</Text>
-              <Text style={[styles.colAmount, { color: '#c2410c', fontWeight: 'bold' }]}>
+              <Text style={{ width: '10%', textAlign: 'center' }}>{Number(item.quantity)}</Text>
+              <Text style={{ width: '14%', textAlign: 'right' }}>{money(item.unitPrice, currency)}</Text>
+              <Text style={{ width: '14%', textAlign: 'right' }}>{money(item.amount, currency)}</Text>
+              <Text style={{ width: '14%', textAlign: 'right' }}>{money(item.unitCost ?? 0, currency)}</Text>
+              <Text style={{ width: '14%', textAlign: 'right', paddingRight: 4, color: '#c2410c', fontWeight: 'bold' }}>
                 {money(item.costAmount ?? 0, currency)}
               </Text>
             </View>
