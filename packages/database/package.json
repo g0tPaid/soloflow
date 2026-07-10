@@ -11,7 +11,8 @@
     "migrate:deploy": "prisma migrate deploy",
     "push": "prisma db push",
     "studio": "prisma studio",
-    "seed": "tsx prisma/seed.ts"
+    "seed": "tsx prisma/seed.ts",
+    "reset-data": "tsx prisma/scripts/reset-all-data.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.1.0"

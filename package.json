@@ -13,7 +13,8 @@
     "db:generate": "pnpm --filter @flowbooks/database generate",
     "db:migrate": "pnpm --filter @flowbooks/database migrate:dev",
     "db:push": "pnpm --filter @flowbooks/database push",
-    "db:studio": "pnpm --filter @flowbooks/database studio"
+    "db:studio": "pnpm --filter @flowbooks/database studio",
+    "db:reset-data": "pnpm --filter @flowbooks/database reset-data"
   },
   "engines": {
     "node": ">=20.0.0"
