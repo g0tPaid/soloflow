@@ -4,6 +4,7 @@ nixPkgs = ["...", "nss", "nspr", "atk", "cups", "dbus", "expat", "libdrm", "libx
 [phases.install]
 cmds = [
   "corepack enable",
+  "corepack prepare pnpm@9.15.9 --activate",
   "cd ../.. && pnpm install --frozen-lockfile",
 ]
 
