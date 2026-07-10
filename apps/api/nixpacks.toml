@@ -1,0 +1,14 @@
+[phases.install]
+cmds = [
+  "corepack enable",
+  "corepack prepare pnpm@9.15.9 --activate",
+  "cd ../.. && pnpm install --frozen-lockfile",
+]
+
+[phases.build]
+cmds = [
+  "cd ../.. && pnpm db:generate && pnpm --filter @flowbooks/shared build && pnpm --filter @flowbooks/database build && pnpm --filter @flowbooks/api build",
+]
+
+[start]
+cmd = "cd ../.. && pnpm --filter @flowbooks/database exec prisma migrate deploy && cd apps/api && node dist/main"

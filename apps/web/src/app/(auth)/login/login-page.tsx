@@ -58,7 +58,12 @@ export default function LoginPage() {
             : callbackUrl;
       router.push(destination);
     } catch (err) {
-      setError(err instanceof Error ? err.message : 'Cannot reach SoloFlow API. Try again in a moment.');
+      const message = err instanceof Error ? err.message : '';
+      setError(
+        message && !/internal server error/i.test(message)
+          ? message
+          : 'Signed in, but the server needs a database update. Wait a minute for redeploy, then try again.',
+      );
     } finally {
       setLoading(false);
     }

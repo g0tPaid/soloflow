@@ -3,7 +3,7 @@
     "builder": "NIXPACKS"
   },
   "deploy": {
-    "startCommand": "node dist/main",
+    "startCommand": "cd ../.. && pnpm --filter @flowbooks/database exec prisma migrate deploy && cd apps/api && node dist/main",
     "healthcheckPath": "/api/v1/health",
     "restartPolicyType": "ON_FAILURE"
   }
