@@ -29,6 +29,9 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
   const [invoiceBanner, setInvoiceBanner] = useState<string | null | undefined>(
     branding.invoiceBanner ?? null,
   );
+  const [invoiceSignature, setInvoiceSignature] = useState<string | null | undefined>(
+    branding.invoiceSignature ?? null,
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -73,6 +76,7 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         branding: {
           ...data.branding,
           invoiceBanner: invoiceBanner ?? undefined,
+          invoiceSignature: invoiceSignature ?? undefined,
         },
       });
       setSaved(true);
@@ -165,6 +169,25 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
             variant="banner"
             value={invoiceBanner}
             onChange={(url) => setInvoiceBanner(url ?? null)}
+          />
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Official signature / company stamp</CardTitle>
+          <CardDescription>
+            Shown on the left of the invoice totals (next to Subtotal). Upload your stamp and signature
+            image as one PNG with a transparent background, then click{' '}
+            <strong>Save company details</strong>.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ImageUploadField
+            label="Signature & stamp"
+            variant="banner"
+            value={invoiceSignature}
+            onChange={(url) => setInvoiceSignature(url ?? null)}
           />
         </CardContent>
       </Card>

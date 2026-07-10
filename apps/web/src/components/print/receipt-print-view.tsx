@@ -40,6 +40,7 @@ export function ReceiptPrintView({
   const companyAddress = formatAddressLines(branding.address);
   const customerAddress = formatAddressLines(invoice.customer?.address ?? undefined);
   const logoSrc = resolvePrintImage(org?.logo, baseUrl);
+  const signatureSrc = resolvePrintImage(branding.invoiceSignature, baseUrl);
   const currency = invoice.currency;
   const paidDate = formatDate(invoice.updatedAt || invoice.issueDate);
 
@@ -179,33 +180,50 @@ export function ReceiptPrintView({
             </tbody>
           </table>
 
-          <div className="ml-auto w-full max-w-xs rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-sm">
-            <div className="flex justify-between py-1">
-              <span className="text-slate-600">Subtotal</span>
-              <span className="font-medium">{formatCurrency(Number(invoice.subtotal), currency)}</span>
+          <div className="mb-6 grid gap-6 sm:grid-cols-2 sm:items-end">
+            <div>
+              {signatureSrc ? (
+                <div>
+                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                    Authorized signature
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signatureSrc}
+                    alt="Authorized signature"
+                    className="max-h-40 w-auto max-w-full object-contain object-left"
+                  />
+                </div>
+              ) : null}
             </div>
-            {Number(invoice.shipping ?? 0) > 0 && (
+            <div className="ml-auto w-full max-w-xs rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-sm">
               <div className="flex justify-between py-1">
-                <span className="text-slate-600">Shipping</span>
-                <span className="font-medium">
-                  {formatCurrency(Number(invoice.shipping), currency)}
-                </span>
+                <span className="text-slate-600">Subtotal</span>
+                <span className="font-medium">{formatCurrency(Number(invoice.subtotal), currency)}</span>
               </div>
-            )}
-            {Number(invoice.discount ?? 0) > 0 && (
-              <div className="flex justify-between py-1">
-                <span className="text-slate-600">Discount</span>
-                <span className="font-medium text-emerald-700">
-                  −{formatCurrency(Number(invoice.discount), currency)}
-                </span>
+              {Number(invoice.shipping ?? 0) > 0 && (
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-600">Shipping</span>
+                  <span className="font-medium">
+                    {formatCurrency(Number(invoice.shipping), currency)}
+                  </span>
+                </div>
+              )}
+              {Number(invoice.discount ?? 0) > 0 && (
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-600">Discount</span>
+                  <span className="font-medium text-emerald-700">
+                    −{formatCurrency(Number(invoice.discount), currency)}
+                  </span>
+                </div>
+              )}
+              <div
+                className="mt-2 flex justify-between border-t-2 pt-3 text-base font-bold"
+                style={{ borderColor: GREEN }}
+              >
+                <span>Amount paid</span>
+                <span style={{ color: GREEN }}>{formatCurrency(Number(invoice.total), currency)}</span>
               </div>
-            )}
-            <div
-              className="mt-2 flex justify-between border-t-2 pt-3 text-base font-bold"
-              style={{ borderColor: GREEN }}
-            >
-              <span>Amount paid</span>
-              <span style={{ color: GREEN }}>{formatCurrency(Number(invoice.total), currency)}</span>
             </div>
           </div>
 

@@ -61,6 +61,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
     const urls = [
       orgDetail?.logo,
       brandingPreload.invoiceBanner,
+      brandingPreload.invoiceSignature,
       ...(invoice.items ?? []).flatMap((item) => [item.imageUrl, item.product?.imageUrl]),
     ]
       .map((url) => (url?.startsWith('http') ? url : resolveImageSrc(url)))

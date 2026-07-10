@@ -253,6 +253,8 @@ export interface OrganizationBranding {
   accountNumber?: string;
   /** Promotional banner image shown at the bottom of invoice PDFs */
   invoiceBanner?: string;
+  /** Company stamp / authorized signature shown left of invoice totals */
+  invoiceSignature?: string;
 }
 
 export interface Organization {

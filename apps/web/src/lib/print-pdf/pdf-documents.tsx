@@ -163,6 +163,8 @@ const styles = StyleSheet.create({
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
   bannerWrap: { marginTop: 12, width: '100%' },
+  signatureImg: { width: 200, maxHeight: 120, objectFit: 'contain' },
+  signatureBox: { marginTop: 8 },
   footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {
@@ -330,6 +332,7 @@ function InvoicePdfBody({
   const branding = parseBranding(org.settings?.branding);
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const bannerSrc = resolveImg(branding.invoiceBanner, baseUrl);
+  const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const taxAmount = Number(invoice.taxAmount ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
   const shippingAmount = Number(invoice.shipping ?? 0);
@@ -428,14 +431,20 @@ function InvoicePdfBody({
           );
         })}
 
-        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-start' }]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-end' }]} wrap={false}>
           <View style={styles.colHalf}>
             {invoice.notes ? (
-              <View>
+              <View style={{ marginBottom: signatureSrc ? 10 : 0 }}>
                 <Text style={[styles.sectionLabel, { color: RED }]}>Notes</Text>
                 <View style={styles.notesBox}>
                   <Text>{invoice.notes}</Text>
                 </View>
+              </View>
+            ) : null}
+            {signatureSrc ? (
+              <View style={styles.signatureBox}>
+                <Text style={[styles.sectionLabel, { color: RED }]}>Authorized signature</Text>
+                <Image src={signatureSrc} style={styles.signatureImg} cache={false} />
               </View>
             ) : null}
           </View>
@@ -509,6 +518,7 @@ function ReceiptPdfBody({
   const paidDate = fmtDate(invoice.updatedAt || invoice.issueDate);
   const shippingAmount = Number(invoice.shipping ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
+  const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
 
   return (
     <Page size="A4" style={styles.page}>
@@ -600,26 +610,38 @@ function ReceiptPdfBody({
           );
         })}
 
-        <View style={[styles.totalBox, { marginTop: 12, borderColor: '#d1fae5' }]}>
-          <View style={styles.totalLine}>
-            <Text style={styles.muted}>Subtotal</Text>
-            <Text>{money(invoice.subtotal, currency)}</Text>
+        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-end' }]} wrap={false}>
+          <View style={styles.colHalf}>
+            {signatureSrc ? (
+              <View style={styles.signatureBox}>
+                <Text style={[styles.sectionLabel, { color: GREEN }]}>Authorized signature</Text>
+                <Image src={signatureSrc} style={styles.signatureImg} cache={false} />
+              </View>
+            ) : null}
           </View>
-          {shippingAmount > 0 ? (
-            <View style={styles.totalLine}>
-              <Text style={styles.muted}>Shipping</Text>
-              <Text>{money(shippingAmount, currency)}</Text>
+          <View style={styles.colHalf}>
+            <View style={[styles.totalBox, { borderColor: '#d1fae5' }]}>
+              <View style={styles.totalLine}>
+                <Text style={styles.muted}>Subtotal</Text>
+                <Text>{money(invoice.subtotal, currency)}</Text>
+              </View>
+              {shippingAmount > 0 ? (
+                <View style={styles.totalLine}>
+                  <Text style={styles.muted}>Shipping</Text>
+                  <Text>{money(shippingAmount, currency)}</Text>
+                </View>
+              ) : null}
+              {discountAmount > 0 ? (
+                <View style={styles.totalLine}>
+                  <Text style={styles.muted}>Discount</Text>
+                  <Text style={{ color: GREEN }}>−{money(discountAmount, currency)}</Text>
+                </View>
+              ) : null}
+              <View style={[styles.grandTotal, { borderTopColor: GREEN }]}>
+                <Text>Amount paid</Text>
+                <Text style={{ color: GREEN }}>{money(invoice.total, currency)}</Text>
+              </View>
             </View>
-          ) : null}
-          {discountAmount > 0 ? (
-            <View style={styles.totalLine}>
-              <Text style={styles.muted}>Discount</Text>
-              <Text style={{ color: GREEN }}>−{money(discountAmount, currency)}</Text>
-            </View>
-          ) : null}
-          <View style={[styles.grandTotal, { borderTopColor: GREEN }]}>
-            <Text>Amount paid</Text>
-            <Text style={{ color: GREEN }}>{money(invoice.total, currency)}</Text>
           </View>
         </View>
 

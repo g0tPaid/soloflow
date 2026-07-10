@@ -98,6 +98,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
   const customerAddress = formatAddressLines(invoice.customer?.address ?? undefined);
   const logoSrc = resolveImage(org?.logo);
   const bannerSrc = resolveImage(branding.invoiceBanner);
+  const signatureSrc = resolveImage(branding.invoiceSignature);
   const currency = invoice.currency;
   const customer = invoice.customer;
   const taxAmount = Number(invoice.taxAmount ?? 0);
@@ -389,10 +390,10 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </table>
           </div>
 
-          <section className="mb-10 grid gap-8 sm:grid-cols-2">
-            <div>
+          <section className="mb-10 grid gap-8 sm:grid-cols-2 sm:items-end">
+            <div className="space-y-5">
               {invoice.notes && (
-                <>
+                <div>
                   <p
                     className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
                     style={{ color: RED }}
@@ -402,8 +403,25 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                   <p className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600">
                     {invoice.notes}
                   </p>
-                </>
+                </div>
               )}
+
+              {signatureSrc ? (
+                <div className="invoice-signature">
+                  <p
+                    className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
+                    style={{ color: RED }}
+                  >
+                    Authorized signature
+                  </p>
+                  {/* eslint-disable-next-line @next/next/no-img-element */}
+                  <img
+                    src={signatureSrc}
+                    alt="Authorized signature"
+                    className="max-h-40 w-auto max-w-full object-contain object-left"
+                  />
+                </div>
+              ) : null}
             </div>
 
             <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
