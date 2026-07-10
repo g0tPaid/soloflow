@@ -4,7 +4,6 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
 import { captureElementAsPdf } from '@/lib/capture-element-image';
-import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { cn } from '@/lib/utils';
@@ -32,7 +31,7 @@ export function PrintPageToolbar({
   emailSubject,
   emailBody,
 }: Props) {
-  const [busy, setBusy] = useState<'download' | 'whatsapp' | 'share' | null>(null);
+  const [busy, setBusy] = useState<'whatsapp' | 'share' | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
@@ -47,23 +46,11 @@ export function PrintPageToolbar({
     return captureElementAsPdf(element, filename);
   }
 
-  async function handleDownload() {
+  function handleDownload() {
     if (busy) return;
-    setBusy('download');
     setError('');
-    setStatus('Preparing PDF…');
-
-    try {
-      const file = await buildPdfFromScreen();
-      await downloadPdfToDevice(file);
-      setStatus('Download started — check your Files or Downloads folder.');
-    } catch {
-      setError('');
-      setStatus('Opening print menu — choose Save as PDF.');
-      window.print();
-    } finally {
-      setBusy(null);
-    }
+    setStatus('Choose Save as PDF in the print menu — same quality as on desktop.');
+    window.print();
   }
 
   async function handleWhatsApp() {
@@ -158,8 +145,8 @@ export function PrintPageToolbar({
               accentClassName,
             )}
           >
-            {busy === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            Download PDF
+            <Download className="h-4 w-4" />
+            Save PDF
           </button>
         </div>
       </div>
