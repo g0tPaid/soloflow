@@ -25,11 +25,11 @@ function formatDate(value?: string | null) {
 function TopWave() {
   return (
     <svg
-      className="block w-full"
+      className="block max-w-full w-full"
       viewBox="0 0 1440 80"
       preserveAspectRatio="none"
       aria-hidden
-      style={{ height: 36 }}
+      style={{ height: 36, width: '100%' }}
     >
       <path
         fill={RED}
@@ -47,11 +47,11 @@ function TopWave() {
 function SectionWave() {
   return (
     <svg
-      className="my-3 block w-full"
+      className="my-3 block max-w-full w-full"
       viewBox="0 0 1440 24"
       preserveAspectRatio="none"
       aria-hidden
-      style={{ height: 14 }}
+      style={{ height: 14, width: '100%' }}
     >
       <path
         fill={RED_LIGHT}
@@ -64,11 +64,11 @@ function SectionWave() {
 function BottomWave() {
   return (
     <svg
-      className="block w-full"
+      className="block max-w-full w-full"
       viewBox="0 0 1440 100"
       preserveAspectRatio="none"
       aria-hidden
-      style={{ height: 64 }}
+      style={{ height: 64, width: '100%' }}
     >
       <path
         fill={RED_DARK}
@@ -117,10 +117,10 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
 
   return (
     <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
-      <div id="invoice-capture-root" className="bg-white">
+      <div id="invoice-capture-root" className="max-w-full overflow-x-hidden bg-white">
         <TopWave />
 
-        <div className="relative px-4 pb-2 pt-2 sm:px-10">
+        <div className="relative max-w-full px-4 pb-2 pt-2 sm:px-10">
           <header className="invoice-header mx-auto mb-1 flex max-h-[30vh] max-w-xl flex-col items-center justify-center overflow-hidden text-center">
             <div className="mb-1.5 flex justify-center">
               {logoSrc ? (
@@ -128,7 +128,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                 <img
                   src={logoSrc}
                   alt=""
-                  className="h-28 w-28 rounded-xl object-contain shadow-sm ring-1 ring-red-100"
+                  className="h-28 w-28 rounded-xl bg-transparent object-contain"
                 />
               ) : (
                 <div
@@ -299,22 +299,23 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </section>
           )}
 
-          <table className="mb-8 w-full table-fixed border-collapse overflow-hidden rounded-xl text-sm shadow-sm ring-1 ring-slate-100">
+          <div className="mb-8 max-w-full overflow-x-auto rounded-xl shadow-sm ring-1 ring-slate-100">
+          <table className="w-full min-w-0 table-fixed border-collapse text-sm">
             <thead>
               <tr style={{ backgroundColor: RED }} className="text-left text-white">
-                <th className="w-16 px-4 py-3.5 text-xs font-bold uppercase tracking-wider">
+                <th className="w-14 px-2 py-3 text-xs font-bold uppercase tracking-wider sm:w-16 sm:px-4 sm:py-3.5">
                   Image
                 </th>
-                <th className="px-5 py-3.5 text-xs font-bold uppercase tracking-wider">
+                <th className="px-2 py-3 text-xs font-bold uppercase tracking-wider sm:px-5 sm:py-3.5">
                   Description
                 </th>
-                <th className="px-4 py-3.5 text-right text-xs font-bold uppercase tracking-wider">
+                <th className="w-10 px-1 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-14 sm:px-4 sm:py-3.5">
                   Qty
                 </th>
-                <th className="px-4 py-3.5 text-right text-xs font-bold uppercase tracking-wider">
+                <th className="w-16 px-1 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-24 sm:px-4 sm:py-3.5">
                   Unit Price
                 </th>
-                <th className="px-5 py-3.5 text-right text-xs font-bold uppercase tracking-wider">
+                <th className="w-16 px-2 py-3 text-right text-xs font-bold uppercase tracking-wider sm:w-24 sm:px-5 sm:py-3.5">
                   Amount
                 </th>
               </tr>
@@ -330,22 +331,22 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                     className={isEven ? 'bg-white' : 'bg-slate-50/60'}
                     style={{ borderBottom: '1px solid #f1f5f9' }}
                   >
-                    <td className="px-4 py-4 align-top">
+                    <td className="px-2 py-3 align-top sm:px-4 sm:py-4">
                       {imageSrc ? (
                         // eslint-disable-next-line @next/next/no-img-element
                         <img
                           src={imageSrc}
                           alt=""
-                          className="invoice-product-image h-14 w-14 rounded-lg border border-slate-200 object-cover"
+                          className="invoice-product-image h-10 w-10 rounded-lg border border-slate-200 object-cover sm:h-14 sm:w-14"
                         />
                       ) : (
-                        <div className="flex h-14 w-14 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400">
+                        <div className="flex h-10 w-10 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400 sm:h-14 sm:w-14">
                           No img
                         </div>
                       )}
                     </td>
-                    <td className="px-5 py-4">
-                      <div>
+                    <td className="min-w-0 px-2 py-3 sm:px-5 sm:py-4">
+                      <div className="min-w-0 break-words">
                         <p className="font-semibold text-slate-900">
                           {name || description || 'Item'}
                         </p>
@@ -356,13 +357,13 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                         )}
                       </div>
                     </td>
-                    <td className="px-4 py-4 text-right align-top tabular-nums text-slate-700">
+                    <td className="px-1 py-3 text-right align-top tabular-nums text-slate-700 sm:px-4 sm:py-4">
                       {Number(item.quantity)}
                     </td>
-                    <td className="px-4 py-4 text-right align-top tabular-nums text-slate-700">
+                    <td className="px-1 py-3 text-right align-top text-[11px] tabular-nums text-slate-700 sm:px-4 sm:py-4 sm:text-sm">
                       {formatCurrency(Number(item.unitPrice), currency)}
                     </td>
-                    <td className="px-5 py-4 text-right align-top font-semibold tabular-nums text-slate-900">
+                    <td className="px-2 py-3 text-right align-top text-[11px] font-semibold tabular-nums text-slate-900 sm:px-5 sm:py-4 sm:text-sm">
                       {formatCurrency(Number(item.amount), currency)}
                     </td>
                   </tr>
@@ -370,6 +371,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
               })}
             </tbody>
           </table>
+          </div>
 
           <section className="mb-10 grid gap-8 sm:grid-cols-2">
             <div>
@@ -455,14 +457,17 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
         </div>
 
         {footerContacts.length > 0 && (
-          <footer className="mt-auto">
+          <footer className="mt-auto max-w-full overflow-hidden">
             <BottomWave />
-            <div className="px-6 py-5 text-white" style={{ backgroundColor: RED_DARK }}>
-              <div className="mx-auto flex max-w-[820px] flex-wrap items-center justify-center gap-6 text-xs">
+            <div className="max-w-full px-4 py-5 text-white sm:px-6" style={{ backgroundColor: RED_DARK }}>
+              <div className="mx-auto flex max-w-full flex-wrap items-center justify-center gap-x-4 gap-y-2 text-xs">
                 {footerContacts.map(({ icon: Icon, text }) => (
-                  <span key={text} className="flex items-center gap-2 opacity-95">
-                    <Icon className="h-3.5 w-3.5 text-red-200" />
-                    {text}
+                  <span
+                    key={text}
+                    className="inline-flex max-w-full items-center gap-2 opacity-95"
+                  >
+                    <Icon className="h-3.5 w-3.5 shrink-0 text-red-200" />
+                    <span className="min-w-0 break-all">{text}</span>
                   </span>
                 ))}
               </div>
