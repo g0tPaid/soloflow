@@ -211,9 +211,9 @@ export function InvoiceForm(props: InvoiceFormProps) {
       <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
         <Card>
           <CardHeader>
-            <CardTitle>Invoice {invoice!.number}</CardTitle>
+            <CardTitle>Edit invoice</CardTitle>
             <CardDescription>
-              {invoice!.customer?.name} · Issued {toDateInput(invoice!.issueDate)}
+              Update number, status, due date, discount, notes, and shipping. Then click Save changes.
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">

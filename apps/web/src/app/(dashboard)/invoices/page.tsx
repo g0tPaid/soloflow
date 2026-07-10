@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText } from 'lucide-react';
+import { Plus, FileText, Pencil } from 'lucide-react';
 import { api, type InvoiceStatus } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -149,13 +149,19 @@ export default function InvoicesPage() {
                     <p className="hidden text-xs text-muted-foreground sm:block">
                       Due {formatDate(invoice.dueDate)}
                     </p>
-                    <div className="flex w-full items-center gap-2 sm:w-auto">
+                    <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                      <Button asChild variant="outline" size="sm" className="flex-1 sm:flex-none">
+                        <Link href={`/invoices/${invoice.id}#edit-invoice`}>
+                          <Pencil className="h-3.5 w-3.5" />
+                          Edit
+                        </Link>
+                      </Button>
                       {!isPaid ? (
                         <button
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'PAID', e)}
                           disabled={statusMutation.isPending}
-                          className="w-full rounded-full border border-emerald-500 bg-white px-3 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white sm:w-auto sm:py-1"
+                          className="flex-1 rounded-full border border-emerald-500 bg-white px-3 py-2 text-xs font-medium text-emerald-700 transition hover:bg-emerald-600 hover:text-white sm:flex-none sm:py-1"
                         >
                           Mark as paid
                         </button>
@@ -164,7 +170,7 @@ export default function InvoicesPage() {
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'SENT', e)}
                           disabled={statusMutation.isPending}
-                          className="w-full rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100 sm:w-auto sm:py-1"
+                          className="flex-1 rounded-full border border-slate-300 bg-white px-3 py-2 text-xs font-medium text-slate-600 transition hover:bg-slate-100 sm:flex-none sm:py-1"
                         >
                           Mark as unpaid
                         </button>

@@ -1,16 +1,18 @@
 'use client';
 
 import Link from 'next/link';
-import { use } from 'react';
+import { use, useEffect } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { ShareInvoiceWhatsAppButton } from '@/components/invoices/share-invoice-whatsapp-button';
+import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { UpdateInvoiceInput } from '@flowbooks/shared';
 
@@ -40,6 +42,15 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     enabled: !!session?.accessToken && !!organizationId,
   });
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    if (window.location.hash !== '#edit-invoice') return;
+    const el = document.getElementById('edit-invoice');
+    if (el) {
+      window.setTimeout(() => el.scrollIntoView({ behavior: 'smooth', block: 'start' }), 100);
+    }
+  }, [invoice]);
+
   async function handleUpdate(data: UpdateInvoiceInput) {
     await api.invoices.update(session!.accessToken!, organizationId!, id, data);
     await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
@@ -57,6 +68,11 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   function openReceipt() {
     if (!organizationId) return;
     openPrintUrl(`/print/receipts/${id}?org=${encodeURIComponent(organizationId)}`);
+  }
+
+  function scrollToEdit() {
+    const el = document.getElementById('edit-invoice');
+    if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
   }
 
   return (
@@ -103,6 +119,10 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
           {invoice && organizationId && !isNew && (
             <>
+              <Button type="button" variant="outline" onClick={scrollToEdit} className="gap-2">
+                <Pencil className="h-4 w-4" />
+                Edit invoice
+              </Button>
               <DownloadInvoicePdfButton
                 invoiceId={id}
                 organizationId={organizationId}
@@ -155,14 +175,16 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
       )}
 
       {invoice && organizationId && (
-        <InvoiceForm
-          mode="edit"
-          invoice={invoice}
-          customers={customersData?.data ?? []}
-          products={productsData?.data ?? []}
-          defaultCurrency={businessCurrency}
-          onSubmit={handleUpdate}
-        />
+        <div id="edit-invoice" className="scroll-mt-20">
+          <InvoiceForm
+            mode="edit"
+            invoice={invoice}
+            customers={customersData?.data ?? []}
+            products={productsData?.data ?? []}
+            defaultCurrency={businessCurrency}
+            onSubmit={handleUpdate}
+          />
+        </div>
       )}
     </div>
   );
