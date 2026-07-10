@@ -1,17 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
-import {
-  preparePdfFromElement,
-  revokePreparedPdf,
-  savePdfToDevice,
-  type PreparedPdf,
-} from '@/lib/capture-element-image';
+import { captureElementAsPdf } from '@/lib/capture-element-image';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
-import { PdfViewerSheet } from '@/components/print/pdf-viewer-sheet';
 import { cn } from '@/lib/utils';
 
 type Props = {
@@ -26,9 +20,9 @@ type Props = {
   emailBody?: string;
 };
 
-function prefersBrowserPrint() {
+function isTouchDevice() {
   if (typeof window === 'undefined') return false;
-  return window.matchMedia('(hover: hover) and (pointer: fine)').matches;
+  return window.matchMedia('(pointer: coarse)').matches;
 }
 
 export function PrintPageToolbar({
@@ -42,68 +36,40 @@ export function PrintPageToolbar({
   emailSubject,
   emailBody,
 }: Props) {
-  const [busy, setBusy] = useState<'download' | 'whatsapp' | 'share' | null>(null);
+  const [busy, setBusy] = useState<'whatsapp' | 'share' | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
-  const [viewer, setViewer] = useState<PreparedPdf | null>(null);
-  const pdfRef = useRef<PreparedPdf | null>(null);
 
   const shareSubject = emailSubject ?? filename;
   const shareBody = emailBody ?? whatsappMessage;
 
-  function showViewer(prepared: PreparedPdf) {
-    if (pdfRef.current) revokePreparedPdf(pdfRef.current);
-    pdfRef.current = prepared;
-    setViewer(prepared);
+  function handleDownload() {
+    setError('');
+    if (isTouchDevice()) {
+      setStatus('Choose Save as PDF in the print menu — same quality as on desktop.');
+    } else {
+      setStatus('Choose Save as PDF in the print dialog.');
+    }
+    window.print();
   }
 
-  async function buildPdf(): Promise<PreparedPdf> {
+  async function buildShareFile(): Promise<File> {
     const element = document.getElementById(captureElementId);
     if (!element) throw new Error('Document not ready yet');
     window.scrollTo(0, 0);
     await new Promise((resolve) => setTimeout(resolve, 200));
-    return preparePdfFromElement(element, filename);
-  }
-
-  async function ensurePdf(): Promise<PreparedPdf> {
-    if (pdfRef.current) return pdfRef.current;
-    const prepared = await buildPdf();
-    showViewer(prepared);
-    return prepared;
-  }
-
-  async function handleDownload() {
-    if (busy) return;
-    setBusy('download');
-    setError('');
-    setStatus('');
-
-    try {
-      if (prefersBrowserPrint()) {
-        window.print();
-        return;
-      }
-
-      setStatus('Creating PDF…');
-      const prepared = await ensurePdf();
-      await savePdfToDevice(prepared.file);
-      setStatus('Download started — check your Downloads or share menu.');
-    } catch {
-      setError('Could not create PDF. Wait for the page to load, then try again.');
-    } finally {
-      setBusy(null);
-    }
+    return captureElementAsPdf(element, filename);
   }
 
   async function handleWhatsApp() {
     if (busy) return;
     setBusy('whatsapp');
     setError('');
-    setStatus('Creating PDF…');
+    setStatus('Preparing attachment…');
 
     try {
-      const prepared = await ensurePdf();
-      await shareInvoiceFile(prepared.file, whatsappMessage, whatsappPhone);
+      const file = await buildShareFile();
+      await shareInvoiceFile(file, whatsappMessage, whatsappPhone);
       setStatus('Pick WhatsApp in the share menu.');
     } catch {
       setError('Could not share on WhatsApp.');
@@ -116,11 +82,11 @@ export function PrintPageToolbar({
     if (busy) return;
     setBusy('share');
     setError('');
-    setStatus('Creating PDF…');
+    setStatus('Preparing attachment…');
 
     try {
-      const prepared = await ensurePdf();
-      await shareDocumentByEmail(prepared.file, shareSubject, shareBody);
+      const file = await buildShareFile();
+      await shareDocumentByEmail(file, shareSubject, shareBody);
       setStatus('Pick your email app in the share menu.');
     } catch {
       setError('Could not share by email.');
@@ -179,33 +145,20 @@ export function PrintPageToolbar({
           <button
             type="button"
             disabled={isBusy}
-            onClick={() => void handleDownload()}
+            onClick={handleDownload}
             className={cn(
               'inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-3 text-xs font-semibold text-white disabled:opacity-70 sm:text-sm',
               accentClassName,
             )}
           >
-            {busy === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-            {busy === 'download' ? 'Creating…' : 'PDF'}
+            <Download className="h-4 w-4" />
+            Save PDF
           </button>
         </div>
       </div>
 
       <div className="no-print" style={{ height: 'calc(3.5rem + env(safe-area-inset-top))' }} />
       <div className="no-print" style={{ height: 'calc(5rem + env(safe-area-inset-bottom))' }} />
-
-      {viewer ? (
-        <PdfViewerSheet
-          prepared={viewer}
-          onClose={() => {
-            if (pdfRef.current) revokePreparedPdf(pdfRef.current);
-            pdfRef.current = null;
-            setViewer(null);
-          }}
-          onWhatsApp={() => void handleWhatsApp()}
-          onShareEmail={() => void handleShareEmail()}
-        />
-      ) : null}
     </>
   );
 }

@@ -66,4 +66,26 @@
     -moz-osx-font-smoothing: grayscale;
     text-rendering: optimizeLegibility;
   }
+
+  @media print {
+    @page {
+      size: A4;
+      margin: 8mm;
+    }
+
+    html,
+    body {
+      width: auto !important;
+      background: white !important;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+
+    .invoice-print,
+    .receipt-print,
+    .expense-print {
+      max-width: none !important;
+      width: 100% !important;
+    }
+  }
 }

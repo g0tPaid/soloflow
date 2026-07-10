@@ -32,10 +32,10 @@ export function DownloadInvoicePdfButton({
         onClick={handleDownload}
       >
         <Download className="h-4 w-4" />
-        Download PDF
+        Save PDF
       </Button>
       <p className="text-right text-[11px] text-muted-foreground">
-        Opens invoice — tap <strong>Download PDF</strong> to save {filename}
+        Opens invoice — tap <strong>Save PDF</strong>, then choose Save as PDF in the print menu
       </p>
     </div>
   );
