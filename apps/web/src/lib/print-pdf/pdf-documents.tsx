@@ -146,9 +146,10 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: '#f1f5f9',
     borderRadius: 8,
-    padding: 10,
-    width: 200,
-    marginLeft: 'auto',
+    padding: 12,
+    width: '100%',
+    minHeight: 220,
+    justifyContent: 'center',
   },
   totalLine: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
   grandTotal: {
@@ -163,8 +164,17 @@ const styles = StyleSheet.create({
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
   bannerWrap: { marginTop: 12, width: '100%' },
-  signatureImg: { width: 300, height: 300, objectFit: 'contain' },
-  signatureBox: { marginTop: 8 },
+  signatureImg: { width: 180, height: 180, objectFit: 'contain', alignSelf: 'center' },
+  signatureBox: {
+    borderWidth: 1,
+    borderColor: '#f1f5f9',
+    borderRadius: 8,
+    padding: 12,
+    width: '100%',
+    minHeight: 220,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {
@@ -431,22 +441,27 @@ function InvoicePdfBody({
           );
         })}
 
-        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-end' }]} wrap={false}>
+        {invoice.notes ? (
+          <View style={{ marginTop: 12, marginBottom: 8 }} wrap={false}>
+            <Text style={[styles.sectionLabel, { color: RED }]}>Notes</Text>
+            <View style={styles.notesBox}>
+              <Text>{invoice.notes}</Text>
+            </View>
+          </View>
+        ) : null}
+
+        <View style={[styles.twoCol, { marginTop: 8, alignItems: 'stretch' }]} wrap={false}>
           <View style={styles.colHalf}>
-            {invoice.notes ? (
-              <View style={{ marginBottom: signatureSrc ? 10 : 0 }}>
-                <Text style={[styles.sectionLabel, { color: RED }]}>Notes</Text>
-                <View style={styles.notesBox}>
-                  <Text>{invoice.notes}</Text>
-                </View>
-              </View>
-            ) : null}
-            {signatureSrc ? (
-              <View style={styles.signatureBox}>
-                <Text style={[styles.sectionLabel, { color: RED }]}>Authorized signature</Text>
+            <View style={styles.signatureBox}>
+              <Text style={[styles.sectionLabel, { color: RED, marginBottom: 8 }]}>
+                Authorized signature
+              </Text>
+              {signatureSrc ? (
                 <Image src={signatureSrc} style={styles.signatureImg} cache={false} />
-              </View>
-            ) : null}
+              ) : (
+                <Text style={styles.muted}>No signature uploaded</Text>
+              )}
+            </View>
           </View>
           <View style={styles.colHalf}>
             <View style={styles.totalBox}>
@@ -610,14 +625,18 @@ function ReceiptPdfBody({
           );
         })}
 
-        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'flex-end' }]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: 12, alignItems: 'stretch' }]} wrap={false}>
           <View style={styles.colHalf}>
-            {signatureSrc ? (
-              <View style={styles.signatureBox}>
-                <Text style={[styles.sectionLabel, { color: GREEN }]}>Authorized signature</Text>
+            <View style={[styles.signatureBox, { borderColor: '#d1fae5' }]}>
+              <Text style={[styles.sectionLabel, { color: GREEN, marginBottom: 8 }]}>
+                Authorized signature
+              </Text>
+              {signatureSrc ? (
                 <Image src={signatureSrc} style={styles.signatureImg} cache={false} />
-              </View>
-            ) : null}
+              ) : (
+                <Text style={styles.muted}>No signature uploaded</Text>
+              )}
+            </View>
           </View>
           <View style={styles.colHalf}>
             <View style={[styles.totalBox, { borderColor: '#d1fae5' }]}>

@@ -390,43 +390,45 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </table>
           </div>
 
-          <section className="mb-10 grid gap-8 sm:grid-cols-2 sm:items-end">
-            <div className="space-y-5">
-              {invoice.notes && (
-                <div>
-                  <p
-                    className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
-                    style={{ color: RED }}
-                  >
-                    Notes
-                  </p>
-                  <p className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600">
-                    {invoice.notes}
-                  </p>
-                </div>
-              )}
+          {invoice.notes && (
+            <div className="mb-6">
+              <p
+                className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
+                style={{ color: RED }}
+              >
+                Notes
+              </p>
+              <p className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm leading-relaxed text-slate-600">
+                {invoice.notes}
+              </p>
+            </div>
+          )}
 
-              {signatureSrc ? (
-                <div className="invoice-signature">
-                  <p
-                    className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
-                    style={{ color: RED }}
-                  >
-                    Authorized signature
-                  </p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+          <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
+            <div className="flex min-h-[320px] flex-col rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+              <p
+                className="mb-3 text-xs font-bold uppercase tracking-[0.15em]"
+                style={{ color: RED }}
+              >
+                Authorized signature
+              </p>
+              <div className="flex flex-1 items-center justify-center">
+                {signatureSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={signatureSrc}
                     alt="Authorized signature"
-                    className="h-[300px] w-[300px] bg-white object-contain"
+                    className="h-[300px] w-[300px] max-w-full bg-white object-contain"
                     width={300}
                     height={300}
                   />
-                </div>
-              ) : null}
+                ) : (
+                  <p className="text-sm text-slate-400">No signature uploaded</p>
+                )}
+              </div>
             </div>
 
-            <div className="rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex min-h-[320px] flex-col justify-center rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between py-1">
                   <span className="text-slate-600">Subtotal</span>

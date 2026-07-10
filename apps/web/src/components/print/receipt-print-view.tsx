@@ -180,25 +180,27 @@ export function ReceiptPrintView({
             </tbody>
           </table>
 
-          <div className="mb-6 grid gap-6 sm:grid-cols-2 sm:items-end">
-            <div>
-              {signatureSrc ? (
-                <div>
-                  <p className="mb-2 text-xs font-bold uppercase tracking-wide text-emerald-700">
-                    Authorized signature
-                  </p>
-                  {/* eslint-disable-next-line @next/next/no-img-element */}
+          <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
+            <div className="flex min-h-[280px] flex-col rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">
+              <p className="mb-3 text-xs font-bold uppercase tracking-wide text-emerald-700">
+                Authorized signature
+              </p>
+              <div className="flex flex-1 items-center justify-center">
+                {signatureSrc ? (
+                  // eslint-disable-next-line @next/next/no-img-element
                   <img
                     src={signatureSrc}
                     alt="Authorized signature"
-                    className="h-[300px] w-[300px] bg-white object-contain"
+                    className="h-[300px] w-[300px] max-w-full bg-white object-contain"
                     width={300}
                     height={300}
                   />
-                </div>
-              ) : null}
+                ) : (
+                  <p className="text-sm text-slate-400">No signature uploaded</p>
+                )}
+              </div>
             </div>
-            <div className="ml-auto w-full max-w-xs rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-sm">
+            <div className="flex min-h-[280px] flex-col justify-center rounded-xl border border-emerald-100 bg-emerald-50/40 p-4 text-sm shadow-sm">
               <div className="flex justify-between py-1">
                 <span className="text-slate-600">Subtotal</span>
                 <span className="font-medium">{formatCurrency(Number(invoice.subtotal), currency)}</span>
