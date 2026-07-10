@@ -1,7 +1,7 @@
+import 'server-only';
+
 import chromium from '@sparticuz/chromium';
 import puppeteer from 'puppeteer-core';
-import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
-import { renderPrintHtml } from '@/lib/print-pdf/render-print-html';
 
 const PRINT_ROOTS: Record<string, string> = {
   invoices: 'invoice-capture-root',
@@ -9,10 +9,29 @@ const PRINT_ROOTS: Record<string, string> = {
   expenses: 'expense-capture-root',
 };
 
+const PDF_SOURCE_PATHS: Record<string, string> = {
+  invoices: 'invoices',
+  receipts: 'receipts',
+  expenses: 'expenses',
+};
+
 function resolveBaseUrl(request: Request) {
   const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
   if (configured) return configured;
   return new URL(request.url).origin;
+}
+
+async function authCookiesForBrowser(baseUrl: string) {
+  const { cookies } = await import('next/headers');
+  const cookieStore = await cookies();
+  const secure = baseUrl.startsWith('https');
+
+  return cookieStore.getAll().map((cookie) => ({
+    name: cookie.name,
+    value: cookie.value,
+    path: '/',
+    ...(secure ? { secure: true as const } : {}),
+  }));
 }
 
 async function resolveExecutablePath() {
@@ -43,19 +62,24 @@ async function resolveExecutablePath() {
 
 export async function generatePrintPdf(
   request: Request,
-  accessToken: string,
   type: string,
   id: string,
   organizationId?: string | null,
 ): Promise<Buffer> {
   const rootId = PRINT_ROOTS[type];
-  if (!rootId) {
+  const sourcePath = PDF_SOURCE_PATHS[type];
+  if (!rootId || !sourcePath) {
     throw new Error('Unsupported document type');
   }
 
+  if (!organizationId) {
+    throw new Error('Organization is required to generate this PDF.');
+  }
+
   const baseUrl = resolveBaseUrl(request);
-  const printDocument = await loadPrintDocument(accessToken, type, id, organizationId);
-  const html = renderPrintHtml(printDocument, baseUrl);
+  const params = new URLSearchParams({ org: organizationId });
+  const printUrl = `${baseUrl}/print/${sourcePath}/${id}/pdf-source?${params.toString()}`;
+  const browserCookies = await authCookiesForBrowser(baseUrl);
 
   chromium.setGraphicsMode = false;
 
@@ -75,9 +99,12 @@ export async function generatePrintPdf(
 
   try {
     const page = await browser.newPage();
-    await page.setContent(html, { waitUntil: 'load', timeout: 90_000 });
+    if (browserCookies.length > 0) {
+      await page.setCookie(...browserCookies);
+    }
+
+    await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 90_000 });
     await page.waitForSelector(`#${rootId}`, { timeout: 45_000 });
-    await new Promise((resolve) => setTimeout(resolve, 1500));
     await page.waitForFunction(
       (selector: string) => {
         const node = globalThis.document.querySelector(selector);

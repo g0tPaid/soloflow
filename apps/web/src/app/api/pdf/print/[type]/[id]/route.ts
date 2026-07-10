@@ -36,7 +36,7 @@ export async function GET(
   }
 
   try {
-    const pdf = await generatePrintPdf(request, session.accessToken, type, id, organizationId);
+    const pdf = await generatePrintPdf(request, type, id, organizationId);
     return new NextResponse(new Uint8Array(pdf), {
       status: 200,
       headers: {
