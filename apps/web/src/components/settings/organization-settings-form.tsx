@@ -166,8 +166,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           <CardTitle>New Offers (4 images)</CardTitle>
           <CardDescription>
             Shown under &quot;New Offers&quot; on invoices as four sharp <strong>300×300</strong> boxes.
-            Upload PNG/JPG at full quality (no compression), then click{' '}
-            <strong>Save company details</strong>.
+            Each photo is resized to 300×300 on upload so Save works (avoids the 10MB JSON error).
+            Click <strong>Save company details</strong> after uploading.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-6 sm:grid-cols-2">

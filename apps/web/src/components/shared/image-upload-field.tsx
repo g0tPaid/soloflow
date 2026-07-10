@@ -6,7 +6,7 @@ import { INVOICE_BANNER_SIZE } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
 import { resolveImageSrc } from '@/lib/organization-branding';
-import { compressImageFile } from '@/lib/compress-image';
+import { compressImageFile, prepareFixedSquareImage } from '@/lib/compress-image';
 
 type Props = {
   value?: string | null;
@@ -29,9 +29,18 @@ async function prepareImageDataUrl(
   file: File,
   variant: 'square' | 'banner' | 'signature',
 ): Promise<string> {
-  // Banners and signatures are graphics — never recompress.
-  if (variant === 'banner' || variant === 'signature') {
-    return readFileAsDataUrl(file);
+  // Offers + signature: sharp 300×300, small enough to save with other images
+  if (variant === 'signature') {
+    return prepareFixedSquareImage(file, 300, 280_000);
+  }
+  // Legacy wide banner — keep under ~800KB
+  if (variant === 'banner') {
+    return compressImageFile(file, {
+      maxWidth: 1600,
+      maxHeight: 500,
+      maxBytes: 800_000,
+      quality: 0.9,
+    });
   }
   try {
     return await compressImageFile(file, {
@@ -55,22 +64,24 @@ export function ImageUploadField({
   const [uploading, setUploading] = useState(false);
   const isBanner = variant === 'banner';
   const isSignature = variant === 'signature';
-  const keepFullQuality = isBanner || isSignature;
   const size = compact ? 56 : isSignature ? 300 : 96;
   const previewSrc = value ? resolveImageSrc(value) : undefined;
+  const [uploadError, setUploadError] = useState('');
 
   async function handleFile(file: File) {
-    const maxBytes = keepFullQuality ? 5 * 1024 * 1024 : 3 * 1024 * 1024;
+    const maxBytes = isSignature || isBanner ? 8 * 1024 * 1024 : 3 * 1024 * 1024;
     if (file.size > maxBytes) {
+      setUploadError(isSignature ? 'Image must be under 8 MB' : 'Image must be under 3 MB');
       return;
     }
 
     setUploading(true);
+    setUploadError('');
     try {
       const dataUrl = await prepareImageDataUrl(file, variant);
       onChange(dataUrl);
     } catch {
-      // ignore — user can retry
+      setUploadError('Could not process image. Try a smaller PNG or JPG.');
     } finally {
       setUploading(false);
     }
@@ -158,11 +169,12 @@ export function ImageUploadField({
           </Button>
           <p className="text-xs text-muted-foreground">
             {isSignature
-              ? 'PNG preferred · max 5 MB · shown as 300×300 on invoices · full quality'
+              ? 'PNG or JPG · saved as sharp 300×300 (fits invoice save limit)'
               : isBanner
-                ? `PNG or JPG · max 5 MB · saved at full quality (no compression) · recommended ${INVOICE_BANNER_SIZE.label}`
+                ? `PNG or JPG · recommended ${INVOICE_BANNER_SIZE.label}`
                 : 'JPG, PNG or WebP · max 3 MB · auto-compressed for save'}
           </p>
+          {uploadError ? <p className="text-xs text-destructive">{uploadError}</p> : null}
         </div>
       </div>
     </div>
