@@ -111,10 +111,11 @@ export function ExpensePrintView({
             </div>
           )}
 
-          <table className="mb-6 w-full border-collapse overflow-hidden rounded-xl text-sm shadow-sm ring-1 ring-slate-100">
+          <div className="mb-6 overflow-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr style={{ backgroundColor: RED }} className="text-left text-white">
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Item</th>
+                <th className="rounded-tl-xl px-4 py-3 text-xs font-bold uppercase tracking-wider">Item</th>
                 <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider">Qty</th>
                 <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider">
                   Sale
@@ -125,7 +126,7 @@ export function ExpensePrintView({
                 <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider">
                   Cost each
                 </th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider">
+                <th className="rounded-tr-xl px-4 py-3 text-right text-xs font-bold uppercase tracking-wider">
                   Expense
                 </th>
               </tr>
@@ -180,6 +181,7 @@ export function ExpensePrintView({
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-5 py-4 text-sm">

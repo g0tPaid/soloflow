@@ -113,6 +113,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 4,
     fontWeight: 'bold',
     fontSize: 7,
+    borderTopLeftRadius: 12,
+    borderTopRightRadius: 12,
   },
   tableHeaderGreen: { backgroundColor: GREEN },
   tableRow: {

@@ -145,12 +145,13 @@ export function ReceiptPrintView({
             </div>
           </div>
 
-          <table className="mb-6 w-full border-collapse overflow-hidden rounded-xl text-sm shadow-sm ring-1 ring-slate-100">
+          <div className="mb-6 overflow-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
+          <table className="w-full border-collapse text-sm">
             <thead>
               <tr style={{ backgroundColor: GREEN }} className="text-left text-white">
-                <th className="px-4 py-3 text-xs font-bold uppercase tracking-wider">Description</th>
+                <th className="rounded-tl-xl px-4 py-3 text-xs font-bold uppercase tracking-wider">Description</th>
                 <th className="px-3 py-3 text-right text-xs font-bold uppercase tracking-wider">Qty</th>
-                <th className="px-4 py-3 text-right text-xs font-bold uppercase tracking-wider">
+                <th className="rounded-tr-xl px-4 py-3 text-right text-xs font-bold uppercase tracking-wider">
                   Amount
                 </th>
               </tr>
@@ -179,6 +180,7 @@ export function ReceiptPrintView({
               })}
             </tbody>
           </table>
+          </div>
 
           <div className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
             <div className="flex min-h-[280px] flex-col rounded-xl border border-emerald-100 bg-white p-4 shadow-sm">

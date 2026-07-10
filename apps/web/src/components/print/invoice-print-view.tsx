@@ -310,7 +310,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
             </section>
           )}
 
-          <div className="mb-8 max-w-full overflow-x-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
+          <div className="mb-8 max-w-full overflow-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
             <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
                 <col className="w-[8%]" />
@@ -322,7 +322,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
               </colgroup>
               <thead>
                 <tr style={{ backgroundColor: RED }} className="text-left text-white">
-                  <th className="px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
+                  <th className="rounded-tl-xl px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
                     #
                   </th>
                   <th className="px-1 py-3 text-center text-xs font-bold uppercase tracking-wider">
@@ -337,7 +337,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                   <th className="px-1 py-3 text-right text-xs font-bold uppercase tracking-wider">
                     Unit Price
                   </th>
-                  <th className="px-2 py-3 text-right text-xs font-bold uppercase tracking-wider">
+                  <th className="rounded-tr-xl px-2 py-3 text-right text-xs font-bold uppercase tracking-wider">
                     Amount
                   </th>
                 </tr>
