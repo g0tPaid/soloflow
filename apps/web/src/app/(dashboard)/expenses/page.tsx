@@ -3,11 +3,12 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
-import { Receipt, TrendingDown, TrendingUp } from 'lucide-react';
+import { Plus, Receipt, TrendingDown, TrendingUp } from 'lucide-react';
 import { api } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { Card, CardContent } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 
 function formatDate(value?: string | null) {
@@ -29,19 +30,29 @@ export default function ExpensesPage() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
-        <p className="text-muted-foreground">
-          Record what you paid for each invoice and see profit per sale
-        </p>
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
+        <div>
+          <h1 className="text-2xl font-semibold tracking-tight">Expenses</h1>
+          <p className="text-muted-foreground">
+            Record what you paid for each invoice and see profit per sale
+          </p>
+        </div>
+        {organizationId && (
+          <Button asChild className="shrink-0">
+            <Link href="/expenses/new">
+              <Plus className="mr-2 h-4 w-4" />
+              Add expense
+            </Link>
+          </Button>
+        )}
       </div>
 
       <Card className="border-orange-200 bg-orange-50/50 lg:hidden">
         <CardContent className="py-4 text-sm text-orange-950">
-          <p className="font-medium">On phone: tap an invoice below</p>
+          <p className="font-medium">On phone: tap an invoice below, or Add expense</p>
           <p className="mt-1 text-orange-900/80">
-            Enter purchase costs and actual shipping, then save. Open <strong>All Expenses</strong> from
-            the home screen anytime.
+            Use <strong>Add expense</strong> for old invoices made outside this app. Or open an
+            existing invoice to enter purchase costs.
           </p>
         </CardContent>
       </Card>
@@ -77,16 +88,22 @@ export default function ExpensesPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <Receipt className="h-10 w-10 text-muted-foreground mb-3" />
-            <p className="font-medium">No invoices yet</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Create an invoice first, then come here to enter purchase costs
+            <p className="font-medium">No expenses yet</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4 max-w-sm">
+              Add a past invoice from outside this app, or create an invoice first and enter costs
+              here
             </p>
-            <Link
-              href="/invoices/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Create invoice
-            </Link>
+            <div className="flex flex-col gap-2 sm:flex-row">
+              <Button asChild>
+                <Link href="/expenses/new">
+                  <Plus className="mr-2 h-4 w-4" />
+                  Add expense
+                </Link>
+              </Button>
+              <Button variant="outline" asChild>
+                <Link href="/invoices/new">Create invoice</Link>
+              </Button>
+            </div>
           </CardContent>
         </Card>
       )}

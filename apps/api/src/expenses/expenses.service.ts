@@ -1,10 +1,11 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { UpdateExpenseCostsDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseCostsDto } from './dto/expense.dto';
 import { normalizePagination } from '../common/pagination';
+import { InvoiceStatus } from '@flowbooks/database';
 import {
-  cnyToCurrency,
-  currencyToCny,
+  convertCurrency,
+  normalizeCostCurrency,
   parseFxRates,
   roundMoney,
   type FxRates,
@@ -14,12 +15,33 @@ import {
 export class ExpensesService {
   constructor(private prisma: PrismaService) {}
 
-  private async loadFxRates(organizationId: string): Promise<FxRates> {
+  private async loadCostSettings(organizationId: string): Promise<{
+    rates: FxRates;
+    costCurrency: string;
+    defaultCurrency: string;
+  }> {
     const settings = await this.prisma.organizationSettings.findUnique({
       where: { organizationId },
-      select: { fxRates: true },
+      select: { fxRates: true, costCurrency: true, currency: true },
     });
-    return parseFxRates(settings?.fxRates);
+    return {
+      rates: parseFxRates(settings?.fxRates),
+      costCurrency: normalizeCostCurrency(settings?.costCurrency),
+      defaultCurrency: settings?.currency || 'USD',
+    };
+  }
+
+  private async assertUniqueNumber(organizationId: string, number: string) {
+    const trimmed = number.trim();
+    if (!trimmed) throw new BadRequestException('Invoice number is required');
+    const existing = await this.prisma.invoice.findFirst({
+      where: { organizationId, number: trimmed },
+      select: { id: true },
+    });
+    if (existing) {
+      throw new BadRequestException(`Invoice number "${trimmed}" is already in use`);
+    }
+    return trimmed;
   }
 
   async findAll(organizationId: string, page?: number, limit?: number) {
@@ -66,6 +88,89 @@ export class ExpensesService {
     return this.toExpenseDetail(invoice);
   }
 
+  async create(organizationId: string, dto: CreateExpenseDto) {
+    const customer = await this.prisma.customer.findFirst({
+      where: { id: dto.customerId, organizationId, isActive: true },
+      select: { id: true },
+    });
+    if (!customer) throw new BadRequestException('Customer not found');
+
+    const number = await this.assertUniqueNumber(organizationId, dto.number);
+    const { rates, costCurrency, defaultCurrency } = await this.loadCostSettings(organizationId);
+    const currency = (dto.currency || defaultCurrency || 'USD').toUpperCase();
+    const shipping = Math.max(0, dto.shipping ?? 0);
+    const shippingCostCny = Math.max(0, dto.shippingCostCny ?? 0);
+    const shippingCost = roundMoney(convertCurrency(shippingCostCny, costCurrency, currency, rates));
+
+    const lineData = dto.items.map((item) => {
+      const quantity = Math.max(0, item.quantity);
+      const unitPrice = Math.max(0, item.unitPrice);
+      const unitCostCny = Math.max(0, item.unitCostCny ?? 0);
+      const unitCost = roundMoney(convertCurrency(unitCostCny, costCurrency, currency, rates));
+      const name = item.name?.trim() || null;
+      const description = item.description?.trim() || name || 'Item';
+      return {
+        name,
+        description,
+        quantity,
+        unitPrice,
+        unitCost,
+        unitCostCny,
+        taxRate: 0,
+        amount: roundMoney(quantity * unitPrice),
+        costAmount: roundMoney(quantity * unitCost),
+      };
+    });
+
+    const subtotal = roundMoney(lineData.reduce((sum, row) => sum + row.amount, 0));
+    const total = roundMoney(subtotal + shipping);
+    const itemsCost = roundMoney(lineData.reduce((sum, row) => sum + row.costAmount, 0));
+    const totalCost = roundMoney(itemsCost + shippingCost);
+
+    const invoice = await this.prisma.invoice.create({
+      data: {
+        organizationId,
+        customerId: dto.customerId,
+        number,
+        status: InvoiceStatus.PAID,
+        issueDate: new Date(dto.issueDate),
+        currency,
+        notes: dto.notes?.trim() || null,
+        discount: 0,
+        shipping,
+        shippingMethod: dto.shippingMethod ?? null,
+        shippingTerms: dto.shippingTerms ?? null,
+        shippingFromCountry: dto.shippingFromCountry?.trim() || null,
+        shippingToCountry: dto.shippingToCountry?.trim() || null,
+        shippingCost,
+        shippingCostCny,
+        subtotal,
+        taxAmount: 0,
+        total,
+        totalCost,
+        items: {
+          create: lineData.map((row) => ({
+            name: row.name,
+            description: row.description,
+            quantity: row.quantity,
+            unitPrice: row.unitPrice,
+            unitCost: row.unitCost,
+            unitCostCny: row.unitCostCny,
+            taxRate: row.taxRate,
+            amount: row.amount,
+            costAmount: row.costAmount,
+          })),
+        },
+      },
+      include: {
+        customer: true,
+        items: { include: { product: true }, orderBy: { id: 'asc' } },
+      },
+    });
+
+    return this.toExpenseDetail(invoice);
+  }
+
   async updateCosts(organizationId: string, id: string, dto: UpdateExpenseCostsDto) {
     const invoice = await this.prisma.invoice.findFirst({
       where: { id, organizationId },
@@ -81,10 +186,11 @@ export class ExpensesService {
       }
     }
 
-    const rates = await this.loadFxRates(organizationId);
+    const { rates, costCurrency } = await this.loadCostSettings(organizationId);
     const currency = invoice.currency || 'USD';
     const costById = new Map(dto.items.map((row) => [row.id, row]));
 
+    // unitCostCny / shippingCostCny store amounts in the org's costCurrency
     let shippingCostCny =
       dto.shippingCostCny !== undefined
         ? Math.max(0, dto.shippingCostCny)
@@ -92,14 +198,14 @@ export class ExpensesService {
 
     let shippingCost: number;
     if (dto.shippingCostCny !== undefined) {
-      shippingCost = roundMoney(cnyToCurrency(shippingCostCny, currency, rates));
+      shippingCost = roundMoney(convertCurrency(shippingCostCny, costCurrency, currency, rates));
     } else if (dto.shippingCost !== undefined) {
       shippingCost = Math.max(0, dto.shippingCost);
-      shippingCostCny = roundMoney(currencyToCny(shippingCost, currency, rates));
+      shippingCostCny = roundMoney(convertCurrency(shippingCost, currency, costCurrency, rates));
     } else {
       shippingCost = Number(invoice.shippingCost ?? 0);
       if (!shippingCostCny && shippingCost > 0) {
-        shippingCostCny = roundMoney(currencyToCny(shippingCost, currency, rates));
+        shippingCostCny = roundMoney(convertCurrency(shippingCost, currency, costCurrency, rates));
       }
     }
 
@@ -111,12 +217,12 @@ export class ExpensesService {
 
         if (row?.unitCostCny !== undefined) {
           unitCostCny = Math.max(0, row.unitCostCny);
-          unitCost = roundMoney(cnyToCurrency(unitCostCny, currency, rates));
+          unitCost = roundMoney(convertCurrency(unitCostCny, costCurrency, currency, rates));
         } else if (row?.unitCost !== undefined) {
           unitCost = Math.max(0, row.unitCost);
-          unitCostCny = roundMoney(currencyToCny(unitCost, currency, rates));
+          unitCostCny = roundMoney(convertCurrency(unitCost, currency, costCurrency, rates));
         } else if (!unitCostCny && unitCost > 0) {
-          unitCostCny = roundMoney(currencyToCny(unitCost, currency, rates));
+          unitCostCny = roundMoney(convertCurrency(unitCost, currency, costCurrency, rates));
         }
 
         const quantity = Number(item.quantity);

@@ -1,7 +1,7 @@
-import { Controller, Get, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { ExpensesService } from './expenses.service';
-import { UpdateExpenseCostsDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseCostsDto } from './dto/expense.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
@@ -20,6 +20,11 @@ export class ExpensesController {
     @Query('limit') limit?: number,
   ) {
     return this.expensesService.findAll(orgId, page, limit);
+  }
+
+  @Post()
+  create(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateExpenseDto) {
+    return this.expensesService.create(orgId, dto);
   }
 
   @Get(':id')

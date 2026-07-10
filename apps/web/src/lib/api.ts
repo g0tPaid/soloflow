@@ -2,6 +2,7 @@ import type {
   CreateInvoiceInput,
   UpdateInvoiceInput,
   UpdateExpenseCostsInput,
+  CreateExpenseInput,
   UpdateOrganizationInput,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
@@ -278,6 +279,7 @@ export interface Organization {
   role?: string;
   settings?: {
     currency: string;
+    costCurrency?: string;
     timezone: string;
     branding?: OrganizationBranding;
     fxRates?: Record<string, number>;
@@ -527,6 +529,13 @@ export const api = {
       ),
     get: (token: string, organizationId: string, id: string) =>
       apiFetch<ExpenseDetail>(`/expenses/${id}`, { token, organizationId }),
+    create: (token: string, organizationId: string, data: CreateExpenseInput) =>
+      apiFetch<ExpenseDetail>('/expenses', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
     updateCosts: (
       token: string,
       organizationId: string,

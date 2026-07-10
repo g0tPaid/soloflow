@@ -35,7 +35,10 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
         <h1 className="text-2xl font-semibold tracking-tight">
           {expense ? `Expenses · ${expense.number}` : 'Invoice expenses'}
         </h1>
-        <p className="text-muted-foreground">Enter purchase costs in CNY against this invoice</p>
+        <p className="text-muted-foreground">
+          Enter purchase costs in{' '}
+          {(organization?.settings?.costCurrency || 'CNY').toUpperCase()} against this invoice
+        </p>
       </div>
 
       {isReady && !organizationId && (
@@ -65,6 +68,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
         <ExpenseForm
           expense={expense}
           organizationId={organizationId}
+          costCurrency={organization?.settings?.costCurrency}
           fxRates={organization?.settings?.fxRates}
           onSubmit={handleSave}
         />

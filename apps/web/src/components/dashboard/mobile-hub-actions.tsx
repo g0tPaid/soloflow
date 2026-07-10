@@ -23,7 +23,7 @@ const CREATE_ACTIONS = [
     className: 'bg-red-500 hover:bg-red-600 text-white',
   },
   {
-    href: '/expenses',
+    href: '/expenses/new',
     label: 'Add Expense',
     icon: Receipt,
     className: 'bg-orange-500 hover:bg-orange-600 text-white',

@@ -161,4 +161,15 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsObject()
   fxRates?: Record<string, number>;
+
+  @ApiProperty({
+    required: false,
+    description: 'Currency used when entering purchase/shipping costs on expenses',
+    example: 'CNY',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  costCurrency?: string;
 }

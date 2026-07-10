@@ -8,7 +8,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
-import { updateOrganizationSchema, type UpdateOrganizationInput, parseFxRates } from '@flowbooks/shared';
+import { updateOrganizationSchema, type UpdateOrganizationInput, parseFxRates, CURRENCIES } from '@flowbooks/shared';
 import { parseBranding } from '@/lib/organization-branding';
 import type { Organization } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -16,6 +16,11 @@ import { cn } from '@/lib/utils';
 const textareaClassName = cn(
   'flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
   'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+);
+
+const selectClassName = cn(
+  'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm',
+  'focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
 );
 
 type Props = {
@@ -36,8 +41,16 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     branding.invoiceOffer3 ?? null,
     branding.invoiceOffer4 ?? null,
   ]);
+  const [costCurrency, setCostCurrency] = useState(
+    (organization.settings?.costCurrency || 'CNY').toUpperCase(),
+  );
   const [cnyPerUsd, setCnyPerUsd] = useState(String(initialFx.CNY ?? 7.25));
   const [eurPerUsd, setEurPerUsd] = useState(String(initialFx.EUR ?? 0.92));
+  const [costRatePerUsd, setCostRatePerUsd] = useState(() => {
+    const code = (organization.settings?.costCurrency || 'CNY').toUpperCase();
+    if (code === 'USD') return '1';
+    return String(initialFx[code] ?? 1);
+  });
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [saved, setSaved] = useState(false);
@@ -78,6 +91,19 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     try {
       const cny = Math.max(0.0001, Number(cnyPerUsd) || 7.25);
       const eur = Math.max(0.0001, Number(eurPerUsd) || 0.92);
+      const entryCode = costCurrency.toUpperCase();
+      const fxRates: Record<string, number> = {
+        USD: 1,
+        CNY: cny,
+        EUR: eur,
+      };
+      if (entryCode !== 'USD' && entryCode !== 'CNY' && entryCode !== 'EUR') {
+        fxRates[entryCode] = Math.max(0.0001, Number(costRatePerUsd) || 1);
+      } else if (entryCode === 'CNY') {
+        fxRates.CNY = cny;
+      } else if (entryCode === 'EUR') {
+        fxRates.EUR = eur;
+      }
       await onSubmit({
         name: data.name,
         logo: logo ?? null,
@@ -90,11 +116,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           invoiceOffer4: invoiceOffers[3] ?? '',
           invoiceBanner: '',
         },
-        fxRates: {
-          USD: 1,
-          CNY: cny,
-          EUR: eur,
-        },
+        costCurrency: entryCode,
+        fxRates,
       });
       setSaved(true);
     } catch (err) {
@@ -172,10 +195,44 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Expense cost currency</CardTitle>
+          <CardDescription>
+            Staff enter purchase and shipping costs in this currency on the Expenses page. Amounts
+            convert to each invoice&apos;s sale currency using your exchange rates.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="costCurrency">Cost entry currency</Label>
+            <select
+              id="costCurrency"
+              className={selectClassName}
+              value={costCurrency}
+              onChange={(e) => {
+                const next = e.target.value.toUpperCase();
+                setCostCurrency(next);
+                if (next === 'USD') setCostRatePerUsd('1');
+                else if (next === 'CNY') setCostRatePerUsd(cnyPerUsd);
+                else if (next === 'EUR') setCostRatePerUsd(eurPerUsd);
+                else setCostRatePerUsd(String(initialFx[next] ?? 1));
+              }}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Exchange rates (USD base)</CardTitle>
           <CardDescription>
-            Dashboard totals convert everything to USD, then show CNY underneath. Staff expense
-            costs in CNY use these rates. Enter how many units equal <strong>1 USD</strong>.
+            Dashboard totals convert everything to USD (with CNY shown underneath). Expense costs in
+            your cost entry currency use these rates. Enter how many units equal <strong>1 USD</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -187,9 +244,12 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
               min="0.0001"
               step="any"
               value={cnyPerUsd}
-              onChange={(e) => setCnyPerUsd(e.target.value)}
+              onChange={(e) => {
+                setCnyPerUsd(e.target.value);
+                if (costCurrency === 'CNY') setCostRatePerUsd(e.target.value);
+              }}
             />
-            <p className="text-xs text-muted-foreground">Default 7.25</p>
+            <p className="text-xs text-muted-foreground">Default 7.25 · also used on the dashboard</p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="eurPerUsd">EUR per 1 USD</Label>
@@ -199,10 +259,29 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
               min="0.0001"
               step="any"
               value={eurPerUsd}
-              onChange={(e) => setEurPerUsd(e.target.value)}
+              onChange={(e) => {
+                setEurPerUsd(e.target.value);
+                if (costCurrency === 'EUR') setCostRatePerUsd(e.target.value);
+              }}
             />
             <p className="text-xs text-muted-foreground">Default 0.92 (1 USD ≈ 0.92 EUR)</p>
           </div>
+          {costCurrency !== 'USD' && costCurrency !== 'CNY' && costCurrency !== 'EUR' && (
+            <div className="space-y-2 sm:col-span-2 max-w-sm">
+              <Label htmlFor="costRatePerUsd">{costCurrency} per 1 USD</Label>
+              <Input
+                id="costRatePerUsd"
+                type="number"
+                min="0.0001"
+                step="any"
+                value={costRatePerUsd}
+                onChange={(e) => setCostRatePerUsd(e.target.value)}
+              />
+              <p className="text-xs text-muted-foreground">
+                Required for converting {costCurrency} expense costs
+              </p>
+            </div>
+          )}
         </CardContent>
       </Card>
 

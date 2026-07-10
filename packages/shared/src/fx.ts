@@ -39,6 +39,20 @@ export function fromUsd(amountUsd: number, currency: string, rates: FxRates = DE
   return amountUsd * rate;
 }
 
+/** Convert an amount from one currency into another via USD. */
+export function convertCurrency(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  rates: FxRates = DEFAULT_FX_RATES,
+): number {
+  const from = (fromCurrency || 'USD').toUpperCase();
+  const to = (toCurrency || 'USD').toUpperCase();
+  if (!Number.isFinite(amount)) return 0;
+  if (from === to) return amount;
+  return fromUsd(toUsd(amount, from, rates), to, rates);
+}
+
 export function usdToCny(amountUsd: number, rates: FxRates = DEFAULT_FX_RATES): number {
   return fromUsd(amountUsd, 'CNY', rates);
 }
@@ -49,12 +63,17 @@ export function cnyToUsd(amountCny: number, rates: FxRates = DEFAULT_FX_RATES): 
 
 /** Convert CNY amount into another currency via USD. */
 export function cnyToCurrency(amountCny: number, currency: string, rates: FxRates = DEFAULT_FX_RATES): number {
-  return fromUsd(cnyToUsd(amountCny, rates), currency, rates);
+  return convertCurrency(amountCny, 'CNY', currency, rates);
 }
 
 /** Convert an amount in `currency` into CNY via USD. */
 export function currencyToCny(amount: number, currency: string, rates: FxRates = DEFAULT_FX_RATES): number {
-  return usdToCny(toUsd(amount, currency, rates), rates);
+  return convertCurrency(amount, currency, 'CNY', rates);
+}
+
+export function normalizeCostCurrency(value: unknown, fallback = 'CNY'): string {
+  if (typeof value !== 'string' || !value.trim()) return fallback.toUpperCase();
+  return value.trim().toUpperCase();
 }
 
 export function roundMoney(value: number, digits = 2): number {

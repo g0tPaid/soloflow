@@ -112,6 +112,8 @@ model OrganizationSettings {
   organizationId String @unique
 
   currency       String  @default("USD")
+  /// Currency staff use when entering purchase/shipping costs on expenses
+  costCurrency   String  @default("CNY")
   timezone       String  @default("UTC")
   dateFormat     String  @default("YYYY-MM-DD")
   fiscalYearStart Int    @default(1) // month 1-12

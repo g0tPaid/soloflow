@@ -97,6 +97,12 @@ export const updateOrganizationSchema = z.object({
     })
     .optional(),
   fxRates: z.record(z.string(), z.number().positive()).optional(),
+  costCurrency: z
+    .string()
+    .trim()
+    .length(3)
+    .transform((v) => v.toUpperCase())
+    .optional(),
 });
 
 export const inviteMemberSchema = z.object({
@@ -212,6 +218,31 @@ export const updateExpenseCostsSchema = z.object({
   shippingCostCny: z.number().min(0).optional(),
 });
 
+/** Record a past sale (external invoice) with purchase costs in one step. */
+export const createExpenseItemSchema = z.object({
+  description: z.string().min(1, 'Item name is required'),
+  name: z.string().optional(),
+  quantity: z.number().positive(),
+  unitPrice: z.number().min(0),
+  /** Cost each in the org cost-entry currency */
+  unitCostCny: z.number().min(0).default(0),
+});
+
+export const createExpenseSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required'),
+  number: z.string().min(1, 'Invoice number is required').max(50),
+  issueDate: dateStringSchema,
+  currency: z.string().length(3).optional(),
+  notes: z.string().optional().nullable(),
+  shipping: z.number().min(0).optional().default(0),
+  shippingCostCny: z.number().min(0).optional().default(0),
+  shippingMethod: z.enum(['AIR', 'SEA']).optional().nullable(),
+  shippingTerms: z.enum(['DDP', 'LCL']).optional().nullable(),
+  shippingFromCountry: z.string().optional().nullable(),
+  shippingToCountry: z.string().optional().nullable(),
+  items: z.array(createExpenseItemSchema).min(1, 'At least one item is required'),
+});
+
 // ─── Types inferred from schemas ─────────────────────────────────────────────
 
 export type LoginInput = z.infer<typeof loginSchema>;
@@ -223,4 +254,6 @@ export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
 export type UpdateExpenseCostsInput = z.infer<typeof updateExpenseCostsSchema>;
+export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
+export type CreateExpenseItemInput = z.infer<typeof createExpenseItemSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemSchema>;

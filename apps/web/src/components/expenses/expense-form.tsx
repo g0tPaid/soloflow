@@ -13,8 +13,8 @@ import { calcLineCost, calcProfit, parseStoredLineItem } from '@/lib/line-items'
 import { resolveImageSrc } from '@/lib/organization-branding';
 import type { ExpenseDetail } from '@/lib/api';
 import {
-  cnyToCurrency,
-  currencyToCny,
+  convertCurrency,
+  normalizeCostCurrency,
   parseFxRates,
   roundMoney,
   type FxRates,
@@ -30,16 +30,17 @@ type CostRow = {
   unitPrice: number;
   amount: number;
   unitCost: number;
-  unitCostCny: number;
+  /** Amount in org costCurrency (stored as unitCostCny in DB) */
+  unitCostEntry: number;
 };
 
-function toCostRows(expense: ExpenseDetail, rates: FxRates): CostRow[] {
+function toCostRows(expense: ExpenseDetail, rates: FxRates, costCurrency: string): CostRow[] {
   return (expense.items ?? []).map((item) => {
     const { name, description } = parseStoredLineItem(item);
     const unitCost = Number(item.unitCost ?? 0);
-    let unitCostCny = Number(item.unitCostCny ?? 0);
-    if (!unitCostCny && unitCost > 0) {
-      unitCostCny = roundMoney(currencyToCny(unitCost, expense.currency, rates));
+    let unitCostEntry = Number(item.unitCostCny ?? 0);
+    if (!unitCostEntry && unitCost > 0) {
+      unitCostEntry = roundMoney(convertCurrency(unitCost, expense.currency, costCurrency, rates));
     }
     return {
       id: item.id,
@@ -50,7 +51,7 @@ function toCostRows(expense: ExpenseDetail, rates: FxRates): CostRow[] {
       unitPrice: Number(item.unitPrice),
       amount: Number(item.amount),
       unitCost,
-      unitCostCny,
+      unitCostEntry,
     };
   });
 }
@@ -63,19 +64,21 @@ function formatDate(value?: string | null) {
 type Props = {
   expense: ExpenseDetail;
   organizationId: string;
+  costCurrency?: string;
   fxRates?: unknown;
   onSubmit: (data: UpdateExpenseCostsInput) => Promise<void>;
 };
 
-export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Props) {
+export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, onSubmit }: Props) {
   const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
-  const [rows, setRows] = useState<CostRow[]>(() => toCostRows(expense, rates));
-  const [shippingCostCny, setShippingCostCny] = useState(() => {
+  const entryCurrency = useMemo(() => normalizeCostCurrency(costCurrency), [costCurrency]);
+  const [rows, setRows] = useState<CostRow[]>(() => toCostRows(expense, rates, entryCurrency));
+  const [shippingCostEntry, setShippingCostEntry] = useState(() => {
     const existing = Number(expense.shippingCostCny ?? 0);
     if (existing > 0) return existing;
     const shippingCost = Number(expense.shippingCost ?? 0);
     return shippingCost > 0
-      ? roundMoney(currencyToCny(shippingCost, expense.currency, rates))
+      ? roundMoney(convertCurrency(shippingCost, expense.currency, entryCurrency, rates))
       : 0;
   });
   const [submitting, setSubmitting] = useState(false);
@@ -83,23 +86,29 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setRows(toCostRows(expense, rates));
+    setRows(toCostRows(expense, rates, entryCurrency));
     const existing = Number(expense.shippingCostCny ?? 0);
     if (existing > 0) {
-      setShippingCostCny(existing);
+      setShippingCostEntry(existing);
     } else {
       const shippingCost = Number(expense.shippingCost ?? 0);
-      setShippingCostCny(
-        shippingCost > 0 ? roundMoney(currencyToCny(shippingCost, expense.currency, rates)) : 0,
+      setShippingCostEntry(
+        shippingCost > 0
+          ? roundMoney(convertCurrency(shippingCost, expense.currency, entryCurrency, rates))
+          : 0,
       );
     }
-  }, [expense, rates]);
+  }, [expense, rates, entryCurrency]);
 
   const revenue = Number(expense.total);
   const customerShipping = Number(expense.shipping ?? expense.customerShipping ?? 0);
-  const shippingCost = roundMoney(cnyToCurrency(shippingCostCny, expense.currency, rates));
+  const shippingCost = roundMoney(
+    convertCurrency(shippingCostEntry, entryCurrency, expense.currency, rates),
+  );
   const itemsCost = rows.reduce((sum, row) => {
-    const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+    const unitCost = roundMoney(
+      convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+    );
     return sum + calcLineCost(row.quantity, unitCost);
   }, 0);
   const totalCost = itemsCost + shippingCost;
@@ -107,12 +116,14 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
   const profit = calcProfit(revenue, totalCost);
   const marginPercent = revenue > 0 ? (profit / revenue) * 100 : 0;
 
-  function updateUnitCostCny(index: number, unitCostCny: number) {
-    const nextCny = Math.max(0, unitCostCny);
-    const nextUnitCost = roundMoney(cnyToCurrency(nextCny, expense.currency, rates));
+  function updateUnitCostEntry(index: number, unitCostEntry: number) {
+    const nextEntry = Math.max(0, unitCostEntry);
+    const nextUnitCost = roundMoney(
+      convertCurrency(nextEntry, entryCurrency, expense.currency, rates),
+    );
     setRows((prev) =>
       prev.map((row, i) =>
-        i === index ? { ...row, unitCostCny: nextCny, unitCost: nextUnitCost } : row,
+        i === index ? { ...row, unitCostEntry: nextEntry, unitCost: nextUnitCost } : row,
       ),
     );
     setSaved(false);
@@ -126,10 +137,12 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
       await onSubmit({
         items: rows.map((row) => ({
           id: row.id,
-          unitCostCny: row.unitCostCny,
-          unitCost: roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates)),
+          unitCostCny: row.unitCostEntry,
+          unitCost: roundMoney(
+            convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+          ),
         })),
-        shippingCostCny: Math.max(0, shippingCostCny),
+        shippingCostCny: Math.max(0, shippingCostEntry),
         shippingCost,
       });
       setSaved(true);
@@ -200,7 +213,7 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
         <CardHeader>
           <CardTitle>Line item costs</CardTitle>
           <CardDescription>
-            Enter what you paid in CNY — we convert to {expense.currency} for profit
+            Enter what you paid in {entryCurrency} — we convert to {expense.currency} for profit
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -212,7 +225,7 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
                   <th className="px-2 py-2 text-right">Qty</th>
                   <th className="px-2 py-2 text-right">Sale price</th>
                   <th className="px-2 py-2 text-right">Revenue</th>
-                  <th className="px-2 py-2 text-right">Cost each (CNY)</th>
+                  <th className="px-2 py-2 text-right">Cost each ({entryCurrency})</th>
                   <th className="px-2 py-2 text-right">Cost ({expense.currency})</th>
                   <th className="px-2 py-2 text-right">Expense</th>
                 </tr>
@@ -220,7 +233,9 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
               <tbody>
                 {rows.map((row, index) => {
                   const imageSrc = resolveImageSrc(row.imageUrl);
-                  const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+                  const unitCost = roundMoney(
+                    convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+                  );
                   const lineCost = calcLineCost(row.quantity, unitCost);
                   return (
                     <tr key={row.id} className="border-b align-top">
@@ -258,8 +273,8 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
                           type="number"
                           min="0"
                           step="any"
-                          value={row.unitCostCny}
-                          onChange={(e) => updateUnitCostCny(index, Number(e.target.value) || 0)}
+                          value={row.unitCostEntry}
+                          onChange={(e) => updateUnitCostEntry(index, Number(e.target.value) || 0)}
                           className="ml-auto h-9 w-28 text-right"
                         />
                       </td>
@@ -279,7 +294,9 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
           <div className="space-y-4 md:hidden">
             {rows.map((row, index) => {
               const imageSrc = resolveImageSrc(row.imageUrl);
-              const unitCost = roundMoney(cnyToCurrency(row.unitCostCny, expense.currency, rates));
+              const unitCost = roundMoney(
+                convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+              );
               const lineCost = calcLineCost(row.quantity, unitCost);
               return (
                 <div key={row.id} className="space-y-3 rounded-lg border p-4">
@@ -297,13 +314,13 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
                     </div>
                   </div>
                   <div className="space-y-2">
-                    <Label>Cost each (CNY)</Label>
+                    <Label>Cost each ({entryCurrency})</Label>
                     <Input
                       type="number"
                       min="0"
                       step="any"
-                      value={row.unitCostCny}
-                      onChange={(e) => updateUnitCostCny(index, Number(e.target.value) || 0)}
+                      value={row.unitCostEntry}
+                      onChange={(e) => updateUnitCostEntry(index, Number(e.target.value) || 0)}
                     />
                     <p className="text-xs text-muted-foreground">
                       ≈ {formatCurrency(unitCost, expense.currency)}
@@ -326,7 +343,7 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
         <CardHeader>
           <CardTitle>Shipping costs</CardTitle>
           <CardDescription>
-            Enter actual shipping in CNY — converted to {expense.currency} for profit
+            Enter actual shipping in {entryCurrency} — converted to {expense.currency} for profit
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -340,15 +357,15 @@ export function ExpenseForm({ expense, organizationId, fxRates, onSubmit }: Prop
             <p className="mt-1 text-xs text-muted-foreground">Charged to the customer</p>
           </div>
           <div className="space-y-2 rounded-lg border border-orange-200 bg-orange-50/40 p-4">
-            <Label htmlFor="shippingCostCny">Actual shipping cost (CNY)</Label>
+            <Label htmlFor="shippingCostEntry">Actual shipping cost ({entryCurrency})</Label>
             <Input
-              id="shippingCostCny"
+              id="shippingCostEntry"
               type="number"
               min="0"
               step="any"
-              value={shippingCostCny}
+              value={shippingCostEntry}
               onChange={(e) => {
-                setShippingCostCny(Math.max(0, Number(e.target.value) || 0));
+                setShippingCostEntry(Math.max(0, Number(e.target.value) || 0));
                 setSaved(false);
               }}
             />
