@@ -30,7 +30,7 @@ const GREEN_DARK = '#065F46';
 
 const styles = StyleSheet.create({
   page: {
-    paddingBottom: 120,
+    paddingBottom: 100,
     fontSize: 9,
     fontFamily: 'Helvetica',
     color: '#1e293b',
@@ -201,7 +201,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 12 },
-  bannerWrap: { marginTop: 12, marginBottom: 16, width: '100%' },
+  bannerWrap: { marginTop: 10, marginBottom: 8, width: '100%' },
   offerRow: {
     flexDirection: 'row',
     gap: 8,
@@ -658,7 +658,7 @@ function InvoicePdfBody({
         </View>
 
         {offerSrcs.length > 0 ? (
-          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={200}>
+          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={150}>
             <Text style={styles.offerTitle}>New Offers</Text>
             <View style={styles.offerRow}>
               {offerSrcs.map((src, index) => (
@@ -669,7 +669,7 @@ function InvoicePdfBody({
             </View>
           </View>
         ) : bannerSrc ? (
-          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={120}>
+          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={90}>
             <Text style={styles.offerTitle}>New Offers</Text>
             <View style={{ overflow: 'hidden', borderRadius: 14 }}>
               <Image src={bannerSrc} style={styles.banner} cache={false} />
