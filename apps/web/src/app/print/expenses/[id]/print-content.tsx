@@ -92,9 +92,7 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
         <PrintPageToolbar
           backHref="/expenses"
           backLabel="Back to expenses"
-          documentType="expenses"
-          documentId={id}
-          organizationId={organizationId}
+          captureElementId="expense-capture-root"
           filename={expenseFilename}
           whatsappMessage={whatsappMessage}
           emailSubject={`Expense report ${expense.number}`}

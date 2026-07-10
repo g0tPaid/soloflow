@@ -3,7 +3,7 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
-import { fetchServerPdfFile, type ServerPdfType } from '@/lib/fetch-server-pdf';
+import { captureElementAsPdf } from '@/lib/capture-element-image';
 import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
@@ -12,9 +12,7 @@ import { cn } from '@/lib/utils';
 type Props = {
   backHref: string;
   backLabel?: string;
-  documentType: ServerPdfType;
-  documentId: string;
-  organizationId?: string | null;
+  captureElementId: string;
   filename: string;
   accentClassName?: string;
   whatsappMessage?: string;
@@ -26,9 +24,7 @@ type Props = {
 export function PrintPageToolbar({
   backHref,
   backLabel = 'Back',
-  documentType,
-  documentId,
-  organizationId,
+  captureElementId,
   filename,
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
@@ -43,24 +39,25 @@ export function PrintPageToolbar({
   const shareSubject = emailSubject ?? filename;
   const shareBody = emailBody ?? whatsappMessage;
 
-  async function buildPdfFile(): Promise<File> {
-    return fetchServerPdfFile(documentType, documentId, {
-      organizationId,
-      filename,
-    });
+  async function buildPdfFromScreen(): Promise<File> {
+    const element = document.getElementById(captureElementId);
+    if (!element) throw new Error('Document not ready yet. Wait a moment and try again.');
+    window.scrollTo(0, 0);
+    await new Promise((resolve) => setTimeout(resolve, 250));
+    return captureElementAsPdf(element, filename);
   }
 
   async function handleDownload() {
     if (busy) return;
     setBusy('download');
     setError('');
-    setStatus('Generating PDF…');
+    setStatus('Preparing PDF…');
 
     try {
-      const file = await buildPdfFile();
+      const file = await buildPdfFromScreen();
       await downloadPdfToDevice(file);
       setStatus('Download started — check your Files or Downloads folder.');
-    } catch (err) {
+    } catch {
       setError('');
       setStatus('Opening print menu — choose Save as PDF.');
       window.print();
@@ -73,10 +70,10 @@ export function PrintPageToolbar({
     if (busy) return;
     setBusy('whatsapp');
     setError('');
-    setStatus('Generating PDF…');
+    setStatus('Preparing PDF…');
 
     try {
-      const file = await buildPdfFile();
+      const file = await buildPdfFromScreen();
       await shareInvoiceFile(file, whatsappMessage, whatsappPhone);
       setStatus('Pick WhatsApp in the share menu.');
     } catch (err) {
@@ -91,10 +88,10 @@ export function PrintPageToolbar({
     if (busy) return;
     setBusy('share');
     setError('');
-    setStatus('Generating PDF…');
+    setStatus('Preparing PDF…');
 
     try {
-      const file = await buildPdfFile();
+      const file = await buildPdfFromScreen();
       await shareDocumentByEmail(file, shareSubject, shareBody);
       setStatus('Pick your email app in the share menu.');
     } catch (err) {

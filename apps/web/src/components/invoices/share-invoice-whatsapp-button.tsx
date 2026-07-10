@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, cn } from '@/lib/utils';
-import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
+import { captureElementAsPdf, loadInvoiceCaptureElement } from '@/lib/capture-element-image';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 
 function digitsOnly(phone: string) {
@@ -71,12 +71,19 @@ export function ShareInvoiceWhatsAppButton({
     setSharing(true);
     setStatus('Preparing invoice PDF…');
 
+    let cleanup: (() => void) | undefined;
+
     try {
-      const safeName = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
-      const file = await fetchServerPdfFile('invoices', invoiceId, {
-        organizationId,
-        filename: `${safeName}.pdf`,
+      const params = new URLSearchParams({
+        org: organizationId,
+        embed: '1',
       });
+      const printUrl = `/print/invoices/${invoiceId}?${params.toString()}`;
+      const loaded = await loadInvoiceCaptureElement(printUrl);
+      cleanup = loaded.cleanup;
+
+      const safeName = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
+      const file = await captureElementAsPdf(loaded.element, `${safeName}.pdf`);
       const message = buildWhatsAppMessage(invoice);
 
       setStatus('Opening WhatsApp…');
@@ -98,6 +105,7 @@ export function ShareInvoiceWhatsAppButton({
       if (hasPhone) params.set('phone', phone);
       window.location.href = `/print/invoices/${invoiceId}?${params.toString()}`;
     } finally {
+      cleanup?.();
       setSharing(false);
     }
   }
