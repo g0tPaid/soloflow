@@ -1,2 +1,16 @@
 [phases.setup]
 nixPkgs = ["...", "nss", "nspr", "atk", "cups", "dbus", "expat", "libdrm", "libxkbcommon", "libXcomposite", "libXdamage", "libXfixes", "libXrandr", "mesa", "pango", "cairo", "alsa-lib", "fontconfig", "freetype", "glib", "gtk3", "libxshmfence"]
+
+[phases.install]
+cmds = [
+  "corepack enable",
+  "cd ../.. && pnpm install --frozen-lockfile",
+]
+
+[phases.build]
+cmds = [
+  "cd ../.. && pnpm db:generate && pnpm --filter @flowbooks/shared build && pnpm --filter @flowbooks/web build",
+]
+
+[start]
+cmd = "pnpm start"
