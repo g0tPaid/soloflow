@@ -1,4 +1,9 @@
-import type { CreateInvoiceInput, UpdateInvoiceInput, UpdateExpenseCostsInput } from '@flowbooks/shared';
+import type {
+  CreateInvoiceInput,
+  UpdateInvoiceInput,
+  UpdateExpenseCostsInput,
+  UpdateOrganizationInput,
+} from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 
 const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
@@ -333,12 +338,7 @@ export const api = {
       token: string,
       organizationId: string,
       id: string,
-      data: {
-        name?: string;
-        logo?: string | null;
-        branding?: OrganizationBranding;
-        fxRates?: Record<string, number>;
-      },
+      data: UpdateOrganizationInput,
     ) => {
       if (isBrowserHostedApp()) {
         return browserJsonRequest<Organization>(`/api/organizations/${id}`, {

@@ -96,17 +96,7 @@ export const updateOrganizationSchema = z.object({
       invoiceOffer4: z.string().optional(),
     })
     .optional(),
-  fxRates: z
-    .object({
-      USD: z.number().positive().optional(),
-      CNY: z.number().positive().optional(),
-      EUR: z.number().positive().optional(),
-      GBP: z.number().positive().optional(),
-      AUD: z.number().positive().optional(),
-      INR: z.number().positive().optional(),
-    })
-    .passthrough()
-    .optional(),
+  fxRates: z.record(z.string(), z.number().positive()).optional(),
 });
 
 export const inviteMemberSchema = z.object({
