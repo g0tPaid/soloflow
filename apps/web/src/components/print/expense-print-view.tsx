@@ -1,4 +1,4 @@
-import { ArrowRight, Plane, Ship } from 'lucide-react';
+import { Plane, Ship } from 'lucide-react';
 import type { ExpenseDetail } from '@/lib/api';
 import { parseStoredLineItem } from '@/lib/line-items';
 import {
@@ -96,11 +96,11 @@ export function ExpensePrintView({
               </div>
               <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center text-sm">
                 <p className="text-xs text-slate-500">Route</p>
-                <p className="mt-1 inline-flex items-center justify-center gap-1.5 font-semibold">
+                <p className="mt-1 font-semibold">
                   {expense.shippingFromCountry || expense.shippingToCountry ? (
                     <>
                       <span>{expense.shippingFromCountry || '—'}</span>
-                      <ArrowRight className="h-3.5 w-3.5 text-red-500" />
+                      <span className="mx-1.5 font-medium text-red-500">to</span>
                       <span>{expense.shippingToCountry || '—'}</span>
                     </>
                   ) : (

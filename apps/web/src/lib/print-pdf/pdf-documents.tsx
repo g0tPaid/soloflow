@@ -332,7 +332,7 @@ function ShippingSection({
           <Text style={styles.muted}>Country route</Text>
           <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>
             {fromCountry || toCountry
-              ? `${fromCountry || '—'} → ${toCountry || '—'}`
+              ? `${fromCountry || '—'} to ${toCountry || '—'}`
               : '—'}
           </Text>
         </View>

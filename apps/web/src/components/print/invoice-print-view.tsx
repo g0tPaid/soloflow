@@ -1,4 +1,4 @@
-import { Globe, Mail, Phone, Plane, Ship, ArrowRight } from 'lucide-react';
+import { Globe, Mail, Phone, Plane, Ship } from 'lucide-react';
 import type { Invoice, Organization } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
@@ -294,11 +294,11 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                 </div>
                 <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center">
                   <p className="text-xs font-medium text-slate-500">Country route</p>
-                  <p className="mt-1.5 inline-flex items-center justify-center gap-1.5 font-semibold text-slate-900">
+                  <p className="mt-1.5 font-semibold text-slate-900">
                     {invoice.shippingFromCountry || invoice.shippingToCountry ? (
                       <>
                         <span>{invoice.shippingFromCountry || '—'}</span>
-                        <ArrowRight className="h-3.5 w-3.5 text-red-500" />
+                        <span className="mx-1.5 font-medium text-red-500">to</span>
                         <span>{invoice.shippingToCountry || '—'}</span>
                       </>
                     ) : (
