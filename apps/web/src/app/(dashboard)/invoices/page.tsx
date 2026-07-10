@@ -1,12 +1,15 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Pencil } from 'lucide-react';
+import { Plus, FileText, Pencil, Download, Loader2 } from 'lucide-react';
 import { api, type InvoiceStatus } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
+import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
+import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
@@ -14,6 +17,55 @@ import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 function formatDate(value?: string | null) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString();
+}
+
+function InvoiceListDownloadButton({
+  invoiceId,
+  organizationId,
+  number,
+}: {
+  invoiceId: string;
+  organizationId: string;
+  number: string;
+}) {
+  const [busy, setBusy] = useState(false);
+
+  async function handleDownload(event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (busy) return;
+    setBusy(true);
+    try {
+      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+      const file = await fetchServerPdfFile('invoices', invoiceId, {
+        organizationId,
+        filename,
+      });
+      await downloadPdfToDevice(file);
+    } catch {
+      window.open(
+        `/print/invoices/${invoiceId}?org=${encodeURIComponent(organizationId)}`,
+        '_blank',
+        'noopener,noreferrer',
+      );
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <Button
+      type="button"
+      variant="outline"
+      size="sm"
+      className="flex-1 gap-1.5 sm:flex-none"
+      onClick={handleDownload}
+      disabled={busy}
+    >
+      {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
+      {busy ? 'PDF…' : 'Download'}
+    </Button>
+  );
 }
 
 export default function InvoicesPage() {
@@ -93,9 +145,9 @@ export default function InvoicesPage() {
       {!isLoading && organizationId && invoices.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <FileText className="h-10 w-10 text-muted-foreground mb-3" />
+            <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
             <p className="font-medium">No invoices yet</p>
-            <p className="text-sm text-muted-foreground mt-1 mb-4">
+            <p className="mb-4 mt-1 text-sm text-muted-foreground">
               Create your first invoice to start billing customers
             </p>
             <Button asChild>
@@ -160,6 +212,13 @@ export default function InvoicesPage() {
                           Edit
                         </Link>
                       </Button>
+                      {organizationId && (
+                        <InvoiceListDownloadButton
+                          invoiceId={invoice.id}
+                          organizationId={organizationId}
+                          number={invoice.number}
+                        />
+                      )}
                       {!isPaid ? (
                         <button
                           type="button"
