@@ -64,11 +64,11 @@ function SectionWave() {
 function BottomWave() {
   return (
     <svg
-      className="block max-w-full w-full"
+      className="block w-full"
       viewBox="0 0 1440 100"
       preserveAspectRatio="none"
       aria-hidden
-      style={{ height: 64, width: '100%' }}
+      style={{ height: 64, width: '100%', display: 'block' }}
     >
       <path
         fill={RED_DARK}

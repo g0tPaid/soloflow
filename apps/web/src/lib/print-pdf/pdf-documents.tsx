@@ -30,7 +30,7 @@ const GREEN_DARK = '#065F46';
 
 const styles = StyleSheet.create({
   page: {
-    paddingBottom: 56,
+    paddingBottom: 88,
     fontSize: 9,
     fontFamily: 'Helvetica',
     color: '#1e293b',
@@ -61,6 +61,42 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     paddingTop: 18,
     marginBottom: 6,
+  },
+  continuedHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingHorizontal: 28,
+    paddingTop: 10,
+    paddingBottom: 8,
+    borderBottomWidth: 1,
+    borderBottomColor: '#fee2e2',
+    marginBottom: 8,
+  },
+  continuedLogo: { width: 28, height: 28, objectFit: 'contain' },
+  continuedLogoFallback: {
+    width: 28,
+    height: 28,
+    borderRadius: 6,
+    backgroundColor: RED,
+    color: '#ffffff',
+    fontSize: 12,
+    fontWeight: 'bold',
+    textAlign: 'center',
+    paddingTop: 6,
+  },
+  continuedBrand: { marginLeft: 8, fontSize: 10, fontWeight: 'bold', color: '#0f172a' },
+  fixedFooter: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+  },
+  pageNumber: {
+    position: 'absolute',
+    right: 14,
+    bottom: 10,
+    color: '#fecaca',
+    fontSize: 7,
   },
   brandName: { fontSize: 14, fontWeight: 'bold', color: '#0f172a', marginBottom: 2 },
   tagline: { fontSize: 9, color: RED, marginBottom: 3 },
@@ -208,7 +244,12 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
   },
-  footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
+  footerBar: {
+    backgroundColor: RED_DARK,
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    paddingRight: 56,
+  },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {
     backgroundColor: GREEN_DARK,
@@ -264,27 +305,104 @@ function resolveImg(url: string | null | undefined, baseUrl: string) {
 
 function TopWave() {
   return (
-    <Svg viewBox="0 0 1440 80" style={{ width: '100%', height: 28 }}>
+    <Svg
+      viewBox="0 0 1440 80"
+      preserveAspectRatio="none"
+      style={{ width: '100%', height: 28 }}
+    >
       <Path fill={RED} d="M0,48 C240,80 480,16 720,40 C960,64 1200,24 1440,48 L1440,0 L0,0 Z" />
-      <Path fill={RED_LIGHT} fillOpacity={0.6} d="M0,56 C360,32 720,72 1080,44 C1260,32 1380,56 1440,56 L1440,0 L0,0 Z" />
+      <Path
+        fill={RED_LIGHT}
+        fillOpacity={0.6}
+        d="M0,56 C360,32 720,72 1080,44 C1260,32 1380,56 1440,56 L1440,0 L0,0 Z"
+      />
     </Svg>
   );
 }
 
 function SectionWave() {
   return (
-    <Svg viewBox="0 0 1440 24" style={{ width: '100%', height: 10, marginVertical: 6 }}>
-      <Path fill={RED_LIGHT} d="M0,12 C180,24 360,0 540,12 C720,24 900,0 1080,12 C1260,24 1380,6 1440,12 L1440,24 L0,24 Z" />
+    <Svg
+      viewBox="0 0 1440 24"
+      preserveAspectRatio="none"
+      style={{ width: '100%', height: 10, marginVertical: 6 }}
+    >
+      <Path
+        fill={RED_LIGHT}
+        d="M0,12 C180,24 360,0 540,12 C720,24 900,0 1080,12 C1260,24 1380,6 1440,12 L1440,24 L0,24 Z"
+      />
     </Svg>
   );
 }
 
 function BottomWave() {
   return (
-    <Svg viewBox="0 0 1440 100" style={{ width: '100%', height: 40 }}>
-      <Path fill={RED_DARK} d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,100 L0,100 Z" />
-      <Path fill={RED} fillOpacity={0.85} d="M0,52 C360,88 720,16 1080,52 C1260,68 1380,40 1440,52 L1440,100 L0,100 Z" />
+    <Svg
+      viewBox="0 0 1440 100"
+      preserveAspectRatio="none"
+      style={{ width: '100%', height: 44 }}
+    >
+      <Path
+        fill={RED_DARK}
+        d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,100 L0,100 Z"
+      />
+      <Path
+        fill={RED}
+        fillOpacity={0.85}
+        d="M0,52 C360,88 720,16 1080,52 C1260,68 1380,40 1440,52 L1440,100 L0,100 Z"
+      />
     </Svg>
+  );
+}
+
+function ContinuedPageHeader({
+  org,
+  baseUrl,
+}: {
+  org: Organization;
+  baseUrl: string;
+}) {
+  const logo = resolveImg(org.logo, baseUrl);
+  const initial = (org.name ?? 'C').charAt(0).toUpperCase();
+
+  return (
+    <View
+      fixed
+      render={({ pageNumber }) =>
+        pageNumber > 1 ? (
+          <View style={styles.continuedHeader}>
+            {logo ? (
+              <Image src={logo} style={styles.continuedLogo} />
+            ) : (
+              <Text style={styles.continuedLogoFallback}>{initial}</Text>
+            )}
+            <Text style={styles.continuedBrand}>{org.name}</Text>
+          </View>
+        ) : (
+          <View />
+        )
+      }
+    />
+  );
+}
+
+function PageFooter({ contacts }: { contacts: string[] }) {
+  const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
+
+  return (
+    <View>
+      <View style={styles.fixedFooter} fixed>
+        <BottomWave />
+        <View style={styles.footerBar}>
+          {line ? <Text style={styles.footerText}>{line}</Text> : <Text style={styles.footerText}> </Text>}
+        </View>
+      </View>
+      <Text
+        style={styles.pageNumber}
+        fixed
+        render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
+      />
+    </View>
   );
 }
 
@@ -392,7 +510,8 @@ function InvoicePdfBody({
   const footerContacts = [branding.website, branding.phone, branding.email].filter(Boolean);
 
   return (
-    <Page size="A4" style={styles.page}>
+    <Page size="A4" style={styles.page} wrap>
+      <ContinuedPageHeader org={org} baseUrl={baseUrl} />
       <TopWave />
       <View style={styles.pagePad}>
         <CompanyHeader org={org} baseUrl={baseUrl} />
@@ -559,14 +678,7 @@ function InvoicePdfBody({
         ) : null}
       </View>
 
-      {footerContacts.length > 0 ? (
-        <View wrap={false}>
-          <BottomWave />
-          <View style={styles.footerBar}>
-            <Text style={styles.footerText}>{footerContacts.join('   ·   ')}</Text>
-          </View>
-        </View>
-      ) : null}
+      <PageFooter contacts={footerContacts as string[]} />
     </Page>
   );
 }
