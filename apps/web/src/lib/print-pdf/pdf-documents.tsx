@@ -164,21 +164,39 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     fontSize: 11,
   },
-  banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
+  banner: { width: '100%', objectFit: 'contain', borderRadius: 12 },
   bannerWrap: { marginTop: 12, width: '100%' },
-  offerRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 10, justifyContent: 'space-between' },
+  offerRow: {
+    flexDirection: 'row',
+    gap: 8,
+    alignItems: 'stretch',
+  },
   offerBox: {
-    width: '48%',
-    height: 200,
+    flexGrow: 1,
+    flexBasis: 0,
+    height: 124,
     borderWidth: 1,
     borderColor: '#fecaca',
-    borderRadius: 8,
+    borderRadius: 14,
+    backgroundColor: '#ffffff',
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-    marginBottom: 8,
   },
-  offerImg: { width: 190, height: 190, objectFit: 'contain' },
+  offerImg: {
+    width: '100%',
+    height: '100%',
+    objectFit: 'contain',
+  },
+  offerTitle: {
+    fontSize: 8,
+    fontWeight: 'bold',
+    textTransform: 'uppercase',
+    letterSpacing: 2,
+    color: RED,
+    textAlign: 'center',
+    marginBottom: 10,
+  },
   signatureImg: { width: 180, height: 180, objectFit: 'contain', alignSelf: 'center' },
   signatureBox: {
     borderWidth: 1,
@@ -521,10 +539,8 @@ function InvoicePdfBody({
         </View>
 
         {offerSrcs.length > 0 ? (
-          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={140}>
-            <Text style={[styles.sectionLabel, { color: RED, textAlign: 'center' }]}>
-              New Offers
-            </Text>
+          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={160}>
+            <Text style={styles.offerTitle}>New Offers</Text>
             <View style={styles.offerRow}>
               {offerSrcs.map((src, index) => (
                 <View key={`offer-${index}`} style={styles.offerBox}>
@@ -535,10 +551,10 @@ function InvoicePdfBody({
           </View>
         ) : bannerSrc ? (
           <View style={styles.bannerWrap} wrap={false} minPresenceAhead={80}>
-            <Text style={[styles.sectionLabel, { color: RED, textAlign: 'center' }]}>
-              New Offers
-            </Text>
-            <Image src={bannerSrc} style={styles.banner} cache={false} />
+            <Text style={styles.offerTitle}>New Offers</Text>
+            <View style={{ overflow: 'hidden', borderRadius: 14 }}>
+              <Image src={bannerSrc} style={styles.banner} cache={false} />
+            </View>
           </View>
         ) : null}
       </View>
