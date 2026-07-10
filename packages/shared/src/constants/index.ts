@@ -34,11 +34,11 @@ export const COMMON_TIMEZONES = [
   { value: 'UTC', label: 'UTC' },
 ] as const;
 
-/** Recommended invoice PDF promotional banner dimensions */
+/** Recommended invoice PDF promotional banner dimensions (use PNG for sharp text) */
 export const INVOICE_BANNER_SIZE = {
-  width: 1200,
-  height: 200,
-  label: '1200 × 200 px',
+  width: 2400,
+  height: 400,
+  label: '2400 × 400 px',
 } as const;
 
 export const SHIPPING_METHODS = [

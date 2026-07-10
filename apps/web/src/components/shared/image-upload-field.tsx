@@ -26,15 +26,11 @@ function readFileAsDataUrl(file: File): Promise<string> {
 }
 
 async function prepareImageDataUrl(file: File, variant: 'square' | 'banner'): Promise<string> {
+  // Banners are wide graphics/text — never recompress (JPEG crush makes them blurry).
+  if (variant === 'banner') {
+    return readFileAsDataUrl(file);
+  }
   try {
-    if (variant === 'banner') {
-      return await compressImageFile(file, {
-        maxWidth: Math.max(INVOICE_BANNER_SIZE.width, 1600),
-        maxHeight: Math.max(INVOICE_BANNER_SIZE.height * 2, 600),
-        maxBytes: 1_200_000,
-        quality: 0.92,
-      });
-    }
     return await compressImageFile(file, {
       maxWidth: 512,
       maxHeight: 512,
@@ -59,7 +55,8 @@ export function ImageUploadField({
   const previewSrc = value ? resolveImageSrc(value) : undefined;
 
   async function handleFile(file: File) {
-    if (file.size > 3 * 1024 * 1024) {
+    const maxBytes = isBanner ? 5 * 1024 * 1024 : 3 * 1024 * 1024;
+    if (file.size > maxBytes) {
       return;
     }
 
@@ -137,10 +134,9 @@ export function ImageUploadField({
             {uploading ? 'Uploading...' : value ? 'Change image' : 'Add image'}
           </Button>
           <p className="text-xs text-muted-foreground">
-            JPG, PNG or WebP · max 3 MB
             {isBanner
-              ? ` · shown full-width on invoices · recommended ${INVOICE_BANNER_SIZE.label}`
-              : ' · auto-compressed for save'}
+              ? `PNG or JPG · max 5 MB · saved at full quality (no compression) · recommended ${INVOICE_BANNER_SIZE.label}`
+              : 'JPG, PNG or WebP · max 3 MB · auto-compressed for save'}
           </p>
         </div>
       </div>

@@ -155,7 +155,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           <CardDescription>
             Shown at the bottom of invoice PDFs under &quot;New Offers&quot;. Upload the image, then click{' '}
             <strong>Save company details</strong> at the bottom of this page.
-            Recommended size: <strong>{INVOICE_BANNER_SIZE.label}</strong> (wide banner).
+            Use a sharp PNG/JPG (recommended <strong>{INVOICE_BANNER_SIZE.label}</strong> or larger).
+            If an old banner looks blurry, re-upload it — older saves were compressed.
           </CardDescription>
         </CardHeader>
         <CardContent>

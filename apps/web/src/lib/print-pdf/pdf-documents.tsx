@@ -162,6 +162,7 @@ const styles = StyleSheet.create({
     fontSize: 11,
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
+  bannerWrap: { marginTop: 12, width: '100%' },
   footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },
   receiptBanner: {
@@ -471,11 +472,11 @@ function InvoicePdfBody({
         </View>
 
         {bannerSrc ? (
-          <View style={{ marginTop: 12 }} wrap={false}>
+          <View style={styles.bannerWrap} wrap={false} minPresenceAhead={80}>
             <Text style={[styles.sectionLabel, { color: RED, textAlign: 'center' }]}>
               New Offers
             </Text>
-            <Image src={bannerSrc} style={styles.banner} />
+            <Image src={bannerSrc} style={styles.banner} cache={false} />
           </View>
         ) : null}
       </View>
