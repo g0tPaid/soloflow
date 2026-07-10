@@ -13,7 +13,7 @@ type Props = {
   onChange: (url: string | undefined) => void;
   label?: string;
   compact?: boolean;
-  variant?: 'square' | 'banner';
+  variant?: 'square' | 'banner' | 'signature';
 };
 
 function readFileAsDataUrl(file: File): Promise<string> {
@@ -25,9 +25,12 @@ function readFileAsDataUrl(file: File): Promise<string> {
   });
 }
 
-async function prepareImageDataUrl(file: File, variant: 'square' | 'banner'): Promise<string> {
-  // Banners are wide graphics/text — never recompress (JPEG crush makes them blurry).
-  if (variant === 'banner') {
+async function prepareImageDataUrl(
+  file: File,
+  variant: 'square' | 'banner' | 'signature',
+): Promise<string> {
+  // Banners and signatures are graphics — never recompress.
+  if (variant === 'banner' || variant === 'signature') {
     return readFileAsDataUrl(file);
   }
   try {
@@ -51,11 +54,13 @@ export function ImageUploadField({
   const inputRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const isBanner = variant === 'banner';
-  const size = compact ? 56 : isBanner ? 0 : 96;
+  const isSignature = variant === 'signature';
+  const keepFullQuality = isBanner || isSignature;
+  const size = compact ? 56 : isSignature ? 300 : 96;
   const previewSrc = value ? resolveImageSrc(value) : undefined;
 
   async function handleFile(file: File) {
-    const maxBytes = isBanner ? 5 * 1024 * 1024 : 3 * 1024 * 1024;
+    const maxBytes = keepFullQuality ? 5 * 1024 * 1024 : 3 * 1024 * 1024;
     if (file.size > maxBytes) {
       return;
     }
@@ -82,13 +87,25 @@ export function ImageUploadField({
                 ? 'relative w-full max-w-xl overflow-hidden rounded-xl border bg-muted'
                 : 'relative shrink-0 overflow-hidden rounded-xl border bg-muted'
             }
-            style={isBanner ? undefined : { width: size, height: size }}
+            style={
+              isBanner
+                ? undefined
+                : isSignature
+                  ? { width: 300, height: 300 }
+                  : { width: size, height: size }
+            }
           >
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img
               src={previewSrc}
               alt=""
-              className={isBanner ? 'h-auto w-full object-contain' : 'h-full w-full object-cover'}
+              className={
+                isBanner
+                  ? 'h-auto w-full object-contain'
+                  : isSignature
+                    ? 'h-full w-full bg-white object-contain'
+                    : 'h-full w-full object-cover'
+              }
             />
             <button
               type="button"
@@ -106,7 +123,13 @@ export function ImageUploadField({
                 ? 'flex w-full max-w-xl items-center justify-center rounded-xl border border-dashed bg-muted/40 text-muted-foreground'
                 : 'flex shrink-0 items-center justify-center rounded-xl border border-dashed bg-muted/40 text-muted-foreground'
             }
-            style={isBanner ? { height: 120 } : { width: size, height: size }}
+            style={
+              isBanner
+                ? { height: 120 }
+                : isSignature
+                  ? { width: 300, height: 300 }
+                  : { width: size, height: size }
+            }
           >
             <Camera className="h-6 w-6" />
           </div>
@@ -134,9 +157,11 @@ export function ImageUploadField({
             {uploading ? 'Uploading...' : value ? 'Change image' : 'Add image'}
           </Button>
           <p className="text-xs text-muted-foreground">
-            {isBanner
-              ? `PNG or JPG · max 5 MB · saved at full quality (no compression) · recommended ${INVOICE_BANNER_SIZE.label}`
-              : 'JPG, PNG or WebP · max 3 MB · auto-compressed for save'}
+            {isSignature
+              ? 'PNG preferred · max 5 MB · shown as 300×300 on invoices · full quality'
+              : isBanner
+                ? `PNG or JPG · max 5 MB · saved at full quality (no compression) · recommended ${INVOICE_BANNER_SIZE.label}`
+                : 'JPG, PNG or WebP · max 3 MB · auto-compressed for save'}
           </p>
         </div>
       </div>

@@ -177,15 +177,14 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         <CardHeader>
           <CardTitle>Official signature / company stamp</CardTitle>
           <CardDescription>
-            Shown on the left of the invoice totals (next to Subtotal). Upload your stamp and signature
-            image as one PNG with a transparent background, then click{' '}
-            <strong>Save company details</strong>.
+            Shown as a <strong>300×300</strong> image on the left of the invoice Subtotal.
+            Upload your stamp/signature PNG, then click <strong>Save company details</strong>.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <ImageUploadField
             label="Signature & stamp"
-            variant="banner"
+            variant="signature"
             value={invoiceSignature}
             onChange={(url) => setInvoiceSignature(url ?? null)}
           />

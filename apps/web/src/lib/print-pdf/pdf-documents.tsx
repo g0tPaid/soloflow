@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
   },
   banner: { width: '100%', objectFit: 'contain', borderRadius: 8 },
   bannerWrap: { marginTop: 12, width: '100%' },
-  signatureImg: { width: 200, maxHeight: 120, objectFit: 'contain' },
+  signatureImg: { width: 300, height: 300, objectFit: 'contain' },
   signatureBox: { marginTop: 8 },
   footerBar: { backgroundColor: RED_DARK, paddingVertical: 10, paddingHorizontal: 16 },
   footerText: { color: '#ffffff', fontSize: 8, textAlign: 'center' },

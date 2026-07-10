@@ -418,7 +418,9 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                   <img
                     src={signatureSrc}
                     alt="Authorized signature"
-                    className="max-h-40 w-auto max-w-full object-contain object-left"
+                    className="h-[300px] w-[300px] bg-white object-contain"
+                    width={300}
+                    height={300}
                   />
                 </div>
               ) : null}
