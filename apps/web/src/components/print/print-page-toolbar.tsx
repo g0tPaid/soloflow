@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
-import { captureElementAsPdf } from '@/lib/capture-element-image';
+import { fetchServerPdfFile, type ServerPdfType } from '@/lib/fetch-server-pdf';
+import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,9 @@ import { cn } from '@/lib/utils';
 type Props = {
   backHref: string;
   backLabel?: string;
-  captureElementId: string;
+  documentType: ServerPdfType;
+  documentId: string;
+  organizationId?: string | null;
   filename: string;
   accentClassName?: string;
   whatsappMessage?: string;
@@ -23,7 +26,9 @@ type Props = {
 export function PrintPageToolbar({
   backHref,
   backLabel = 'Back',
-  captureElementId,
+  documentType,
+  documentId,
+  organizationId,
   filename,
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
@@ -31,36 +36,47 @@ export function PrintPageToolbar({
   emailSubject,
   emailBody,
 }: Props) {
-  const [busy, setBusy] = useState<'whatsapp' | 'share' | null>(null);
+  const [busy, setBusy] = useState<'download' | 'whatsapp' | 'share' | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
   const shareSubject = emailSubject ?? filename;
   const shareBody = emailBody ?? whatsappMessage;
 
-  async function buildPdfFromScreen(): Promise<File> {
-    const element = document.getElementById(captureElementId);
-    if (!element) throw new Error('Document not ready yet. Wait a moment and try again.');
-    window.scrollTo(0, 0);
-    await new Promise((resolve) => setTimeout(resolve, 250));
-    return captureElementAsPdf(element, filename);
+  async function buildPdfFile(): Promise<File> {
+    return fetchServerPdfFile(documentType, documentId, {
+      organizationId,
+      filename,
+    });
   }
 
-  function handleDownload() {
+  async function handleDownload() {
     if (busy) return;
+    setBusy('download');
     setError('');
-    setStatus('Choose Save as PDF in the print menu — same quality as on desktop.');
-    window.print();
+    setStatus('Generating PDF…');
+
+    try {
+      const file = await buildPdfFile();
+      await downloadPdfToDevice(file);
+      setStatus('Download started — check your Files or Downloads folder.');
+    } catch {
+      setError('');
+      setStatus('Choose Save as PDF in the print menu.');
+      window.print();
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function handleWhatsApp() {
     if (busy) return;
     setBusy('whatsapp');
     setError('');
-    setStatus('Preparing PDF…');
+    setStatus('Generating PDF…');
 
     try {
-      const file = await buildPdfFromScreen();
+      const file = await buildPdfFile();
       await shareInvoiceFile(file, whatsappMessage, whatsappPhone);
       setStatus('Pick WhatsApp in the share menu.');
     } catch (err) {
@@ -75,10 +91,10 @@ export function PrintPageToolbar({
     if (busy) return;
     setBusy('share');
     setError('');
-    setStatus('Preparing PDF…');
+    setStatus('Generating PDF…');
 
     try {
-      const file = await buildPdfFromScreen();
+      const file = await buildPdfFile();
       await shareDocumentByEmail(file, shareSubject, shareBody);
       setStatus('Pick your email app in the share menu.');
     } catch (err) {
@@ -145,8 +161,8 @@ export function PrintPageToolbar({
               accentClassName,
             )}
           >
-            <Download className="h-4 w-4" />
-            Save PDF
+            {busy === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download PDF
           </button>
         </div>
       </div>

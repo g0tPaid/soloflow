@@ -110,7 +110,9 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
         <PrintPageToolbar
           backHref="/receipts"
           backLabel="Back to receipts"
-          captureElementId="receipt-capture-root"
+          documentType="receipts"
+          documentId={id}
+          organizationId={organizationId}
           filename={receiptFilename}
           accentClassName="bg-emerald-600 hover:bg-emerald-700"
           whatsappMessage={whatsappMessage}
