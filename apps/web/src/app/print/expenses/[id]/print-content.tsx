@@ -28,6 +28,7 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const orgFromUrl = searchParams.get('org');
+  const embed = searchParams.get('embed') === '1';
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, isReady } = useOrganizationId();
   const organizationId = orgFromHook ?? orgFromUrl;
@@ -110,15 +111,19 @@ export function ExpensePrintPageContent({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="expense-print mx-auto min-h-screen w-full max-w-[900px] overflow-x-hidden bg-white text-slate-800">
+      {!embed && (
       <PrintPageToolbar
         backHref="/expenses"
         backLabel="Back to expenses"
-        captureElementId="expense-capture-root"
+        documentType="expenses"
+        documentId={id}
+        organizationId={organizationId}
         filename={expenseFilename}
         whatsappMessage={whatsappMessage}
         emailSubject={`Expense report ${expense.number}`}
         emailBody={whatsappMessage}
       />
+      )}
 
       <div id="expense-capture-root" className="bg-white">
       <div className="px-8 py-8">

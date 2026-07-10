@@ -14,17 +14,13 @@ function resolveBaseUrl(request: Request) {
 
 async function authCookiesForBrowser(baseUrl: string) {
   const cookieStore = await cookies();
-  const hostname = new URL(baseUrl).hostname;
   const secure = baseUrl.startsWith('https');
 
   return cookieStore.getAll().map((cookie) => ({
     name: cookie.name,
     value: cookie.value,
-    domain: hostname,
     path: '/',
-    secure,
-    httpOnly: true,
-    sameSite: 'Lax' as const,
+    ...(secure ? { secure: true as const } : {}),
   }));
 }
 
@@ -72,9 +68,18 @@ export async function generatePrintPdf(
   const printUrl = `${baseUrl}/print/${type}/${id}?${params.toString()}`;
   const browserCookies = await authCookiesForBrowser(baseUrl);
 
+  chromium.setGraphicsMode = false;
+
   const executablePath = await resolveExecutablePath();
   const browser = await puppeteer.launch({
-    args: chromium.args,
+    args: [
+      ...chromium.args,
+      '--disable-gpu',
+      '--disable-dev-shm-usage',
+      '--disable-setuid-sandbox',
+      '--no-sandbox',
+      '--single-process',
+    ],
     defaultViewport: { width: 820, height: 1200 },
     executablePath,
     headless: true,
@@ -86,7 +91,7 @@ export async function generatePrintPdf(
       await page.setCookie(...browserCookies);
     }
 
-    await page.goto(printUrl, { waitUntil: 'networkidle0', timeout: 90_000 });
+    await page.goto(printUrl, { waitUntil: 'networkidle2', timeout: 90_000 });
     await page.waitForSelector(`#${rootId}`, { timeout: 45_000 });
     await page.waitForFunction(
       (selector: string) => {
@@ -97,6 +102,7 @@ export async function generatePrintPdf(
       `#${rootId}`,
     );
 
+    await page.evaluate(() => document.fonts.ready);
     await page.emulateMediaType('print');
 
     const pdf = await page.pdf({

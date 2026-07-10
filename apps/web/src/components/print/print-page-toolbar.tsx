@@ -3,7 +3,8 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
-import { captureElementAsPdf } from '@/lib/capture-element-image';
+import { fetchServerPdfFile, type ServerPdfType } from '@/lib/fetch-server-pdf';
+import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
 import { cn } from '@/lib/utils';
@@ -11,7 +12,9 @@ import { cn } from '@/lib/utils';
 type Props = {
   backHref: string;
   backLabel?: string;
-  captureElementId: string;
+  documentType: ServerPdfType;
+  documentId: string;
+  organizationId?: string | null;
   filename: string;
   accentClassName?: string;
   whatsappMessage?: string;
@@ -20,15 +23,12 @@ type Props = {
   emailBody?: string;
 };
 
-function isTouchDevice() {
-  if (typeof window === 'undefined') return false;
-  return window.matchMedia('(pointer: coarse)').matches;
-}
-
 export function PrintPageToolbar({
   backHref,
   backLabel = 'Back',
-  captureElementId,
+  documentType,
+  documentId,
+  organizationId,
   filename,
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
@@ -36,43 +36,51 @@ export function PrintPageToolbar({
   emailSubject,
   emailBody,
 }: Props) {
-  const [busy, setBusy] = useState<'whatsapp' | 'share' | null>(null);
+  const [busy, setBusy] = useState<'download' | 'whatsapp' | 'share' | null>(null);
   const [error, setError] = useState('');
   const [status, setStatus] = useState('');
 
   const shareSubject = emailSubject ?? filename;
   const shareBody = emailBody ?? whatsappMessage;
 
-  function handleDownload() {
-    setError('');
-    if (isTouchDevice()) {
-      setStatus('Choose Save as PDF in the print menu — same quality as on desktop.');
-    } else {
-      setStatus('Choose Save as PDF in the print dialog.');
-    }
-    window.print();
+  async function buildPdfFile(): Promise<File> {
+    return fetchServerPdfFile(documentType, documentId, {
+      organizationId,
+      filename,
+    });
   }
 
-  async function buildShareFile(): Promise<File> {
-    const element = document.getElementById(captureElementId);
-    if (!element) throw new Error('Document not ready yet');
-    window.scrollTo(0, 0);
-    await new Promise((resolve) => setTimeout(resolve, 200));
-    return captureElementAsPdf(element, filename);
+  async function handleDownload() {
+    if (busy) return;
+    setBusy('download');
+    setError('');
+    setStatus('Generating PDF…');
+
+    try {
+      const file = await buildPdfFile();
+      await downloadPdfToDevice(file);
+      setStatus('Download started — check your Files or Downloads folder.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not download PDF.');
+      setStatus('');
+    } finally {
+      setBusy(null);
+    }
   }
 
   async function handleWhatsApp() {
     if (busy) return;
     setBusy('whatsapp');
     setError('');
-    setStatus('Preparing attachment…');
+    setStatus('Generating PDF…');
 
     try {
-      const file = await buildShareFile();
+      const file = await buildPdfFile();
       await shareInvoiceFile(file, whatsappMessage, whatsappPhone);
       setStatus('Pick WhatsApp in the share menu.');
-    } catch {
-      setError('Could not share on WhatsApp.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not share on WhatsApp.');
+      setStatus('');
     } finally {
       setBusy(null);
     }
@@ -82,14 +90,15 @@ export function PrintPageToolbar({
     if (busy) return;
     setBusy('share');
     setError('');
-    setStatus('Preparing attachment…');
+    setStatus('Generating PDF…');
 
     try {
-      const file = await buildShareFile();
+      const file = await buildPdfFile();
       await shareDocumentByEmail(file, shareSubject, shareBody);
       setStatus('Pick your email app in the share menu.');
-    } catch {
-      setError('Could not share by email.');
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Could not share by email.');
+      setStatus('');
     } finally {
       setBusy(null);
     }
@@ -145,14 +154,14 @@ export function PrintPageToolbar({
           <button
             type="button"
             disabled={isBusy}
-            onClick={handleDownload}
+            onClick={() => void handleDownload()}
             className={cn(
               'inline-flex flex-1 items-center justify-center gap-1 rounded-lg px-2 py-3 text-xs font-semibold text-white disabled:opacity-70 sm:text-sm',
               accentClassName,
             )}
           >
-            <Download className="h-4 w-4" />
-            Save PDF
+            {busy === 'download' ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+            Download PDF
           </button>
         </div>
       </div>

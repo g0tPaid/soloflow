@@ -34,6 +34,7 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
   const { id } = use(params);
   const searchParams = useSearchParams();
   const orgFromUrl = searchParams.get('org');
+  const embed = searchParams.get('embed') === '1';
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
   const organizationId = orgFromHook ?? orgFromUrl;
@@ -131,10 +132,13 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
 
   return (
     <div className="receipt-print mx-auto min-h-screen w-full max-w-[760px] overflow-x-hidden bg-white text-slate-800">
+      {!embed && (
       <PrintPageToolbar
         backHref="/receipts"
         backLabel="Back to receipts"
-        captureElementId="receipt-capture-root"
+        documentType="receipts"
+        documentId={id}
+        organizationId={organizationId}
         filename={receiptFilename}
         accentClassName="bg-emerald-600 hover:bg-emerald-700"
         whatsappMessage={whatsappMessage}
@@ -142,6 +146,7 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
         emailSubject={`Receipt for ${invoice.number}`}
         emailBody={whatsappMessage}
       />
+      )}
 
       <div id="receipt-capture-root" className="bg-white">
       <div

@@ -19,6 +19,7 @@ function submitPdfDownloadForm(file: File, base64: string) {
   const form = document.createElement('form');
   form.method = 'POST';
   form.action = '/api/pdf/download';
+  form.target = '_blank';
   form.style.display = 'none';
 
   const dataInput = document.createElement('input');
@@ -94,6 +95,28 @@ async function saveWithCapacitorShare(file: File): Promise<boolean> {
     if ((error as Error).name === 'AbortError') return true;
     return false;
   }
+}
+
+/** Download PDF as an attachment — no print dialog, no share sheet. */
+export async function downloadPdfToDevice(file: File): Promise<void> {
+  const base64 = await fileToBase64(file);
+
+  if (typeof window !== 'undefined' && !window.matchMedia('(pointer: coarse)').matches) {
+    const url = URL.createObjectURL(file);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = file.name;
+    link.rel = 'noopener';
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+    return;
+  }
+
+  if (await saveWithCapacitorFilesystem(file, base64)) return;
+
+  submitPdfDownloadForm(file, base64);
 }
 
 /** Save PDF — share sheet on mobile, form POST download as fallback. */

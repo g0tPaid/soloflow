@@ -237,7 +237,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         <PrintPageToolbar
           backHref={`/invoices/${id}`}
           backLabel="Back to invoice"
-          captureElementId="invoice-capture-root"
+          documentType="invoices"
+          documentId={id}
+          organizationId={organizationId}
           filename={safeFilename}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}
