@@ -35,8 +35,8 @@ pnpm-debug.log*
 coverage/
 .nyc_output/
 
-# Prisma
-packages/database/prisma/migrations/**/migration_lock.toml
+# Prisma — keep root migration_lock.toml tracked; ignore nested copies only
+packages/database/prisma/migrations/*/migration_lock.toml
 
 # Docker volumes (local)
 postgres-data/

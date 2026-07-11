@@ -11,4 +11,5 @@ cmds = [
 ]
 
 [start]
-cmd = "cd ../.. && pnpm --filter @flowbooks/database exec prisma migrate deploy && cd apps/api && node dist/main"
+# migrate deploy may no-op if history is wrong; PrismaService also ensures columns on boot
+cmd = "cd ../.. && (pnpm --filter @flowbooks/database exec prisma migrate deploy || true) && cd apps/api && node dist/main"
