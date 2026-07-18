@@ -18,6 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
+import { VatFields } from '@/components/invoices/vat-fields';
 import { type LineItemInput, parseStoredLineItem } from '@/lib/line-items';
 import type { Customer, Invoice, Product } from '@/lib/api';
 import { cn } from '@/lib/utils';
@@ -320,6 +321,20 @@ export function InvoiceForm(props: InvoiceFormProps) {
           </CardContent>
         </Card>
 
+        <Card className="border-[#E40046]/30">
+          <CardHeader>
+            <CardTitle>VAT</CardTitle>
+            <CardDescription>Optional — switch on and set the percentage</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <VatFields
+              idPrefix="edit-vat"
+              taxRate={editTaxRate}
+              onTaxRateChange={(value) => editForm.setValue('taxRate', value)}
+            />
+          </CardContent>
+        </Card>
+
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex flex-col gap-3 sm:flex-row">
@@ -468,6 +483,16 @@ export function InvoiceForm(props: InvoiceFormProps) {
             onFromCountryChange={(value) => createForm.setValue('shippingFromCountry', value)}
             onToCountryChange={(value) => createForm.setValue('shippingToCountry', value)}
           />
+        </CardContent>
+      </Card>
+
+      <Card className="border-[#E40046]/30">
+        <CardHeader>
+          <CardTitle>VAT</CardTitle>
+          <CardDescription>Optional — switch on and set the percentage</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <VatFields taxRate={taxRate} onTaxRateChange={setTaxRate} />
         </CardContent>
       </Card>
 
