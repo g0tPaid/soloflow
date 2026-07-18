@@ -65,6 +65,7 @@ export const createOrganizationSchema = z.object({
         .string()
         .regex(/^#[0-9A-Fa-f]{6}$/, 'Use a hex color like #DC2626')
         .optional(),
+      showInvoiceLogo: z.boolean().optional(),
     })
     .optional(),
 });
@@ -102,6 +103,7 @@ export const updateOrganizationSchema = z.object({
         .string()
         .regex(/^#[0-9A-Fa-f]{6}$/, 'Use a hex color like #DC2626')
         .optional(),
+      showInvoiceLogo: z.boolean().optional(),
     })
     .optional(),
   fxRates: z.record(z.string(), z.number().positive()).optional(),

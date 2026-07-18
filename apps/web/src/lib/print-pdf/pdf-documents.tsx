@@ -19,6 +19,7 @@ import {
   invoiceAccentPalette,
   parseBranding,
   resolveImageSrcForPrint,
+  shouldShowInvoiceLogo,
   type InvoiceAccentPalette,
 } from '@/lib/organization-branding';
 import type { LoadedPrintDocument } from '@/lib/print-pdf/load-print-data';
@@ -378,7 +379,10 @@ function ContinuedPageHeader({
   baseUrl: string;
   accent?: string;
 }) {
-  const logo = resolveImg(org.logo, baseUrl);
+  const branding = parseBranding(org.settings?.branding);
+  const logo = shouldShowInvoiceLogo(branding, org.logo)
+    ? resolveImg(org.logo, baseUrl)
+    : undefined;
   const initial = (org.name ?? 'C').charAt(0).toUpperCase();
 
   return (
@@ -443,7 +447,9 @@ function CompanyHeader({
   accent?: string;
 }) {
   const branding = parseBranding(org.settings?.branding);
-  const logo = resolveImg(org.logo, baseUrl);
+  const logo = shouldShowInvoiceLogo(branding, org.logo)
+    ? resolveImg(org.logo, baseUrl)
+    : undefined;
   const address = formatAddressLines(branding.address).join(' · ');
   const initial = (org.name ?? 'C').charAt(0).toUpperCase();
 

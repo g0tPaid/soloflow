@@ -6,6 +6,7 @@ import {
   IsOptional,
   ValidateNested,
   IsObject,
+  IsBoolean,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
@@ -102,6 +103,10 @@ class BrandingDto {
   @IsString()
   @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'invoiceAccent must be a hex color like #DC2626' })
   invoiceAccent?: string;
+
+  @IsOptional()
+  @IsBoolean()
+  showInvoiceLogo?: boolean;
 }
 
 export class CreateOrganizationDto {

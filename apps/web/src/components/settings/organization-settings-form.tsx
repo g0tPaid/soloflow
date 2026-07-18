@@ -49,6 +49,7 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
   const [invoiceAccent, setInvoiceAccent] = useState(
     normalizeInvoiceAccent(branding.invoiceAccent),
   );
+  const [showInvoiceLogo, setShowInvoiceLogo] = useState(branding.showInvoiceLogo !== false);
   const [costCurrency, setCostCurrency] = useState(
     (organization.settings?.costCurrency || 'CNY').toUpperCase(),
   );
@@ -124,6 +125,7 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           invoiceOffer4: invoiceOffers[3] ?? '',
           invoiceBanner: '',
           invoiceAccent: normalizeInvoiceAccent(invoiceAccent),
+          showInvoiceLogo,
         },
         costCurrency: entryCode,
         fxRates,
@@ -151,6 +153,28 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
             value={logo}
             onChange={(url) => setLogo(url ?? null)}
           />
+
+          {logo ? (
+            <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input bg-muted/20 px-3 py-3 text-sm">
+              <input
+                type="checkbox"
+                className="mt-0.5 h-4 w-4 accent-red-600"
+                checked={showInvoiceLogo}
+                onChange={(e) => setShowInvoiceLogo(e.target.checked)}
+              />
+              <span>
+                <span className="font-medium text-foreground">Show logo on invoices</span>
+                <span className="mt-0.5 block text-muted-foreground">
+                  When checked, your uploaded company logo appears on printed invoices and PDFs.
+                  Uncheck to use the letter badge instead.
+                </span>
+              </span>
+            </label>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Upload a logo above to choose whether it appears on invoices.
+            </p>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="name">Company name</Label>

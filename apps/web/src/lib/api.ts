@@ -273,6 +273,8 @@ export interface OrganizationBranding {
   invoiceOffer4?: string;
   /** Hex accent color for invoice print / PDF (e.g. #DC2626) */
   invoiceAccent?: string;
+  /** When true (default), show uploaded company logo on invoices */
+  showInvoiceLogo?: boolean;
 }
 
 export interface Organization {

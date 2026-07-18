@@ -54,6 +54,15 @@ export function invoiceAccentPalette(value?: string | null): InvoiceAccentPalett
   };
 }
 
+/** Show uploaded logo on invoices unless the company turned it off. */
+export function shouldShowInvoiceLogo(
+  branding: OrganizationBranding | undefined,
+  logo?: string | null,
+): boolean {
+  if (!logo) return false;
+  return branding?.showInvoiceLogo !== false;
+}
+
 export function formatAddressLines(address?: OrganizationBranding['address']): string[] {
   if (!address) return [];
   const cityLine = [address.city, address.state].filter(Boolean).join(', ');

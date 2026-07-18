@@ -9,6 +9,7 @@ import {
   parseBranding,
   resolveImageSrc,
   resolveImageSrcForPrint,
+  shouldShowInvoiceLogo,
   type InvoiceAccentPalette,
 } from '@/lib/organization-branding';
 
@@ -101,7 +102,9 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
   const colors = invoiceAccentPalette(branding.invoiceAccent);
   const companyAddress = formatAddressLines(branding.address);
   const customerAddress = formatAddressLines(invoice.customer?.address ?? undefined);
-  const logoSrc = resolveImage(org?.logo);
+  const logoSrc = shouldShowInvoiceLogo(branding, org?.logo)
+    ? resolveImage(org?.logo)
+    : undefined;
   const signatureSrc = resolveImage(branding.invoiceSignature);
   const offerSrcs = [
     branding.invoiceOffer1,
