@@ -1,0 +1,2 @@
+-- AlterTable
+ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "taxRate" DECIMAL(5,2) NOT NULL DEFAULT 0;

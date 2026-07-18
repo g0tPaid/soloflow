@@ -190,6 +190,8 @@ export interface Invoice {
   currency: string;
   subtotal: string | number;
   taxAmount: string | number;
+  /** Invoice VAT percent (5 = 5%). */
+  taxRate?: string | number;
   shipping: string | number;
   shippingCost?: string | number;
   shippingCostCny?: string | number;
@@ -487,6 +489,7 @@ export const api = {
     create: (token: string, organizationId: string, data: CreateInvoiceInput) => {
       const discount = Number.isFinite(data.discount) ? data.discount! : 0;
       const shipping = Number.isFinite(data.shipping) ? data.shipping! : 0;
+      const taxRate = Number.isFinite(data.taxRate) ? data.taxRate! : 0;
       const dueDate = data.dueDate && data.dueDate !== '' ? data.dueDate : null;
 
       return apiFetch<Invoice>('/invoices', {
@@ -500,6 +503,7 @@ export const api = {
           notes: data.notes || null,
           discount,
           shipping,
+          taxRate,
           shippingMethod: data.shippingMethod ?? null,
           shippingTerms: data.shippingTerms ?? null,
           shippingFromCountry: data.shippingFromCountry?.trim() || null,

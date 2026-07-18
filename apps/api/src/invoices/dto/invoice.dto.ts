@@ -74,6 +74,11 @@ export class CreateInvoiceDto {
   @IsNumber()
   shipping?: number;
 
+  @ApiProperty({ required: false, description: 'VAT percent (5 = 5%). 0 = off.' })
+  @IsOptional()
+  @IsNumber()
+  taxRate?: number;
+
   @ApiProperty({ required: false, enum: ['AIR', 'SEA', 'LOCAL'] })
   @IsOptional()
   @IsIn(['AIR', 'SEA', 'LOCAL'])
@@ -138,6 +143,11 @@ export class UpdateInvoiceDto {
   @IsOptional()
   @IsNumber()
   shipping?: number;
+
+  @ApiProperty({ required: false, description: 'VAT percent (5 = 5%). 0 = off.' })
+  @IsOptional()
+  @IsNumber()
+  taxRate?: number;
 
   @ApiProperty({ required: false, enum: ['AIR', 'SEA', 'LOCAL'] })
   @IsOptional()

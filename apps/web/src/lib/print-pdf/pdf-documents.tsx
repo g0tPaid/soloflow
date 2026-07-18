@@ -672,7 +672,12 @@ function InvoicePdfBody({
               ) : null}
               {taxAmount > 0 ? (
                 <View style={styles.totalLine}>
-                  <Text style={styles.muted}>Tax</Text>
+                  <Text style={styles.muted}>
+                    VAT
+                    {Number(invoice.taxRate ?? 0) > 0
+                      ? ` (${Number(invoice.taxRate)}%)`
+                      : ''}
+                  </Text>
                   <Text>{money(taxAmount, currency)}</Text>
                 </View>
               ) : null}

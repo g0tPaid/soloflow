@@ -223,6 +223,19 @@ export function ReceiptPrintView({
                   </span>
                 </div>
               )}
+              {Number(invoice.taxAmount ?? 0) > 0 && (
+                <div className="flex justify-between py-1">
+                  <span className="text-slate-600">
+                    VAT
+                    {Number(invoice.taxRate ?? 0) > 0
+                      ? ` (${Number(invoice.taxRate)}%)`
+                      : ''}
+                  </span>
+                  <span className="font-medium">
+                    {formatCurrency(Number(invoice.taxAmount), currency)}
+                  </span>
+                </div>
+              )}
               <div
                 className="mt-2 flex justify-between border-t-2 pt-3 text-base font-bold"
                 style={{ borderColor: GREEN }}

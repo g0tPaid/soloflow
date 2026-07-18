@@ -183,6 +183,8 @@ export const createInvoiceSchema = z.object({
   notes: z.string().optional().nullable(),
   discount: z.number().min(0).optional(),
   shipping: z.number().min(0).optional(),
+  /** Invoice VAT percent (5 = 5%). 0 = off. */
+  taxRate: z.number().min(0).max(100).optional(),
   shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
   shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
   shippingFromCountry: z.string().optional().nullable(),
@@ -197,6 +199,7 @@ export const updateInvoiceSchema = z.object({
   notes: z.string().optional().nullable(),
   discount: z.number().min(0).optional(),
   shipping: z.number().min(0).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
   shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
   shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
   shippingFromCountry: z.string().optional().nullable(),

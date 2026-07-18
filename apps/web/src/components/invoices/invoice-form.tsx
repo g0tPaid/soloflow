@@ -104,6 +104,9 @@ export function InvoiceForm(props: InvoiceFormProps) {
   const [shipping, setShipping] = useState(
     isEdit ? Number(invoice!.shipping ?? 0) : 0,
   );
+  const [taxRate, setTaxRate] = useState(
+    isEdit ? Number(invoice!.taxRate ?? 0) : 0,
+  );
   const currencyTouched = useRef(isEdit);
 
   const createForm = useForm<CreateInvoiceFormValues>({
@@ -117,6 +120,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
       notes: '',
       discount: 0,
       shipping: 0,
+      taxRate: 0,
       shippingMethod: null,
       shippingTerms: null,
       shippingFromCountry: '',
@@ -133,6 +137,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
       notes: invoice?.notes ?? '',
       discount: Number(invoice?.discount ?? 0),
       shipping: Number(invoice?.shipping ?? 0),
+      taxRate: Number(invoice?.taxRate ?? 0),
       shippingMethod: invoice?.shippingMethod ?? null,
       shippingTerms: invoice?.shippingTerms ?? null,
       shippingFromCountry: invoice?.shippingFromCountry ?? '',
@@ -145,6 +150,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
     ? Number(editForm.watch('discount') ?? 0)
     : Number(createForm.watch('discount') ?? 0);
   const editShipping = isEdit ? Number(editForm.watch('shipping') ?? 0) : shipping;
+  const editTaxRate = isEdit ? Number(editForm.watch('taxRate') ?? 0) : taxRate;
 
   useEffect(() => {
     if (props.mode !== 'create') return;
@@ -173,6 +179,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
         items: sanitizedItems,
         discount: Number.isFinite(data.discount) ? Math.max(0, data.discount!) : 0,
         shipping: Number.isFinite(shipping) ? Math.max(0, shipping) : 0,
+        taxRate: Number.isFinite(taxRate) ? Math.max(0, Math.min(100, taxRate)) : 0,
         shippingMethod: data.shippingMethod ?? null,
         shippingTerms: data.shippingTerms ?? null,
         shippingFromCountry: data.shippingFromCountry?.trim() || null,
@@ -208,6 +215,10 @@ export function InvoiceForm(props: InvoiceFormProps) {
         ...data,
         dueDate: data.dueDate || null,
         notes: data.notes || null,
+        shipping: Number.isFinite(Number(data.shipping)) ? Math.max(0, Number(data.shipping)) : 0,
+        taxRate: Number.isFinite(Number(data.taxRate))
+          ? Math.max(0, Math.min(100, Number(data.taxRate)))
+          : 0,
         items: sanitizedItems,
       });
       router.refresh();
@@ -237,6 +248,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
               discount={discount}
               shipping={editShipping}
               onShippingChange={(value) => editForm.setValue('shipping', value)}
+              taxRate={editTaxRate}
+              onTaxRateChange={(value) => editForm.setValue('taxRate', value)}
             />
           </CardContent>
         </Card>
@@ -471,6 +484,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
             discount={discount}
             shipping={shipping}
             onShippingChange={setShipping}
+            taxRate={taxRate}
+            onTaxRateChange={setTaxRate}
           />
         </CardContent>
       </Card>

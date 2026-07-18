@@ -266,6 +266,8 @@ model Invoice {
   currency            String           @default("USD")
   subtotal            Decimal          @default(0) @db.Decimal(12, 2)
   taxAmount           Decimal          @default(0) @db.Decimal(12, 2)
+  /// Invoice-level VAT percent (e.g. 5 = 5%). 0 means VAT off.
+  taxRate             Decimal          @default(0) @db.Decimal(5, 2)
   shipping            Decimal          @default(0) @db.Decimal(12, 2)
   shippingCost        Decimal          @default(0) @db.Decimal(12, 2)
   shippingCostCny     Decimal          @default(0) @db.Decimal(12, 2)

@@ -123,14 +123,11 @@ export class InvoicesService {
 
 
 
-    const { subtotal, shipping, total } = this.calculateTotals(
-
+    const { subtotal, shipping, taxAmount, taxRate, total } = this.calculateTotals(
       dto.items,
-
       dto.discount || 0,
-
       dto.shipping || 0,
-
+      dto.taxRate || 0,
     );
 
     const productIds = [
@@ -183,7 +180,9 @@ export class InvoicesService {
 
           subtotal,
 
-          taxAmount: 0,
+          taxRate,
+
+          taxAmount,
 
           total,
 
@@ -252,6 +251,9 @@ export class InvoicesService {
 
     const shipping = dto.shipping !== undefined ? dto.shipping : Number(existing.shipping);
 
+    const taxRate =
+      dto.taxRate !== undefined ? dto.taxRate : Number(existing.taxRate ?? 0);
+
     const lineItemsForTotals = dto.items?.length
       ? dto.items.map((item) => ({
           quantity: item.quantity,
@@ -262,18 +264,18 @@ export class InvoicesService {
           unitPrice: Number(item.unitPrice),
         }));
 
-    const { subtotal, total } = this.calculateTotals(lineItemsForTotals, discount, shipping);
-
-
+    const { subtotal, taxAmount, total } = this.calculateTotals(
+      lineItemsForTotals,
+      discount,
+      shipping,
+      taxRate,
+    );
 
     const updateData: Prisma.InvoiceUpdateInput = {
-
       subtotal,
-
-      taxAmount: 0,
-
+      taxRate,
+      taxAmount,
       total,
-
     };
 
     if (dto.status) updateData.status = dto.status as InvoiceStatus;
@@ -285,6 +287,8 @@ export class InvoicesService {
     if (dto.discount !== undefined) updateData.discount = dto.discount;
 
     if (dto.shipping !== undefined) updateData.shipping = dto.shipping;
+
+    if (dto.taxRate !== undefined) updateData.taxRate = dto.taxRate;
 
     if (dto.shippingMethod !== undefined) updateData.shippingMethod = dto.shippingMethod;
 
@@ -356,23 +360,19 @@ export class InvoicesService {
 
 
   private calculateTotals(
-
     items: { quantity: number; unitPrice: number }[],
-
     discount: number,
-
     shipping: number,
-
+    taxRatePercent = 0,
   ) {
-
     const subtotal = items.reduce((sum, item) => sum + item.quantity * item.unitPrice, 0);
-
-    const total = subtotal + shipping - discount;
-
-    return { subtotal, shipping, total: Math.max(0, total) };
-
+    const taxRate = Math.max(0, Math.min(100, Number(taxRatePercent) || 0));
+    const net = Math.max(0, subtotal + shipping - discount);
+    const taxAmount =
+      taxRate > 0 ? Math.round(net * (taxRate / 100) * 100) / 100 : 0;
+    const total = Math.max(0, net + taxAmount);
+    return { subtotal, shipping, taxRate, taxAmount, total };
   }
-
 }
 
 

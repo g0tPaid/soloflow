@@ -476,7 +476,12 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                 )}
                 {taxAmount > 0 && (
                   <div className="flex justify-between py-1">
-                    <span className="text-slate-600">Tax</span>
+                    <span className="text-slate-600">
+                      VAT
+                      {Number(invoice.taxRate ?? 0) > 0
+                        ? ` (${Number(invoice.taxRate)}%)`
+                        : ''}
+                    </span>
                     <span className="font-medium tabular-nums text-slate-900">
                       {formatCurrency(taxAmount, currency)}
                     </span>

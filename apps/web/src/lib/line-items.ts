@@ -8,32 +8,27 @@ export interface LineItemInput {
   imageUrl?: string | null;
 }
 
-
-
 export function calcLineAmount(item: LineItemInput): number {
-
   return item.quantity * item.unitPrice;
-
 }
-
-
 
 export function calcLineTotal(item: LineItemInput): number {
-
   return calcLineAmount(item);
-
 }
 
-
-
-export function calcInvoiceTotals(items: LineItemInput[], discount = 0, shipping = 0) {
-
+/** taxRatePercent is invoice-level VAT, e.g. 5 for 5%. */
+export function calcInvoiceTotals(
+  items: LineItemInput[],
+  discount = 0,
+  shipping = 0,
+  taxRatePercent = 0,
+) {
   const subtotal = items.reduce((sum, item) => sum + calcLineAmount(item), 0);
-
-  const total = subtotal + shipping - discount;
-
-  return { subtotal, shipping, total: Math.max(0, total) };
-
+  const taxRate = Math.max(0, Math.min(100, Number(taxRatePercent) || 0));
+  const net = Math.max(0, subtotal + shipping - discount);
+  const taxAmount = taxRate > 0 ? Math.round(net * (taxRate / 100) * 100) / 100 : 0;
+  const total = Math.max(0, net + taxAmount);
+  return { subtotal, shipping, taxRate, taxAmount, total };
 }
 
 export function calcLineCost(quantity: number, unitCost: number): number {
@@ -110,5 +105,3 @@ export function toApiLineItems(
     };
   });
 }
-
-
