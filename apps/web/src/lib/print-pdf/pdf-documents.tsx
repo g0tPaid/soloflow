@@ -464,7 +464,22 @@ function ShippingSection({
   if (!hasInfo) return null;
 
   const methodLabel =
-    method === 'AIR' ? 'Air freight' : method === 'SEA' ? 'Sea freight' : '-';
+    method === 'AIR'
+      ? 'Air freight'
+      : method === 'SEA'
+        ? 'Sea freight'
+        : method === 'LOCAL'
+          ? 'Local Delivery'
+          : '-';
+
+  const termsLabel =
+    terms === 'LOCAL'
+      ? 'Local Delivery'
+      : terms === 'DDP'
+        ? 'DDP (Delivered Duty Paid)'
+        : terms === 'LCL'
+          ? 'LCL (Less than Container Load)'
+          : terms ?? '-';
 
   const fromLabel = (fromCountry || '').trim() || '-';
   const toLabel = (toCountry || '').trim() || '-';
@@ -481,7 +496,7 @@ function ShippingSection({
         </View>
         <View style={styles.shippingCard}>
           <Text style={styles.muted}>Terms</Text>
-          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{terms ?? '-'}</Text>
+          <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{termsLabel}</Text>
         </View>
         <View style={styles.shippingCard}>
           <Text style={styles.muted}>Country route</Text>

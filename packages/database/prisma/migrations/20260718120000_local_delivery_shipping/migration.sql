@@ -1,0 +1,3 @@
+-- AlterEnum
+ALTER TYPE "ShippingMethod" ADD VALUE IF NOT EXISTS 'LOCAL';
+ALTER TYPE "ShippingTerms" ADD VALUE IF NOT EXISTS 'LOCAL';

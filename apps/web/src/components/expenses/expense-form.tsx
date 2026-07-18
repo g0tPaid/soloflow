@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useEffect, useMemo, useState } from 'react';
-import { Plane, Ship, Printer } from 'lucide-react';
+import { Plane, Ship, Truck, Printer } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -19,7 +19,13 @@ import {
   roundMoney,
   type FxRates,
   type UpdateExpenseCostsInput,
+  SHIPPING_TERMS,
 } from '@flowbooks/shared';
+
+function shippingTermsLabel(terms?: string | null) {
+  if (!terms) return null;
+  return SHIPPING_TERMS.find((option) => option.value === terms)?.label ?? terms;
+}
 
 type CostRow = {
   id: string;
@@ -200,8 +206,15 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
                     <Ship className="h-4 w-4 text-primary" /> Ship
                   </>
                 )}
-                {expense.shippingTerms && (
-                  <span className="text-muted-foreground">· {expense.shippingTerms}</span>
+                {expense.shippingMethod === 'LOCAL' && (
+                  <>
+                    <Truck className="h-4 w-4 text-primary" /> Local Delivery
+                  </>
+                )}
+                {shippingTermsLabel(expense.shippingTerms) && (
+                  <span className="text-muted-foreground">
+                    · {shippingTermsLabel(expense.shippingTerms)}
+                  </span>
                 )}
               </p>
             </div>

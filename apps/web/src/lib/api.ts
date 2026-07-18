@@ -196,8 +196,8 @@ export interface Invoice {
   discount: string | number;
   total: string | number;
   totalCost?: string | number;
-  shippingMethod?: 'AIR' | 'SEA' | null;
-  shippingTerms?: 'DDP' | 'LCL' | null;
+  shippingMethod?: 'AIR' | 'SEA' | 'LOCAL' | null;
+  shippingTerms?: 'DDP' | 'LCL' | 'LOCAL' | null;
   shippingFromCountry?: string | null;
   shippingToCountry?: string | null;
   notes?: string | null;

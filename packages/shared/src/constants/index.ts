@@ -44,11 +44,13 @@ export const INVOICE_BANNER_SIZE = {
 export const SHIPPING_METHODS = [
   { value: 'AIR', label: 'Air' },
   { value: 'SEA', label: 'Ship' },
+  { value: 'LOCAL', label: 'Local Delivery' },
 ] as const;
 
 export const SHIPPING_TERMS = [
   { value: 'DDP', label: 'DDP (Delivered Duty Paid)' },
   { value: 'LCL', label: 'LCL (Less than Container Load)' },
+  { value: 'LOCAL', label: 'Local Delivery' },
 ] as const;
 
 export type ShippingMethod = (typeof SHIPPING_METHODS)[number]['value'];

@@ -442,7 +442,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
       <Card>
         <CardHeader>
           <CardTitle>Shipping details</CardTitle>
-          <CardDescription>Air or ship, DDP or LCL, and country route for this invoice</CardDescription>
+          <CardDescription>Air, ship, or local delivery — plus terms and country route</CardDescription>
         </CardHeader>
         <CardContent>
           <ShippingFields

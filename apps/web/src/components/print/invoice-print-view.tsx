@@ -1,5 +1,6 @@
-import { Globe, Mail, Phone, Plane, Ship } from 'lucide-react';
+import { Globe, Mail, Phone, Plane, Ship, Truck } from 'lucide-react';
 import type { Invoice, Organization } from '@/lib/api';
+import { SHIPPING_TERMS } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
 import {
@@ -12,6 +13,11 @@ import {
 const RED = '#DC2626';
 const RED_LIGHT = '#FEE2E2';
 const RED_DARK = '#991B1B';
+
+function shippingTermsLabel(terms?: string | null) {
+  if (!terms) return '—';
+  return SHIPPING_TERMS.find((option) => option.value === terms)?.label ?? terms;
+}
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -283,13 +289,19 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                         Sea freight
                       </>
                     )}
+                    {invoice.shippingMethod === 'LOCAL' && (
+                      <>
+                        <Truck className="h-4 w-4 text-red-600" />
+                        Local Delivery
+                      </>
+                    )}
                     {!invoice.shippingMethod && <span>—</span>}
                   </p>
                 </div>
                 <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center">
                   <p className="text-xs font-medium text-slate-500">Terms</p>
                   <p className="mt-1.5 font-semibold text-slate-900">
-                    {invoice.shippingTerms ?? '—'}
+                    {shippingTermsLabel(invoice.shippingTerms)}
                   </p>
                 </div>
                 <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center">

@@ -246,11 +246,13 @@ enum InvoiceStatus {
 enum ShippingMethod {
   AIR
   SEA
+  LOCAL
 }
 
 enum ShippingTerms {
   DDP
   LCL
+  LOCAL
 }
 
 model Invoice {

@@ -1,4 +1,5 @@
-import { Plane, Ship } from 'lucide-react';
+import { Plane, Ship, Truck } from 'lucide-react';
+import { SHIPPING_TERMS } from '@flowbooks/shared';
 import type { ExpenseDetail } from '@/lib/api';
 import { parseStoredLineItem } from '@/lib/line-items';
 import {
@@ -9,6 +10,11 @@ import {
 import { formatCurrency } from '@/lib/utils';
 
 const RED = '#DC2626';
+
+function shippingTermsLabel(terms?: string | null) {
+  if (!terms) return '—';
+  return SHIPPING_TERMS.find((option) => option.value === terms)?.label ?? terms;
+}
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -87,12 +93,17 @@ export function ExpensePrintView({
                       <Ship className="h-4 w-4 text-red-600" /> Ship
                     </>
                   )}
+                  {expense.shippingMethod === 'LOCAL' && (
+                    <>
+                      <Truck className="h-4 w-4 text-red-600" /> Local Delivery
+                    </>
+                  )}
                   {!expense.shippingMethod && '—'}
                 </p>
               </div>
               <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center text-sm">
                 <p className="text-xs text-slate-500">Terms</p>
-                <p className="mt-1 font-semibold">{expense.shippingTerms ?? '—'}</p>
+                <p className="mt-1 font-semibold">{shippingTermsLabel(expense.shippingTerms)}</p>
               </div>
               <div className="rounded-xl border border-red-100 bg-red-50/40 px-4 py-3 text-center text-sm">
                 <p className="text-xs text-slate-500">Route</p>

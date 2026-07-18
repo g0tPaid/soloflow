@@ -74,15 +74,15 @@ export class CreateInvoiceDto {
   @IsNumber()
   shipping?: number;
 
-  @ApiProperty({ required: false, enum: ['AIR', 'SEA'] })
+  @ApiProperty({ required: false, enum: ['AIR', 'SEA', 'LOCAL'] })
   @IsOptional()
-  @IsIn(['AIR', 'SEA'])
-  shippingMethod?: 'AIR' | 'SEA';
+  @IsIn(['AIR', 'SEA', 'LOCAL'])
+  shippingMethod?: 'AIR' | 'SEA' | 'LOCAL';
 
-  @ApiProperty({ required: false, enum: ['DDP', 'LCL'] })
+  @ApiProperty({ required: false, enum: ['DDP', 'LCL', 'LOCAL'] })
   @IsOptional()
-  @IsIn(['DDP', 'LCL'])
-  shippingTerms?: 'DDP' | 'LCL';
+  @IsIn(['DDP', 'LCL', 'LOCAL'])
+  shippingTerms?: 'DDP' | 'LCL' | 'LOCAL';
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -139,15 +139,15 @@ export class UpdateInvoiceDto {
   @IsNumber()
   shipping?: number;
 
-  @ApiProperty({ required: false, enum: ['AIR', 'SEA'] })
+  @ApiProperty({ required: false, enum: ['AIR', 'SEA', 'LOCAL'] })
   @IsOptional()
-  @IsIn(['AIR', 'SEA'])
-  shippingMethod?: 'AIR' | 'SEA';
+  @IsIn(['AIR', 'SEA', 'LOCAL'])
+  shippingMethod?: 'AIR' | 'SEA' | 'LOCAL';
 
-  @ApiProperty({ required: false, enum: ['DDP', 'LCL'] })
+  @ApiProperty({ required: false, enum: ['DDP', 'LCL', 'LOCAL'] })
   @IsOptional()
-  @IsIn(['DDP', 'LCL'])
-  shippingTerms?: 'DDP' | 'LCL';
+  @IsIn(['DDP', 'LCL', 'LOCAL'])
+  shippingTerms?: 'DDP' | 'LCL' | 'LOCAL';
 
   @ApiProperty({ required: false })
   @IsOptional()

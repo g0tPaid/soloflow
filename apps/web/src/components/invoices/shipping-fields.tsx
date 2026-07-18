@@ -1,21 +1,23 @@
 'use client';
 
-import { Plane, Ship } from 'lucide-react';
-import { SHIPPING_METHODS, SHIPPING_TERMS } from '@flowbooks/shared';
+import { Plane, Ship, Truck } from 'lucide-react';
+import {
+  SHIPPING_METHODS,
+  SHIPPING_TERMS,
+  type ShippingMethod,
+  type ShippingTerms,
+} from '@flowbooks/shared';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { cn } from '@/lib/utils';
 
-type ShippingMethodValue = 'AIR' | 'SEA';
-type ShippingTermsValue = 'DDP' | 'LCL';
-
 type Props = {
-  method?: ShippingMethodValue | null;
-  terms?: ShippingTermsValue | null;
+  method?: ShippingMethod | null;
+  terms?: ShippingTerms | null;
   fromCountry?: string | null;
   toCountry?: string | null;
-  onMethodChange: (value: ShippingMethodValue | undefined) => void;
-  onTermsChange: (value: ShippingTermsValue | undefined) => void;
+  onMethodChange: (value: ShippingMethod | undefined) => void;
+  onTermsChange: (value: ShippingTerms | undefined) => void;
   onFromCountryChange: (value: string) => void;
   onToCountryChange: (value: string) => void;
   idPrefix?: string;
@@ -24,6 +26,7 @@ type Props = {
 const methodIcons = {
   AIR: Plane,
   SEA: Ship,
+  LOCAL: Truck,
 } as const;
 
 export function ShippingFields({

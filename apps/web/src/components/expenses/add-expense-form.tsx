@@ -73,8 +73,8 @@ export function AddExpenseForm({
   const [notes, setNotes] = useState('');
   const [shipping, setShipping] = useState(0);
   const [shippingCostCny, setShippingCostCny] = useState(0);
-  const [shippingMethod, setShippingMethod] = useState<'AIR' | 'SEA' | undefined>();
-  const [shippingTerms, setShippingTerms] = useState<'DDP' | 'LCL' | undefined>();
+  const [shippingMethod, setShippingMethod] = useState<'AIR' | 'SEA' | 'LOCAL' | undefined>();
+  const [shippingTerms, setShippingTerms] = useState<'DDP' | 'LCL' | 'LOCAL' | undefined>();
   const [shippingFromCountry, setShippingFromCountry] = useState('');
   const [shippingToCountry, setShippingToCountry] = useState('');
   const [rows, setRows] = useState<LineRow[]>([newRow()]);
