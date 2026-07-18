@@ -77,6 +77,7 @@ export default function NewExpensePage() {
           defaultCurrency={businessCurrency}
           costCurrency={organization?.settings?.costCurrency}
           fxRates={organization?.settings?.fxRates}
+          fxEnabled={organization?.settings?.fxEnabled !== false}
           onSubmit={handleCreate}
         />
       )}

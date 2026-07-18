@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import {
   CURRENCIES,
-  convertCurrency,
+  convertCurrencyMaybe,
   normalizeCostCurrency,
   parseFxRates,
   roundMoney,
@@ -38,6 +38,7 @@ type Props = {
   defaultCurrency?: string;
   costCurrency?: string;
   fxRates?: unknown;
+  fxEnabled?: boolean;
   onSubmit: (data: CreateExpenseInput) => Promise<{ id: string }>;
 };
 
@@ -60,6 +61,7 @@ export function AddExpenseForm({
   defaultCurrency = 'USD',
   costCurrency,
   fxRates,
+  fxEnabled = true,
   onSubmit,
 }: Props) {
   const router = useRouter();
@@ -88,12 +90,12 @@ export function AddExpenseForm({
   const revenue = roundMoney(itemsRevenue + Math.max(0, shipping));
   const itemsCost = rows.reduce((sum, row) => {
     const unitCost = roundMoney(
-      convertCurrency(Math.max(0, row.unitCostCny), entryCurrency, currency, rates),
+      convertCurrencyMaybe(Math.max(0, row.unitCostCny), entryCurrency, currency, rates, fxEnabled),
     );
     return sum + roundMoney(Math.max(0, row.quantity) * unitCost);
   }, 0);
   const shippingCost = roundMoney(
-    convertCurrency(Math.max(0, shippingCostCny), entryCurrency, currency, rates),
+    convertCurrencyMaybe(Math.max(0, shippingCostCny), entryCurrency, currency, rates, fxEnabled),
   );
   const totalCost = roundMoney(itemsCost + shippingCost);
   const profit = roundMoney(revenue - totalCost);
@@ -247,7 +249,7 @@ export function AddExpenseForm({
               <tbody>
                 {rows.map((row) => {
                   const unitCost = roundMoney(
-                    convertCurrency(Math.max(0, row.unitCostCny), entryCurrency, currency, rates),
+                    convertCurrencyMaybe(Math.max(0, row.unitCostCny), entryCurrency, currency, rates, fxEnabled),
                   );
                   return (
                     <tr key={row.key} className="border-b align-top">
@@ -319,7 +321,7 @@ export function AddExpenseForm({
           <div className="space-y-4 md:hidden">
             {rows.map((row) => {
               const unitCost = roundMoney(
-                convertCurrency(Math.max(0, row.unitCostCny), entryCurrency, currency, rates),
+                convertCurrencyMaybe(Math.max(0, row.unitCostCny), entryCurrency, currency, rates, fxEnabled),
               );
               return (
                 <div key={row.key} className="space-y-3 rounded-lg border p-4">

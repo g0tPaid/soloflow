@@ -113,6 +113,13 @@ export const updateOrganizationSchema = z.object({
     .length(3)
     .transform((v) => v.toUpperCase())
     .optional(),
+  dashboardCurrency: z
+    .string()
+    .trim()
+    .length(3)
+    .transform((v) => v.toUpperCase())
+    .optional(),
+  fxEnabled: z.boolean().optional(),
 });
 
 export const inviteMemberSchema = z.object({

@@ -28,6 +28,8 @@ export class OrganizationsService {
           settings: {
             create: {
               currency: dto.currency || 'USD',
+              dashboardCurrency: dto.currency || 'USD',
+              fxEnabled: true,
               costCurrency: 'CNY',
               timezone: dto.timezone || 'UTC',
               branding: asJsonValue(dto.branding),
@@ -103,10 +105,16 @@ export class OrganizationsService {
       ? dto.costCurrency.trim().toUpperCase()
       : undefined;
 
+    const nextDashboardCurrency = dto.dashboardCurrency
+      ? dto.dashboardCurrency.trim().toUpperCase()
+      : undefined;
+
     const settingsUpdate: Record<string, unknown> = {};
     if (nextBranding) settingsUpdate.branding = asJsonValue(nextBranding);
     if (nextFxRates) settingsUpdate.fxRates = asJsonValue(nextFxRates);
     if (nextCostCurrency) settingsUpdate.costCurrency = nextCostCurrency;
+    if (nextDashboardCurrency) settingsUpdate.dashboardCurrency = nextDashboardCurrency;
+    if (dto.fxEnabled !== undefined) settingsUpdate.fxEnabled = dto.fxEnabled;
 
     return this.prisma.organization.update({
       where: { id: orgId },
@@ -120,6 +128,8 @@ export class OrganizationsService {
                 settings: {
                   create: {
                     currency: 'USD',
+                    dashboardCurrency: nextDashboardCurrency ?? 'USD',
+                    fxEnabled: dto.fxEnabled ?? true,
                     costCurrency: nextCostCurrency ?? 'CNY',
                     branding: asJsonValue(nextBranding ?? {}),
                     fxRates: asJsonValue(nextFxRates ?? DEFAULT_FX_RATES),

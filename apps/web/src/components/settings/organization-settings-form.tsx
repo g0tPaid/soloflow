@@ -53,6 +53,10 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
   const [costCurrency, setCostCurrency] = useState(
     (organization.settings?.costCurrency || 'CNY').toUpperCase(),
   );
+  const [dashboardCurrency, setDashboardCurrency] = useState(
+    (organization.settings?.dashboardCurrency || organization.settings?.currency || 'USD').toUpperCase(),
+  );
+  const [fxEnabled, setFxEnabled] = useState(organization.settings?.fxEnabled !== false);
   const [cnyPerUsd, setCnyPerUsd] = useState(String(initialFx.CNY ?? 7.25));
   const [eurPerUsd, setEurPerUsd] = useState(String(initialFx.EUR ?? 0.92));
   const [costRatePerUsd, setCostRatePerUsd] = useState(() => {
@@ -128,6 +132,8 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           showInvoiceLogo,
         },
         costCurrency: entryCode,
+        dashboardCurrency: dashboardCurrency.toUpperCase(),
+        fxEnabled,
         fxRates,
       });
       setSaved(true);
@@ -300,6 +306,39 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
 
       <Card>
         <CardHeader>
+          <CardTitle>Dashboard currency</CardTitle>
+          <CardDescription>
+            Choose which currency the dashboard uses for revenue, expenses, profit, and outstanding
+            totals.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2 max-w-sm">
+            <Label htmlFor="dashboardCurrency">Display currency</Label>
+            <select
+              id="dashboardCurrency"
+              className={selectClassName}
+              value={dashboardCurrency}
+              onChange={(e) => setDashboardCurrency(e.target.value.toUpperCase())}
+            >
+              {CURRENCIES.map((c) => (
+                <option key={c.code} value={c.code}>
+                  {c.code} — {c.name}
+                </option>
+              ))}
+            </select>
+          </div>
+          {!fxEnabled ? (
+            <p className="text-sm text-muted-foreground">
+              Exchange rates are off — dashboard totals only include invoices already in{' '}
+              {dashboardCurrency}.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Expense cost currency</CardTitle>
           <CardDescription>
             Staff enter purchase and shipping costs in this currency on the Expenses page. Amounts
@@ -334,58 +373,82 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
 
       <Card>
         <CardHeader>
-          <CardTitle>Exchange rates (USD base)</CardTitle>
+          <CardTitle>Exchange rates</CardTitle>
           <CardDescription>
-            Dashboard totals convert everything to USD (with CNY shown underneath). Expense costs in
-            your cost entry currency use these rates. Enter how many units equal <strong>1 USD</strong>.
+            Turn rates on to convert mixed-currency invoices on the dashboard and expense costs.
+            Rates are units per <strong>1 USD</strong>.
           </CardDescription>
         </CardHeader>
-        <CardContent className="grid gap-4 sm:grid-cols-2">
-          <div className="space-y-2">
-            <Label htmlFor="cnyPerUsd">CNY per 1 USD</Label>
-            <Input
-              id="cnyPerUsd"
-              type="number"
-              min="0.0001"
-              step="any"
-              value={cnyPerUsd}
-              onChange={(e) => {
-                setCnyPerUsd(e.target.value);
-                if (costCurrency === 'CNY') setCostRatePerUsd(e.target.value);
-              }}
+        <CardContent className="space-y-4">
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input bg-muted/20 px-3 py-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-red-600"
+              checked={fxEnabled}
+              onChange={(e) => setFxEnabled(e.target.checked)}
             />
-            <p className="text-xs text-muted-foreground">Default 7.25 · also used on the dashboard</p>
-          </div>
-          <div className="space-y-2">
-            <Label htmlFor="eurPerUsd">EUR per 1 USD</Label>
-            <Input
-              id="eurPerUsd"
-              type="number"
-              min="0.0001"
-              step="any"
-              value={eurPerUsd}
-              onChange={(e) => {
-                setEurPerUsd(e.target.value);
-                if (costCurrency === 'EUR') setCostRatePerUsd(e.target.value);
-              }}
-            />
-            <p className="text-xs text-muted-foreground">Default 0.92 (1 USD ≈ 0.92 EUR)</p>
-          </div>
-          {costCurrency !== 'USD' && costCurrency !== 'CNY' && costCurrency !== 'EUR' && (
-            <div className="space-y-2 sm:col-span-2 max-w-sm">
-              <Label htmlFor="costRatePerUsd">{costCurrency} per 1 USD</Label>
-              <Input
-                id="costRatePerUsd"
-                type="number"
-                min="0.0001"
-                step="any"
-                value={costRatePerUsd}
-                onChange={(e) => setCostRatePerUsd(e.target.value)}
-              />
-              <p className="text-xs text-muted-foreground">
-                Required for converting {costCurrency} expense costs
-              </p>
+            <span>
+              <span className="font-medium text-foreground">Use exchange rates</span>
+              <span className="mt-0.5 block text-muted-foreground">
+                When off, dashboard sums only invoices in your display currency, and expense costs
+                are not converted between currencies.
+              </span>
+            </span>
+          </label>
+
+          {fxEnabled ? (
+            <div className="grid gap-4 sm:grid-cols-2">
+              <div className="space-y-2">
+                <Label htmlFor="cnyPerUsd">CNY per 1 USD</Label>
+                <Input
+                  id="cnyPerUsd"
+                  type="number"
+                  min="0.0001"
+                  step="any"
+                  value={cnyPerUsd}
+                  onChange={(e) => {
+                    setCnyPerUsd(e.target.value);
+                    if (costCurrency === 'CNY') setCostRatePerUsd(e.target.value);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">Default 7.25</p>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="eurPerUsd">EUR per 1 USD</Label>
+                <Input
+                  id="eurPerUsd"
+                  type="number"
+                  min="0.0001"
+                  step="any"
+                  value={eurPerUsd}
+                  onChange={(e) => {
+                    setEurPerUsd(e.target.value);
+                    if (costCurrency === 'EUR') setCostRatePerUsd(e.target.value);
+                  }}
+                />
+                <p className="text-xs text-muted-foreground">Default 0.92 (1 USD ≈ 0.92 EUR)</p>
+              </div>
+              {costCurrency !== 'USD' && costCurrency !== 'CNY' && costCurrency !== 'EUR' && (
+                <div className="space-y-2 sm:col-span-2 max-w-sm">
+                  <Label htmlFor="costRatePerUsd">{costCurrency} per 1 USD</Label>
+                  <Input
+                    id="costRatePerUsd"
+                    type="number"
+                    min="0.0001"
+                    step="any"
+                    value={costRatePerUsd}
+                    onChange={(e) => setCostRatePerUsd(e.target.value)}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Required for converting {costCurrency} expense costs
+                  </p>
+                </div>
+              )}
             </div>
+          ) : (
+            <p className="text-sm text-muted-foreground">
+              Exchange rates are off. Rate fields are hidden until you turn them back on.
+            </p>
           )}
         </CardContent>
       </Card>

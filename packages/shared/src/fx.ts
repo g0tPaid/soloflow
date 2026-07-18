@@ -53,6 +53,18 @@ export function convertCurrency(
   return fromUsd(toUsd(amount, from, rates), to, rates);
 }
 
+/** Like convertCurrency, but skips conversion when exchange rates are disabled. */
+export function convertCurrencyMaybe(
+  amount: number,
+  fromCurrency: string,
+  toCurrency: string,
+  rates: FxRates = DEFAULT_FX_RATES,
+  fxEnabled = true,
+): number {
+  if (!fxEnabled) return Number.isFinite(amount) ? amount : 0;
+  return convertCurrency(amount, fromCurrency, toCurrency, rates);
+}
+
 export function usdToCny(amountUsd: number, rates: FxRates = DEFAULT_FX_RATES): number {
   return fromUsd(amountUsd, 'CNY', rates);
 }

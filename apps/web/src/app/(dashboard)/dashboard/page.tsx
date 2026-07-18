@@ -1,6 +1,5 @@
 'use client';
 
-import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { motion } from 'framer-motion';
@@ -27,6 +26,13 @@ interface Metrics {
   outstanding: number;
   cashFlow: number;
   currency: string;
+  fxEnabled?: boolean;
+  secondaryCurrency?: string | null;
+  revenueSecondary?: number | null;
+  expensesSecondary?: number | null;
+  profitSecondary?: number | null;
+  outstandingSecondary?: number | null;
+  cashFlowSecondary?: number | null;
   revenueCny?: number;
   expensesCny?: number;
   profitCny?: number;
@@ -53,42 +59,71 @@ export default function DashboardPage() {
     enabled: !!session?.accessToken && !!orgId,
   });
 
+  const displayCurrency = metrics?.currency ?? 'USD';
+  const secondaryCurrency =
+    metrics?.secondaryCurrency ??
+    (metrics?.revenueCny != null ? 'CNY' : null);
+
   const metricCards = [
     {
       title: 'Revenue',
-      value: metrics ? formatCurrency(metrics.revenue, metrics.currency) : '—',
+      value: metrics ? formatCurrency(metrics.revenue, displayCurrency) : '—',
       secondary:
-        metrics?.revenueCny != null ? formatCurrency(metrics.revenueCny, 'CNY') : undefined,
-      description: 'Paid this month (USD)',
+        secondaryCurrency && (metrics?.revenueSecondary ?? metrics?.revenueCny) != null
+          ? formatCurrency(
+              Number(metrics?.revenueSecondary ?? metrics?.revenueCny),
+              secondaryCurrency,
+            )
+          : undefined,
+      description: metrics?.fxEnabled === false
+        ? `Paid this month (${displayCurrency} invoices only)`
+        : `Paid this month (${displayCurrency})`,
       icon: TrendingUp,
       trend: 'up' as const,
     },
     {
       title: 'Expenses',
-      value: metrics ? formatCurrency(metrics.expenses, metrics.currency) : '—',
+      value: metrics ? formatCurrency(metrics.expenses, displayCurrency) : '—',
       secondary:
-        metrics?.expensesCny != null ? formatCurrency(metrics.expensesCny, 'CNY') : undefined,
-      description: 'Costs this month (USD)',
+        secondaryCurrency && (metrics?.expensesSecondary ?? metrics?.expensesCny) != null
+          ? formatCurrency(
+              Number(metrics?.expensesSecondary ?? metrics?.expensesCny),
+              secondaryCurrency,
+            )
+          : undefined,
+      description: metrics?.fxEnabled === false
+        ? `Costs this month (${displayCurrency} invoices only)`
+        : `Costs this month (${displayCurrency})`,
       icon: TrendingDown,
       trend: 'down' as const,
     },
     {
       title: 'Profit',
-      value: metrics ? formatCurrency(metrics.profit, metrics.currency) : '—',
+      value: metrics ? formatCurrency(metrics.profit, displayCurrency) : '—',
       secondary:
-        metrics?.profitCny != null ? formatCurrency(metrics.profitCny, 'CNY') : undefined,
-      description: 'Revenue minus costs (USD)',
+        secondaryCurrency && (metrics?.profitSecondary ?? metrics?.profitCny) != null
+          ? formatCurrency(
+              Number(metrics?.profitSecondary ?? metrics?.profitCny),
+              secondaryCurrency,
+            )
+          : undefined,
+      description: `Revenue minus costs (${displayCurrency})`,
       icon: Wallet,
       trend: 'up' as const,
     },
     {
       title: 'Outstanding',
-      value: metrics ? formatCurrency(metrics.outstanding, metrics.currency) : '—',
+      value: metrics ? formatCurrency(metrics.outstanding, displayCurrency) : '—',
       secondary:
-        metrics?.outstandingCny != null
-          ? formatCurrency(metrics.outstandingCny, 'CNY')
+        secondaryCurrency && (metrics?.outstandingSecondary ?? metrics?.outstandingCny) != null
+          ? formatCurrency(
+              Number(metrics?.outstandingSecondary ?? metrics?.outstandingCny),
+              secondaryCurrency,
+            )
           : undefined,
-      description: 'Unpaid invoices (USD)',
+      description: metrics?.fxEnabled === false
+        ? `Unpaid invoices (${displayCurrency} only)`
+        : `Unpaid invoices (${displayCurrency})`,
       icon: Clock,
       trend: 'neutral' as const,
     },

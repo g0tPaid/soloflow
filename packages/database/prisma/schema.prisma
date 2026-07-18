@@ -112,6 +112,10 @@ model OrganizationSettings {
   organizationId String @unique
 
   currency       String  @default("USD")
+  /// Currency used for dashboard totals display
+  dashboardCurrency String @default("USD")
+  /// When false, dashboard and expenses skip FX conversion
+  fxEnabled      Boolean @default(true)
   /// Currency staff use when entering purchase/shipping costs on expenses
   costCurrency   String  @default("CNY")
   timezone       String  @default("UTC")

@@ -13,7 +13,7 @@ import { calcLineCost, calcProfit, parseStoredLineItem } from '@/lib/line-items'
 import { resolveImageSrc } from '@/lib/organization-branding';
 import type { ExpenseDetail } from '@/lib/api';
 import {
-  convertCurrency,
+  convertCurrencyMaybe,
   normalizeCostCurrency,
   parseFxRates,
   roundMoney,
@@ -40,13 +40,20 @@ type CostRow = {
   unitCostEntry: number;
 };
 
-function toCostRows(expense: ExpenseDetail, rates: FxRates, costCurrency: string): CostRow[] {
+function toCostRows(
+  expense: ExpenseDetail,
+  rates: FxRates,
+  costCurrency: string,
+  fxEnabled: boolean,
+): CostRow[] {
   return (expense.items ?? []).map((item) => {
     const { name, description } = parseStoredLineItem(item);
     const unitCost = Number(item.unitCost ?? 0);
     let unitCostEntry = Number(item.unitCostCny ?? 0);
     if (!unitCostEntry && unitCost > 0) {
-      unitCostEntry = roundMoney(convertCurrency(unitCost, expense.currency, costCurrency, rates));
+      unitCostEntry = roundMoney(
+        convertCurrencyMaybe(unitCost, expense.currency, costCurrency, rates, fxEnabled),
+      );
     }
     return {
       id: item.id,
@@ -72,19 +79,37 @@ type Props = {
   organizationId: string;
   costCurrency?: string;
   fxRates?: unknown;
+  fxEnabled?: boolean;
   onSubmit: (data: UpdateExpenseCostsInput) => Promise<void>;
 };
 
-export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, onSubmit }: Props) {
+export function ExpenseForm({
+  expense,
+  organizationId,
+  costCurrency,
+  fxRates,
+  fxEnabled = true,
+  onSubmit,
+}: Props) {
   const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
   const entryCurrency = useMemo(() => normalizeCostCurrency(costCurrency), [costCurrency]);
-  const [rows, setRows] = useState<CostRow[]>(() => toCostRows(expense, rates, entryCurrency));
+  const [rows, setRows] = useState<CostRow[]>(() =>
+    toCostRows(expense, rates, entryCurrency, fxEnabled),
+  );
   const [shippingCostEntry, setShippingCostEntry] = useState(() => {
     const existing = Number(expense.shippingCostCny ?? 0);
     if (existing > 0) return existing;
     const shippingCost = Number(expense.shippingCost ?? 0);
     return shippingCost > 0
-      ? roundMoney(convertCurrency(shippingCost, expense.currency, entryCurrency, rates))
+      ? roundMoney(
+          convertCurrencyMaybe(
+            shippingCost,
+            expense.currency,
+            entryCurrency,
+            rates,
+            fxEnabled,
+          ),
+        )
       : 0;
   });
   const [submitting, setSubmitting] = useState(false);
@@ -92,7 +117,7 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
   const [saved, setSaved] = useState(false);
 
   useEffect(() => {
-    setRows(toCostRows(expense, rates, entryCurrency));
+    setRows(toCostRows(expense, rates, entryCurrency, fxEnabled));
     const existing = Number(expense.shippingCostCny ?? 0);
     if (existing > 0) {
       setShippingCostEntry(existing);
@@ -100,20 +125,28 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
       const shippingCost = Number(expense.shippingCost ?? 0);
       setShippingCostEntry(
         shippingCost > 0
-          ? roundMoney(convertCurrency(shippingCost, expense.currency, entryCurrency, rates))
+          ? roundMoney(
+              convertCurrencyMaybe(
+                shippingCost,
+                expense.currency,
+                entryCurrency,
+                rates,
+                fxEnabled,
+              ),
+            )
           : 0,
       );
     }
-  }, [expense, rates, entryCurrency]);
+  }, [expense, rates, entryCurrency, fxEnabled]);
 
   const revenue = Number(expense.total);
   const customerShipping = Number(expense.shipping ?? expense.customerShipping ?? 0);
   const shippingCost = roundMoney(
-    convertCurrency(shippingCostEntry, entryCurrency, expense.currency, rates),
+    convertCurrencyMaybe(shippingCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
   );
   const itemsCost = rows.reduce((sum, row) => {
     const unitCost = roundMoney(
-      convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+      convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
     );
     return sum + calcLineCost(row.quantity, unitCost);
   }, 0);
@@ -125,7 +158,7 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
   function updateUnitCostEntry(index: number, unitCostEntry: number) {
     const nextEntry = Math.max(0, unitCostEntry);
     const nextUnitCost = roundMoney(
-      convertCurrency(nextEntry, entryCurrency, expense.currency, rates),
+      convertCurrencyMaybe(nextEntry, entryCurrency, expense.currency, rates, fxEnabled),
     );
     setRows((prev) =>
       prev.map((row, i) =>
@@ -145,7 +178,7 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
           id: row.id,
           unitCostCny: row.unitCostEntry,
           unitCost: roundMoney(
-            convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+            convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
           ),
         })),
         shippingCostCny: Math.max(0, shippingCostEntry),
@@ -247,7 +280,7 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
                 {rows.map((row, index) => {
                   const imageSrc = resolveImageSrc(row.imageUrl);
                   const unitCost = roundMoney(
-                    convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+                    convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
                   );
                   const lineCost = calcLineCost(row.quantity, unitCost);
                   return (
@@ -308,7 +341,7 @@ export function ExpenseForm({ expense, organizationId, costCurrency, fxRates, on
             {rows.map((row, index) => {
               const imageSrc = resolveImageSrc(row.imageUrl);
               const unitCost = roundMoney(
-                convertCurrency(row.unitCostEntry, entryCurrency, expense.currency, rates),
+                convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
               );
               const lineCost = calcLineCost(row.quantity, unitCost);
               return (

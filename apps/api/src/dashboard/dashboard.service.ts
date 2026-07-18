@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus } from '@flowbooks/database';
-import { parseFxRates, roundMoney, toUsd, usdToCny } from '@flowbooks/shared';
+import { fromUsd, parseFxRates, roundMoney, toUsd } from '@flowbooks/shared';
 
 @Injectable()
 export class DashboardService {
@@ -12,6 +12,12 @@ export class DashboardService {
       where: { organizationId },
     });
     const rates = parseFxRates(settings?.fxRates);
+    const fxEnabled = settings?.fxEnabled !== false;
+    const displayCurrency = (
+      settings?.dashboardCurrency ||
+      settings?.currency ||
+      'USD'
+    ).toUpperCase();
 
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -51,34 +57,67 @@ export class DashboardService {
         this.prisma.product.count({ where: { organizationId, isActive: true } }),
       ]);
 
-    const sumUsd = (
+    const toDisplay = (
       rows: Array<{ currency: string; total?: unknown; totalCost?: unknown }>,
       field: 'total' | 'totalCost',
     ) =>
       rows.reduce((sum, row) => {
         const amount = Number(field === 'total' ? row.total : row.totalCost) || 0;
-        return sum + toUsd(amount, row.currency || 'USD', rates);
+        const rowCurrency = (row.currency || 'USD').toUpperCase();
+        if (!fxEnabled) {
+          return rowCurrency === displayCurrency ? sum + amount : sum;
+        }
+        const usd = toUsd(amount, rowCurrency, rates);
+        return sum + fromUsd(usd, displayCurrency, rates);
       }, 0);
 
-    const revenueUsd = roundMoney(sumUsd(paidInvoices, 'total'));
-    const outstandingUsd = roundMoney(sumUsd(outstandingInvoices, 'total'));
-    const expensesUsd = roundMoney(sumUsd(monthInvoices, 'totalCost'));
-    const invoiceRevenueUsd = roundMoney(sumUsd(monthInvoices, 'total'));
-    const profitUsd = roundMoney(invoiceRevenueUsd - expensesUsd);
-    const cashFlowUsd = roundMoney(revenueUsd - expensesUsd);
+    const revenue = roundMoney(toDisplay(paidInvoices, 'total'));
+    const outstanding = roundMoney(toDisplay(outstandingInvoices, 'total'));
+    const expenses = roundMoney(toDisplay(monthInvoices, 'totalCost'));
+    const invoiceRevenue = roundMoney(toDisplay(monthInvoices, 'total'));
+    const profit = roundMoney(invoiceRevenue - expenses);
+    const cashFlow = roundMoney(revenue - expenses);
+
+    let secondaryCurrency: string | null = null;
+    let revenueSecondary: number | null = null;
+    let expensesSecondary: number | null = null;
+    let profitSecondary: number | null = null;
+    let outstandingSecondary: number | null = null;
+    let cashFlowSecondary: number | null = null;
+
+    if (fxEnabled) {
+      secondaryCurrency = displayCurrency === 'USD' ? 'CNY' : 'USD';
+      const toSecondary = (amount: number) =>
+        roundMoney(
+          fromUsd(toUsd(amount, displayCurrency, rates), secondaryCurrency!, rates),
+        );
+      revenueSecondary = toSecondary(revenue);
+      expensesSecondary = toSecondary(expenses);
+      profitSecondary = toSecondary(profit);
+      outstandingSecondary = toSecondary(outstanding);
+      cashFlowSecondary = toSecondary(cashFlow);
+    }
 
     return {
-      revenue: revenueUsd,
-      expenses: expensesUsd,
-      profit: profitUsd,
-      outstanding: outstandingUsd,
-      cashFlow: cashFlowUsd,
-      currency: 'USD',
-      revenueCny: roundMoney(usdToCny(revenueUsd, rates)),
-      expensesCny: roundMoney(usdToCny(expensesUsd, rates)),
-      profitCny: roundMoney(usdToCny(profitUsd, rates)),
-      outstandingCny: roundMoney(usdToCny(outstandingUsd, rates)),
-      cashFlowCny: roundMoney(usdToCny(cashFlowUsd, rates)),
+      revenue,
+      expenses,
+      profit,
+      outstanding,
+      cashFlow,
+      currency: displayCurrency,
+      fxEnabled,
+      secondaryCurrency,
+      revenueSecondary,
+      expensesSecondary,
+      profitSecondary,
+      outstandingSecondary,
+      cashFlowSecondary,
+      // Legacy CNY fields for older clients when display is USD
+      revenueCny: displayCurrency === 'USD' ? revenueSecondary : undefined,
+      expensesCny: displayCurrency === 'USD' ? expensesSecondary : undefined,
+      profitCny: displayCurrency === 'USD' ? profitSecondary : undefined,
+      outstandingCny: displayCurrency === 'USD' ? outstandingSecondary : undefined,
+      cashFlowCny: displayCurrency === 'USD' ? cashFlowSecondary : undefined,
       period: 'month',
       counts: {
         customers: customerCount,

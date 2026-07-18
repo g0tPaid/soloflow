@@ -70,6 +70,7 @@ export default function ExpenseDetailPage({ params }: { params: Promise<{ id: st
           organizationId={organizationId}
           costCurrency={organization?.settings?.costCurrency}
           fxRates={organization?.settings?.fxRates}
+          fxEnabled={organization?.settings?.fxEnabled !== false}
           onSubmit={handleSave}
         />
       )}

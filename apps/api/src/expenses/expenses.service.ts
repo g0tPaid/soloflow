@@ -19,16 +19,29 @@ export class ExpensesService {
     rates: FxRates;
     costCurrency: string;
     defaultCurrency: string;
+    fxEnabled: boolean;
   }> {
     const settings = await this.prisma.organizationSettings.findUnique({
       where: { organizationId },
-      select: { fxRates: true, costCurrency: true, currency: true },
+      select: { fxRates: true, costCurrency: true, currency: true, fxEnabled: true },
     });
     return {
       rates: parseFxRates(settings?.fxRates),
       costCurrency: normalizeCostCurrency(settings?.costCurrency),
       defaultCurrency: settings?.currency || 'USD',
+      fxEnabled: settings?.fxEnabled !== false,
     };
+  }
+
+  private convertAmount(
+    amount: number,
+    fromCurrency: string,
+    toCurrency: string,
+    rates: FxRates,
+    fxEnabled: boolean,
+  ) {
+    if (!fxEnabled) return roundMoney(amount);
+    return roundMoney(convertCurrency(amount, fromCurrency, toCurrency, rates));
   }
 
   private async assertUniqueNumber(organizationId: string, number: string) {
@@ -96,17 +109,29 @@ export class ExpensesService {
     if (!customer) throw new BadRequestException('Customer not found');
 
     const number = await this.assertUniqueNumber(organizationId, dto.number);
-    const { rates, costCurrency, defaultCurrency } = await this.loadCostSettings(organizationId);
+    const { rates, costCurrency, defaultCurrency, fxEnabled } = await this.loadCostSettings(organizationId);
     const currency = (dto.currency || defaultCurrency || 'USD').toUpperCase();
     const shipping = Math.max(0, dto.shipping ?? 0);
     const shippingCostCny = Math.max(0, dto.shippingCostCny ?? 0);
-    const shippingCost = roundMoney(convertCurrency(shippingCostCny, costCurrency, currency, rates));
+    const shippingCost = this.convertAmount(
+      shippingCostCny,
+      costCurrency,
+      currency,
+      rates,
+      fxEnabled,
+    );
 
     const lineData = dto.items.map((item) => {
       const quantity = Math.max(0, item.quantity);
       const unitPrice = Math.max(0, item.unitPrice);
       const unitCostCny = Math.max(0, item.unitCostCny ?? 0);
-      const unitCost = roundMoney(convertCurrency(unitCostCny, costCurrency, currency, rates));
+      const unitCost = this.convertAmount(
+        unitCostCny,
+        costCurrency,
+        currency,
+        rates,
+        fxEnabled,
+      );
       const name = item.name?.trim() || null;
       const description = item.description?.trim() || name || 'Item';
       return {
@@ -186,7 +211,7 @@ export class ExpensesService {
       }
     }
 
-    const { rates, costCurrency } = await this.loadCostSettings(organizationId);
+    const { rates, costCurrency, fxEnabled } = await this.loadCostSettings(organizationId);
     const currency = invoice.currency || 'USD';
     const costById = new Map(dto.items.map((row) => [row.id, row]));
 
@@ -198,14 +223,32 @@ export class ExpensesService {
 
     let shippingCost: number;
     if (dto.shippingCostCny !== undefined) {
-      shippingCost = roundMoney(convertCurrency(shippingCostCny, costCurrency, currency, rates));
+      shippingCost = this.convertAmount(
+        shippingCostCny,
+        costCurrency,
+        currency,
+        rates,
+        fxEnabled,
+      );
     } else if (dto.shippingCost !== undefined) {
       shippingCost = Math.max(0, dto.shippingCost);
-      shippingCostCny = roundMoney(convertCurrency(shippingCost, currency, costCurrency, rates));
+      shippingCostCny = this.convertAmount(
+        shippingCost,
+        currency,
+        costCurrency,
+        rates,
+        fxEnabled,
+      );
     } else {
       shippingCost = Number(invoice.shippingCost ?? 0);
       if (!shippingCostCny && shippingCost > 0) {
-        shippingCostCny = roundMoney(convertCurrency(shippingCost, currency, costCurrency, rates));
+        shippingCostCny = this.convertAmount(
+          shippingCost,
+          currency,
+          costCurrency,
+          rates,
+          fxEnabled,
+        );
       }
     }
 
@@ -217,12 +260,30 @@ export class ExpensesService {
 
         if (row?.unitCostCny !== undefined) {
           unitCostCny = Math.max(0, row.unitCostCny);
-          unitCost = roundMoney(convertCurrency(unitCostCny, costCurrency, currency, rates));
+          unitCost = this.convertAmount(
+            unitCostCny,
+            costCurrency,
+            currency,
+            rates,
+            fxEnabled,
+          );
         } else if (row?.unitCost !== undefined) {
           unitCost = Math.max(0, row.unitCost);
-          unitCostCny = roundMoney(convertCurrency(unitCost, currency, costCurrency, rates));
+          unitCostCny = this.convertAmount(
+            unitCost,
+            currency,
+            costCurrency,
+            rates,
+            fxEnabled,
+          );
         } else if (!unitCostCny && unitCost > 0) {
-          unitCostCny = roundMoney(convertCurrency(unitCost, currency, costCurrency, rates));
+          unitCostCny = this.convertAmount(
+            unitCost,
+            currency,
+            costCurrency,
+            rates,
+            fxEnabled,
+          );
         }
 
         const quantity = Number(item.quantity);

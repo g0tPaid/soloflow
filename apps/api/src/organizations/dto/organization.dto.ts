@@ -182,4 +182,23 @@ export class UpdateOrganizationDto {
   @MinLength(3)
   @MaxLength(3)
   costCurrency?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'Currency used for dashboard totals display',
+    example: 'USD',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  dashboardCurrency?: string;
+
+  @ApiProperty({
+    required: false,
+    description: 'When false, dashboard and expenses skip FX conversion',
+  })
+  @IsOptional()
+  @IsBoolean()
+  fxEnabled?: boolean;
 }

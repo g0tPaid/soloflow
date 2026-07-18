@@ -286,6 +286,8 @@ export interface Organization {
   settings?: {
     currency: string;
     costCurrency?: string;
+    dashboardCurrency?: string;
+    fxEnabled?: boolean;
     timezone: string;
     branding?: OrganizationBranding;
     fxRates?: Record<string, number>;
