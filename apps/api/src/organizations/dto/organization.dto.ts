@@ -97,6 +97,11 @@ class BrandingDto {
   @IsOptional()
   @IsString()
   invoiceOffer4?: string;
+
+  @IsOptional()
+  @IsString()
+  @Matches(/^#[0-9A-Fa-f]{6}$/, { message: 'invoiceAccent must be a hex color like #DC2626' })
+  invoiceAccent?: string;
 }
 
 export class CreateOrganizationDto {

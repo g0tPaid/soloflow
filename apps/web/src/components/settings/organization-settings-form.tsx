@@ -9,7 +9,12 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
 import { updateOrganizationSchema, type UpdateOrganizationInput, parseFxRates, CURRENCIES } from '@flowbooks/shared';
-import { parseBranding } from '@/lib/organization-branding';
+import {
+  DEFAULT_INVOICE_ACCENT,
+  INVOICE_ACCENT_PRESETS,
+  normalizeInvoiceAccent,
+  parseBranding,
+} from '@/lib/organization-branding';
 import type { Organization } from '@/lib/api';
 import { cn } from '@/lib/utils';
 
@@ -41,6 +46,9 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     branding.invoiceOffer3 ?? null,
     branding.invoiceOffer4 ?? null,
   ]);
+  const [invoiceAccent, setInvoiceAccent] = useState(
+    normalizeInvoiceAccent(branding.invoiceAccent),
+  );
   const [costCurrency, setCostCurrency] = useState(
     (organization.settings?.costCurrency || 'CNY').toUpperCase(),
   );
@@ -115,6 +123,7 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
           invoiceOffer3: invoiceOffers[2] ?? '',
           invoiceOffer4: invoiceOffers[3] ?? '',
           invoiceBanner: '',
+          invoiceAccent: normalizeInvoiceAccent(invoiceAccent),
         },
         costCurrency: entryCode,
         fxRates,
@@ -156,6 +165,78 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
               placeholder="e.g. Premium Kerala Products"
               {...register('branding.tagline')}
             />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Invoice accent color</CardTitle>
+          <CardDescription>
+            Used for waves, headings, table headers, and totals on printed invoices and PDFs.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="flex flex-wrap gap-2">
+            {INVOICE_ACCENT_PRESETS.map((preset) => {
+              const selected = invoiceAccent.toUpperCase() === preset.value.toUpperCase();
+              return (
+                <button
+                  key={preset.value}
+                  type="button"
+                  onClick={() => setInvoiceAccent(preset.value)}
+                  className={cn(
+                    'flex items-center gap-2 rounded-md border px-3 py-2 text-sm transition-colors',
+                    selected
+                      ? 'border-slate-900 bg-slate-50 ring-2 ring-slate-900/10'
+                      : 'border-input hover:bg-muted/40',
+                  )}
+                  aria-pressed={selected}
+                >
+                  <span
+                    className="h-4 w-4 rounded-full border border-black/10"
+                    style={{ backgroundColor: preset.value }}
+                    aria-hidden
+                  />
+                  {preset.label}
+                </button>
+              );
+            })}
+          </div>
+          <div className="flex flex-wrap items-end gap-3">
+            <div className="space-y-2">
+              <Label htmlFor="invoiceAccentPicker">Custom color</Label>
+              <input
+                id="invoiceAccentPicker"
+                type="color"
+                value={invoiceAccent}
+                onChange={(e) => setInvoiceAccent(normalizeInvoiceAccent(e.target.value))}
+                className="h-10 w-14 cursor-pointer rounded-md border border-input bg-transparent p-1"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="invoiceAccentHex">Hex</Label>
+              <Input
+                id="invoiceAccentHex"
+                value={invoiceAccent}
+                onChange={(e) => {
+                  const next = e.target.value.trim();
+                  if (/^#[0-9A-Fa-f]{0,6}$/.test(next) || /^[0-9A-Fa-f]{0,6}$/.test(next)) {
+                    setInvoiceAccent(next.startsWith('#') ? next : `#${next}`);
+                  }
+                }}
+                onBlur={() => setInvoiceAccent(normalizeInvoiceAccent(invoiceAccent))}
+                className="w-32 font-mono uppercase"
+                maxLength={7}
+                placeholder={DEFAULT_INVOICE_ACCENT}
+              />
+            </div>
+            <div
+              className="mb-0.5 flex h-10 min-w-[140px] items-center justify-center rounded-md px-4 text-sm font-semibold text-white shadow-sm"
+              style={{ backgroundColor: normalizeInvoiceAccent(invoiceAccent) }}
+            >
+              Preview
+            </div>
           </div>
         </CardContent>
       </Card>

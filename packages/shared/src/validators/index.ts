@@ -61,6 +61,10 @@ export const createOrganizationSchema = z.object({
       invoiceOffer2: z.string().optional(),
       invoiceOffer3: z.string().optional(),
       invoiceOffer4: z.string().optional(),
+      invoiceAccent: z
+        .string()
+        .regex(/^#[0-9A-Fa-f]{6}$/, 'Use a hex color like #DC2626')
+        .optional(),
     })
     .optional(),
 });
@@ -94,6 +98,10 @@ export const updateOrganizationSchema = z.object({
       invoiceOffer2: z.string().optional(),
       invoiceOffer3: z.string().optional(),
       invoiceOffer4: z.string().optional(),
+      invoiceAccent: z
+        .string()
+        .regex(/^#[0-9A-Fa-f]{6}$/, 'Use a hex color like #DC2626')
+        .optional(),
     })
     .optional(),
   fxRates: z.record(z.string(), z.number().positive()).optional(),

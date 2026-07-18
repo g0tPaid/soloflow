@@ -16,17 +16,19 @@ import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
 import {
   formatAddressLines,
+  invoiceAccentPalette,
   parseBranding,
   resolveImageSrcForPrint,
+  type InvoiceAccentPalette,
 } from '@/lib/organization-branding';
 import type { LoadedPrintDocument } from '@/lib/print-pdf/load-print-data';
 
 const RED = '#DC2626';
-const RED_LIGHT = '#FEE2E2';
 const RED_DARK = '#991B1B';
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
 const GREEN_DARK = '#065F46';
+const DEFAULT_INVOICE_COLORS = invoiceAccentPalette(RED);
 
 /** Reserved space for the fixed wave + contact bar on every page. */
 const FOOTER_HEIGHT = 78;
@@ -312,16 +314,19 @@ function resolveImg(url: string | null | undefined, baseUrl: string) {
   return resolveImageSrcForPrint(url, baseUrl);
 }
 
-function TopWave() {
+function TopWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
   return (
     <Svg
       viewBox="0 0 1440 80"
       preserveAspectRatio="none"
       style={{ width: '100%', height: 28 }}
     >
-      <Path fill={RED} d="M0,48 C240,80 480,16 720,40 C960,64 1200,24 1440,48 L1440,0 L0,0 Z" />
       <Path
-        fill={RED_LIGHT}
+        fill={colors.accent}
+        d="M0,48 C240,80 480,16 720,40 C960,64 1200,24 1440,48 L1440,0 L0,0 Z"
+      />
+      <Path
+        fill={colors.light}
         fillOpacity={0.6}
         d="M0,56 C360,32 720,72 1080,44 C1260,32 1380,56 1440,56 L1440,0 L0,0 Z"
       />
@@ -329,7 +334,7 @@ function TopWave() {
   );
 }
 
-function SectionWave() {
+function SectionWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
   return (
     <Svg
       viewBox="0 0 1440 24"
@@ -337,14 +342,14 @@ function SectionWave() {
       style={{ width: '100%', height: 10, marginVertical: 6 }}
     >
       <Path
-        fill={RED_LIGHT}
+        fill={colors.light}
         d="M0,12 C180,24 360,0 540,12 C720,24 900,0 1080,12 C1260,24 1380,6 1440,12 L1440,24 L0,24 Z"
       />
     </Svg>
   );
 }
 
-function BottomWave() {
+function BottomWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
   return (
     <Svg
       viewBox="0 0 1440 100"
@@ -352,11 +357,11 @@ function BottomWave() {
       style={{ width: '100%', height: 36 }}
     >
       <Path
-        fill={RED_DARK}
+        fill={colors.dark}
         d="M0,36 C240,0 480,72 720,36 C960,0 1200,72 1440,36 L1440,100 L0,100 Z"
       />
       <Path
-        fill={RED}
+        fill={colors.accent}
         fillOpacity={0.85}
         d="M0,52 C360,88 720,16 1080,52 C1260,68 1380,40 1440,52 L1440,100 L0,100 Z"
       />
@@ -367,9 +372,11 @@ function BottomWave() {
 function ContinuedPageHeader({
   org,
   baseUrl,
+  accent = RED,
 }: {
   org: Organization;
   baseUrl: string;
+  accent?: string;
 }) {
   const logo = resolveImg(org.logo, baseUrl);
   const initial = (org.name ?? 'C').charAt(0).toUpperCase();
@@ -383,7 +390,9 @@ function ContinuedPageHeader({
             {logo ? (
               <Image src={logo} style={styles.continuedLogo} />
             ) : (
-              <Text style={styles.continuedLogoFallback}>{initial}</Text>
+              <Text style={[styles.continuedLogoFallback, { backgroundColor: accent }]}>
+                {initial}
+              </Text>
             )}
             <Text style={styles.continuedBrand}>{org.name}</Text>
           </View>
@@ -395,13 +404,19 @@ function ContinuedPageHeader({
   );
 }
 
-function PageFooter({ contacts }: { contacts: string[] }) {
+function PageFooter({
+  contacts,
+  colors = DEFAULT_INVOICE_COLORS,
+}: {
+  contacts: string[];
+  colors?: InvoiceAccentPalette;
+}) {
   const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
 
   return (
     <View style={styles.fixedFooter} fixed>
-      <BottomWave />
-      <View style={styles.footerBar}>
+      <BottomWave colors={colors} />
+      <View style={[styles.footerBar, { backgroundColor: colors.dark }]}>
         <Text style={styles.footerText}>{line || ' '}</Text>
       </View>
     </View>
@@ -440,7 +455,9 @@ function CompanyHeader({
         <Text style={[styles.logoFallback, { backgroundColor: accent }]}>{initial}</Text>
       )}
       <Text style={styles.brandName}>{org.name}</Text>
-      {branding.tagline ? <Text style={styles.tagline}>{branding.tagline}</Text> : null}
+      {branding.tagline ? (
+        <Text style={[styles.tagline, { color: accent }]}>{branding.tagline}</Text>
+      ) : null}
       {address ? <Text style={styles.muted}>{address}</Text> : null}
       <Text style={[styles.muted, { marginTop: 4 }]}>
         {[branding.phone, branding.email, branding.website].filter(Boolean).join(' · ')}
@@ -454,11 +471,13 @@ function ShippingSection({
   terms,
   fromCountry,
   toCountry,
+  colors = DEFAULT_INVOICE_COLORS,
 }: {
   method?: string | null;
   terms?: string | null;
   fromCountry?: string | null;
   toCountry?: string | null;
+  colors?: InvoiceAccentPalette;
 }) {
   const hasInfo = method || terms || fromCountry || toCountry;
   if (!hasInfo) return null;
@@ -486,19 +505,24 @@ function ShippingSection({
   const routeLabel =
     fromCountry || toCountry ? fromLabel + ' to ' + toLabel : '-';
 
+  const softCard = {
+    borderColor: colors.softBorder,
+    backgroundColor: colors.softBg,
+  };
+
   return (
     <View style={{ marginBottom: 12 }} wrap={false}>
-      <Text style={[styles.sectionLabel, { color: RED }]}>Shipping details</Text>
+      <Text style={[styles.sectionLabel, { color: colors.accent }]}>Shipping details</Text>
       <View style={{ flexDirection: 'row', gap: 8 }}>
-        <View style={styles.shippingCard}>
+        <View style={[styles.shippingCard, softCard]}>
           <Text style={styles.muted}>Method</Text>
           <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{methodLabel}</Text>
         </View>
-        <View style={styles.shippingCard}>
+        <View style={[styles.shippingCard, softCard]}>
           <Text style={styles.muted}>Terms</Text>
           <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{termsLabel}</Text>
         </View>
-        <View style={styles.shippingCard}>
+        <View style={[styles.shippingCard, softCard]}>
           <Text style={styles.muted}>Country route</Text>
           <Text style={{ fontWeight: 'bold', marginTop: 4, fontSize: 9 }}>{routeLabel}</Text>
         </View>
@@ -519,6 +543,7 @@ function InvoicePdfBody({
   const currency = invoice.currency;
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
+  const colors = invoiceAccentPalette(branding.invoiceAccent);
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const offerSrcs = [
@@ -538,16 +563,16 @@ function InvoicePdfBody({
 
   return (
     <Page size="A4" style={styles.page} wrap>
-      <ContinuedPageHeader org={org} baseUrl={baseUrl} />
-      <TopWave />
+      <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
+      <TopWave colors={colors} />
       <View style={styles.pagePad}>
-        <CompanyHeader org={org} baseUrl={baseUrl} />
-        <SectionWave />
+        <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
+        <SectionWave colors={colors} />
 
         <View style={styles.twoCol}>
           <View style={styles.colHalf}>
-            <View style={styles.billToCard}>
-              <Text style={styles.billToInitial}>
+            <View style={[styles.billToCard, { borderColor: colors.softBorder }]}>
+              <Text style={[styles.billToInitial, { backgroundColor: colors.accent }]}>
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
               </Text>
               <Text style={styles.billToName}>{customer?.name}</Text>
@@ -565,8 +590,13 @@ function InvoicePdfBody({
             </View>
           </View>
           <View style={styles.colHalf}>
-            <Text style={styles.invoiceTitle}>INVOICE</Text>
-            <View style={styles.metaBox}>
+            <Text style={[styles.invoiceTitle, { color: colors.accent }]}>INVOICE</Text>
+            <View
+              style={[
+                styles.metaBox,
+                { borderColor: colors.softBorder, backgroundColor: colors.softBg },
+              ]}
+            >
               <View style={styles.row}>
                 <Text style={styles.muted}>Invoice #</Text>
                 <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>
@@ -590,9 +620,10 @@ function InvoicePdfBody({
           terms={invoice.shippingTerms}
           fromCountry={invoice.shippingFromCountry}
           toCountry={invoice.shippingToCountry}
+          colors={colors}
         />
 
-        <View style={styles.tableHeader} wrap={false}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.accent }]} wrap={false}>
           <Text style={styles.colNo}>#</Text>
           <Text style={[styles.colImg, { textAlign: 'center' }]}>Image</Text>
           <Text style={styles.colDesc}>Description</Text>
@@ -632,7 +663,7 @@ function InvoicePdfBody({
 
         {invoice.notes ? (
           <View style={{ marginTop: 12, marginBottom: 8 }} wrap={false}>
-            <Text style={[styles.sectionLabel, { color: RED }]}>Notes</Text>
+            <Text style={[styles.sectionLabel, { color: colors.accent }]}>Notes</Text>
             <View style={styles.notesBox}>
               <Text>{invoice.notes}</Text>
             </View>
@@ -642,7 +673,7 @@ function InvoicePdfBody({
         <View style={[styles.twoCol, { marginTop: 8, alignItems: 'stretch' }]} wrap={false}>
           <View style={styles.colHalf}>
             <View style={styles.signatureBox}>
-              <Text style={[styles.sectionLabel, { color: RED, marginBottom: 8 }]}>
+              <Text style={[styles.sectionLabel, { color: colors.accent, marginBottom: 8 }]}>
                 Authorized signature
               </Text>
               {signatureSrc ? (
@@ -667,7 +698,7 @@ function InvoicePdfBody({
               {discountAmount > 0 ? (
                 <View style={styles.totalLine}>
                   <Text style={styles.muted}>Discount</Text>
-                  <Text style={{ color: RED }}>−{money(discountAmount, currency)}</Text>
+                  <Text style={{ color: colors.accent }}>−{money(discountAmount, currency)}</Text>
                 </View>
               ) : null}
               {taxAmount > 0 ? (
@@ -681,9 +712,9 @@ function InvoicePdfBody({
                   <Text>{money(taxAmount, currency)}</Text>
                 </View>
               ) : null}
-              <View style={styles.grandTotal}>
+              <View style={[styles.grandTotal, { borderTopColor: colors.accent }]}>
                 <Text>TOTAL DUE</Text>
-                <Text style={{ color: RED }}>{money(invoice.total, currency)}</Text>
+                <Text style={{ color: colors.accent }}>{money(invoice.total, currency)}</Text>
               </View>
             </View>
           </View>
@@ -692,10 +723,13 @@ function InvoicePdfBody({
         {offerSrcs.length > 0 ? (
           <View wrap={false}>
             <View style={styles.bannerWrap}>
-              <Text style={styles.offerTitle}>New Offers</Text>
+              <Text style={[styles.offerTitle, { color: colors.accent }]}>New Offers</Text>
               <View style={styles.offerRow}>
                 {offerSrcs.map((src, index) => (
-                  <View key={`offer-${index}`} style={styles.offerBox}>
+                  <View
+                    key={`offer-${index}`}
+                    style={[styles.offerBox, { borderColor: colors.softBorder }]}
+                  >
                     <Image src={src} style={styles.offerImg} cache={false} />
                   </View>
                 ))}
@@ -707,7 +741,7 @@ function InvoicePdfBody({
         ) : bannerSrc ? (
           <View wrap={false}>
             <View style={styles.bannerWrap}>
-              <Text style={styles.offerTitle}>New Offers</Text>
+              <Text style={[styles.offerTitle, { color: colors.accent }]}>New Offers</Text>
               <View style={{ overflow: 'hidden', borderRadius: 14 }}>
                 <Image src={bannerSrc} style={styles.banner} cache={false} />
               </View>
@@ -719,7 +753,7 @@ function InvoicePdfBody({
         )}
       </View>
 
-      <PageFooter contacts={footerContacts as string[]} />
+      <PageFooter contacts={footerContacts as string[]} colors={colors} />
       <PageNumber />
     </Page>
   );
