@@ -4,7 +4,8 @@ import { PrismaClient } from '@flowbooks/database';
 /**
  * Idempotent ALTERs matching packages/database/prisma/migrations.
  * Covers production DBs where migrate history was marked applied (or skipped)
- * but columns were never added — the failure mode behind login 500s on /organizations.
+ * but columns/enums were never added — the failure mode behind login 500s and
+ * invoice create 500s.
  */
 const REQUIRED_SCHEMA_STATEMENTS = [
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false`,
@@ -15,6 +16,8 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "shippingCostCny" DECIMAL(12,2) NOT NULL DEFAULT 0`,
   `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "taxRate" DECIMAL(5,2) NOT NULL DEFAULT 0`,
   `ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "unitCostCny" DECIMAL(12,2) NOT NULL DEFAULT 0`,
+  `DO $$ BEGIN ALTER TYPE "ShippingMethod" ADD VALUE 'LOCAL'; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN ALTER TYPE "ShippingTerms" ADD VALUE 'LOCAL'; EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
 ] as const;
 
 @Injectable()

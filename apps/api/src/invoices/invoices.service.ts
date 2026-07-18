@@ -146,76 +146,49 @@ export class InvoicesService {
 
 
 
-    return this.prisma.$transaction(async (tx) => {
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const invoice = await tx.invoice.create({
+          data: {
+            organizationId,
+            customerId: dto.customerId,
+            number,
+            issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
+            dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
+            currency: dto.currency || settings?.currency || 'INR',
+            notes: dto.notes,
+            discount: dto.discount || 0,
+            shipping,
+            shippingMethod: dto.shippingMethod ?? null,
+            shippingTerms: dto.shippingTerms ?? null,
+            shippingFromCountry: dto.shippingFromCountry?.trim() || null,
+            shippingToCountry: dto.shippingToCountry?.trim() || null,
+            subtotal,
+            taxRate,
+            taxAmount,
+            total,
+            items: {
+              create: dto.items.map((item) => {
+                const name = item.name?.trim() || null;
+                const description = item.description?.trim() || name || 'Item';
 
-      const invoice = await tx.invoice.create({
-
-        data: {
-
-          organizationId,
-
-          customerId: dto.customerId,
-
-          number,
-
-          issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
-
-          dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
-
-          currency: dto.currency || settings?.currency || 'INR',
-
-          notes: dto.notes,
-
-          discount: dto.discount || 0,
-
-          shipping,
-
-          shippingMethod: dto.shippingMethod ?? null,
-
-          shippingTerms: dto.shippingTerms ?? null,
-
-          shippingFromCountry: dto.shippingFromCountry?.trim() || null,
-
-          shippingToCountry: dto.shippingToCountry?.trim() || null,
-
-          subtotal,
-
-          taxRate,
-
-          taxAmount,
-
-          total,
-
-          items: {
-
-            create: dto.items.map((item) => {
-              const name = item.name?.trim() || null;
-              const description =
-                item.description?.trim() ||
-                name ||
-                'Item';
-
-              return {
-                productId: item.productId || null,
-                name,
-                description,
-                imageUrl:
-                  item.imageUrl ||
-                  (item.productId ? productImages.get(item.productId) ?? null : null),
-                quantity: item.quantity,
-                unitPrice: item.unitPrice,
-                taxRate: 0,
-                amount: item.quantity * item.unitPrice,
-              };
-            }),
-
+                return {
+                  productId: item.productId || null,
+                  name,
+                  description,
+                  imageUrl:
+                    item.imageUrl ||
+                    (item.productId ? productImages.get(item.productId) ?? null : null),
+                  quantity: item.quantity,
+                  unitPrice: item.unitPrice,
+                  taxRate: 0,
+                  amount: item.quantity * item.unitPrice,
+                };
+              }),
+            },
           },
-
-        },
-
-        include: { items: { include: { product: true } }, customer: true },
-
-      });
+          include: { items: { include: { product: true } }, customer: true },
+        });
 
 
 
@@ -231,12 +204,16 @@ export class InvoicesService {
         },
       });
 
-
-
       return invoice;
-
-    });
-
+      });
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      throw new BadRequestException(
+        message.includes('Unique constraint')
+          ? 'Invoice number already exists. Use a different number.'
+          : `Could not create invoice: ${message}`,
+      );
+    }
   }
 
 
