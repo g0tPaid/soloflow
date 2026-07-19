@@ -97,13 +97,13 @@ export default function NewExpensePage() {
         </Card>
       )}
 
-      {!isLoading && organizationId && vendors.length > 0 && (
+      {!isLoading && organizationId && organization && vendors.length > 0 && (
         <AddExpenseForm
           vendors={vendors}
           defaultCurrency={businessCurrency}
-          costCurrency={organization?.settings?.costCurrency}
-          fxRates={organization?.settings?.fxRates}
-          fxEnabled={organization?.settings?.fxEnabled !== false}
+          costCurrency={organization.settings?.costCurrency}
+          fxRates={organization.settings?.fxRates}
+          fxEnabled={organization.settings?.fxEnabled !== false}
           onSubmit={handleCreate}
         />
       )}

@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { Plus, Trash2 } from 'lucide-react';
 import {
@@ -67,11 +67,13 @@ export function AddExpenseForm({
   const router = useRouter();
   const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
   const entryCurrency = useMemo(() => normalizeCostCurrency(costCurrency), [costCurrency]);
+  const companyCurrency = defaultCurrency.toUpperCase();
 
   const [vendorId, setVendorId] = useState('');
   const [number, setNumber] = useState('');
   const [issueDate, setIssueDate] = useState(todayIsoDate);
-  const [currency, setCurrency] = useState(defaultCurrency.toUpperCase());
+  const [currency, setCurrency] = useState(companyCurrency);
+  const currencyTouched = useRef(false);
   const [notes, setNotes] = useState('');
   const [shipping, setShipping] = useState(0);
   const [shippingCostCny, setShippingCostCny] = useState(0);
@@ -82,6 +84,13 @@ export function AddExpenseForm({
   const [rows, setRows] = useState<LineRow[]>([newRow()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  // Always start from company currency; keep synced until the user picks another
+  useEffect(() => {
+    if (!currencyTouched.current) {
+      setCurrency(companyCurrency);
+    }
+  }, [companyCurrency]);
 
   const itemsRevenue = rows.reduce(
     (sum, row) => sum + roundMoney(Math.max(0, row.quantity) * Math.max(0, row.unitPrice)),
@@ -205,7 +214,10 @@ export function AddExpenseForm({
               id="currency"
               className={selectClassName}
               value={currency}
-              onChange={(e) => setCurrency(e.target.value)}
+              onChange={(e) => {
+                currencyTouched.current = true;
+                setCurrency(e.target.value);
+              }}
             >
               {CURRENCIES.map((c) => (
                 <option key={c.code} value={c.code}>
@@ -213,6 +225,9 @@ export function AddExpenseForm({
                 </option>
               ))}
             </select>
+            <p className="text-xs text-muted-foreground">
+              Defaults to your company currency ({companyCurrency})
+            </p>
           </div>
           <div className="space-y-2 sm:col-span-2">
             <Label htmlFor="notes">Notes (optional)</Label>
