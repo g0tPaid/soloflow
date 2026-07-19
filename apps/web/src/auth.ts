@@ -53,7 +53,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
 
         try {
           const result = await api.auth.login({
-            email: credentials.email as string,
+            email: String(credentials.email).trim().toLowerCase(),
             password: credentials.password as string,
           });
           return {

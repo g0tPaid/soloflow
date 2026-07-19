@@ -14,6 +14,10 @@ function superAdminEmails(): Set<string> {
   );
 }
 
+function normalizeEmail(email: string) {
+  return email.trim().toLowerCase();
+}
+
 @Injectable()
 export class AuthService {
   constructor(
@@ -22,7 +26,7 @@ export class AuthService {
   ) {}
 
   private async ensureSuperAdminFlag(userId: string, email: string) {
-    if (!superAdminEmails().has(email.toLowerCase())) return;
+    if (!superAdminEmails().has(normalizeEmail(email))) return;
     await this.prisma.user.update({
       where: { id: userId },
       data: { isSuperAdmin: true },
@@ -36,8 +40,19 @@ export class AuthService {
     });
   }
 
+  /** Case-insensitive user lookup (Postgres). */
+  private async findUserByEmail(email: string) {
+    const normalized = normalizeEmail(email);
+    return this.prisma.user.findFirst({
+      where: {
+        email: { equals: normalized, mode: 'insensitive' },
+      },
+    });
+  }
+
   async register(dto: RegisterDto) {
-    const existing = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const email = normalizeEmail(dto.email);
+    const existing = await this.findUserByEmail(email);
     if (existing) {
       throw new ConflictException('Email already registered');
     }
@@ -45,7 +60,7 @@ export class AuthService {
     const passwordHash = await bcrypt.hash(dto.password, 12);
     const user = await this.prisma.user.create({
       data: {
-        email: dto.email,
+        email,
         name: dto.name,
         passwordHash,
         lastActiveAt: new Date(),
@@ -64,7 +79,8 @@ export class AuthService {
   }
 
   async login(dto: LoginDto) {
-    const user = await this.prisma.user.findUnique({ where: { email: dto.email } });
+    const email = normalizeEmail(dto.email);
+    const user = await this.findUserByEmail(email);
     if (!user || !user.passwordHash) {
       throw new UnauthorizedException('Invalid credentials');
     }
@@ -78,7 +94,15 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    await this.ensureSuperAdminFlag(user.id, user.email);
+    // Normalize stored email so future exact lookups stay consistent
+    if (user.email !== email) {
+      await this.prisma.user.update({
+        where: { id: user.id },
+        data: { email },
+      });
+    }
+
+    await this.ensureSuperAdminFlag(user.id, email);
     await this.touchActive(user.id);
 
     const refreshed = await this.prisma.user.findUnique({
@@ -86,23 +110,24 @@ export class AuthService {
       select: { id: true, email: true, name: true, isSuperAdmin: true },
     });
 
-    const token = this.generateToken(user.id, user.email);
+    const token = this.generateToken(user.id, email);
     return {
       user: refreshed!,
       token,
     };
   }
+
   /** Single-user local mode — creates the owner account automatically. */
   async bootstrapLocal() {
     if (process.env.LOCAL_SINGLE_USER !== 'true') {
       throw new ForbiddenException('Local bootstrap is disabled');
     }
 
-    const email = process.env.LOCAL_USER_EMAIL || 'owner@local';
+    const email = normalizeEmail(process.env.LOCAL_USER_EMAIL || 'owner@local');
     const name = process.env.LOCAL_USER_NAME || 'Owner';
     const password = process.env.LOCAL_USER_PASSWORD || 'soloflow';
 
-    let user = await this.prisma.user.findUnique({ where: { email } });
+    let user = await this.findUserByEmail(email);
     if (!user) {
       const passwordHash = await bcrypt.hash(password, 12);
       user = await this.prisma.user.create({
@@ -146,7 +171,8 @@ export class AuthService {
     if (!user) throw new UnauthorizedException();
     return user;
   }
+
   private generateToken(userId: string, email: string) {
-    return this.jwt.sign({ sub: userId, email });
+    return this.jwt.sign({ sub: userId, email: normalizeEmail(email) });
   }
 }
