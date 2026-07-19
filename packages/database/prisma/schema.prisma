@@ -98,6 +98,7 @@ model Organization {
   members           OrganizationMember[]
   customRoles       CustomRole[]
   customers         Customer[]
+  vendors           Vendor[]
   products          Product[]
   invoices          Invoice[]
   quotes            Quote[]
@@ -217,6 +218,29 @@ model Customer {
   @@map("customers")
 }
 
+model Vendor {
+  id             String   @id @default(cuid())
+  organizationId String
+  name           String
+  email          String?
+  phone          String?
+  currency       String   @default("INR")
+  address        Json     @default("{}")
+  taxId          String?
+  notes          String?
+  customFields   Json     @default("{}")
+  isActive       Boolean  @default(true)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoices     Invoice[]
+
+  @@index([organizationId])
+  @@index([organizationId, email])
+  @@map("vendors")
+}
+
 model Product {
   id             String   @id @default(cuid())
   organizationId String
@@ -267,7 +291,9 @@ enum ShippingTerms {
 model Invoice {
   id                  String           @id @default(cuid())
   organizationId      String
-  customerId          String
+  /// Required for normal invoices; optional on expense records that use vendorId instead
+  customerId          String?
+  vendorId            String?
   number              String
   status              InvoiceStatus    @default(DRAFT)
   issueDate           DateTime         @default(now())
@@ -293,7 +319,8 @@ model Invoice {
   updatedAt           DateTime         @updatedAt
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  customer     Customer      @relation(fields: [customerId], references: [id])
+  customer     Customer?     @relation(fields: [customerId], references: [id])
+  vendor       Vendor?       @relation(fields: [vendorId], references: [id])
   items        InvoiceItem[]
   sourceQuotes Quote[]       @relation("QuoteConvertedInvoice")
 
@@ -301,6 +328,7 @@ model Invoice {
   @@index([organizationId])
   @@index([organizationId, status])
   @@index([organizationId, customerId])
+  @@index([organizationId, vendorId])
   @@map("invoices")
 }
 

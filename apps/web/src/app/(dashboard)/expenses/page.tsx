@@ -120,7 +120,7 @@ export default function ExpensesPage() {
                       <InvoiceStatusBadge status={row.status} />
                     </div>
                     <p className="text-sm text-muted-foreground">
-                      {row.customer?.name ?? 'Unknown customer'} · {formatDate(row.issueDate)}
+                      {row.vendor?.name ?? row.customer?.name ?? 'Unknown vendor'} · {formatDate(row.issueDate)}
                     </p>
                   </div>
                   <div className="grid grid-cols-3 gap-4 text-sm sm:gap-8">

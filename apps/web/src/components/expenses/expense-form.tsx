@@ -209,13 +209,14 @@ export function ExpenseForm({
             <InvoiceStatusBadge status={expense.status} />
           </div>
           <CardDescription>
-            {expense.customer?.name} · Issued {formatDate(expense.issueDate)} · {expense.currency}
+            {expense.vendor?.name ?? expense.customer?.name} · Issued {formatDate(expense.issueDate)} ·{' '}
+            {expense.currency}
           </CardDescription>
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4 text-sm">
           <div>
-            <p className="text-muted-foreground">Customer</p>
-            <p className="font-medium">{expense.customer?.name}</p>
+            <p className="text-muted-foreground">Vendor</p>
+            <p className="font-medium">{expense.vendor?.name ?? expense.customer?.name}</p>
           </div>
           <div>
             <p className="text-muted-foreground">Invoice total (revenue)</p>

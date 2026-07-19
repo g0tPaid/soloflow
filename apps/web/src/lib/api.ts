@@ -149,6 +149,8 @@ export interface Customer {
   } | null;
 }
 
+export type Vendor = Customer;
+
 export interface Product {
   id: string;
   name: string;
@@ -189,7 +191,8 @@ export interface InvoiceItem {
 export interface Invoice {
   id: string;
   organizationId: string;
-  customerId: string;
+  customerId?: string | null;
+  vendorId?: string | null;
   number: string;
   status: InvoiceStatus;
   issueDate: string;
@@ -212,7 +215,8 @@ export interface Invoice {
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
-  customer?: Customer;
+  customer?: Customer | null;
+  vendor?: Vendor | null;
   items?: InvoiceItem[];
 }
 
@@ -278,7 +282,8 @@ export interface ExpenseSummary {
   shippingCost?: number;
   totalCost: number;
   profit: number;
-  customer?: { id: string; name: string };
+  customer?: { id: string; name: string } | null;
+  vendor?: { id: string; name: string } | null;
 }
 
 export interface ExpenseDetail extends Invoice {
@@ -511,6 +516,54 @@ export const api = {
       }>,
     ) =>
       apiFetch<Customer>(`/customers/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
+  },
+  vendors: {
+    list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
+      apiFetch<PaginatedResult<Vendor>>(
+        `/vendors${buildQuery(params)}`,
+        { token, organizationId },
+      ),
+    get: (token: string, organizationId: string, id: string) =>
+      apiFetch<Vendor>(`/vendors/${id}`, { token, organizationId }),
+    create: (
+      token: string,
+      organizationId: string,
+      data: {
+        name: string;
+        email?: string | null;
+        phone?: string | null;
+        currency?: string;
+        taxId?: string | null;
+        notes?: string | null;
+        address?: Vendor['address'];
+      },
+    ) =>
+      apiFetch<Vendor>('/vendors', {
+        method: 'POST',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
+    update: (
+      token: string,
+      organizationId: string,
+      id: string,
+      data: Partial<{
+        name: string;
+        email?: string | null;
+        phone?: string | null;
+        currency?: string;
+        taxId?: string | null;
+        notes?: string | null;
+        address?: Vendor['address'];
+      }>,
+    ) =>
+      apiFetch<Vendor>(`/vendors/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),
         token,

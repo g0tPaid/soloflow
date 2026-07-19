@@ -14,13 +14,13 @@ export default function NewExpensePage() {
   const { organizationId, organization, businessCurrency, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
 
-  const { data: customersData, isLoading } = useQuery({
-    queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(session!.accessToken!, organizationId!, { limit: 100 }),
+  const { data: vendorsData, isLoading } = useQuery({
+    queryKey: ['vendors', organizationId],
+    queryFn: () => api.vendors.list(session!.accessToken!, organizationId!, { limit: 100 }),
     enabled: !!session?.accessToken && !!organizationId,
   });
 
-  const customers = customersData?.data ?? [];
+  const vendors = vendorsData?.data ?? [];
 
   async function handleCreate(data: CreateExpenseInput) {
     const token = session?.accessToken;
@@ -80,26 +80,26 @@ export default function NewExpensePage() {
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
       )}
 
-      {!isLoading && organizationId && customers.length === 0 && (
+      {!isLoading && organizationId && vendors.length === 0 && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
-            <p className="font-medium">No customers found</p>
+            <p className="font-medium">No vendors found</p>
             <p className="text-sm text-muted-foreground mt-1 mb-4">
-              Add a customer before recording a past invoice expense
+              Add a vendor before recording a past invoice expense
             </p>
             <Link
-              href="/customers/new"
+              href="/vendors/new"
               className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
             >
-              Add customer
+              Add vendor
             </Link>
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && organizationId && customers.length > 0 && (
+      {!isLoading && organizationId && vendors.length > 0 && (
         <AddExpenseForm
-          customers={customers}
+          vendors={vendors}
           defaultCurrency={businessCurrency}
           costCurrency={organization?.settings?.costCurrency}
           fxRates={organization?.settings?.fxRates}

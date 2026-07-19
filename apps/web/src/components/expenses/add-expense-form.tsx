@@ -18,7 +18,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { formatCurrency, cn } from '@/lib/utils';
-import type { Customer } from '@/lib/api';
+import type { Vendor } from '@/lib/api';
 
 const selectClassName = cn(
   'flex h-9 w-full rounded-md border border-input bg-transparent px-3 py-1 text-sm shadow-sm',
@@ -34,7 +34,7 @@ type LineRow = {
 };
 
 type Props = {
-  customers: Customer[];
+  vendors: Vendor[];
   defaultCurrency?: string;
   costCurrency?: string;
   fxRates?: unknown;
@@ -57,7 +57,7 @@ function newRow(): LineRow {
 }
 
 export function AddExpenseForm({
-  customers,
+  vendors,
   defaultCurrency = 'USD',
   costCurrency,
   fxRates,
@@ -68,7 +68,7 @@ export function AddExpenseForm({
   const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
   const entryCurrency = useMemo(() => normalizeCostCurrency(costCurrency), [costCurrency]);
 
-  const [customerId, setCustomerId] = useState('');
+  const [vendorId, setVendorId] = useState('');
   const [number, setNumber] = useState('');
   const [issueDate, setIssueDate] = useState(todayIsoDate);
   const [currency, setCurrency] = useState(defaultCurrency.toUpperCase());
@@ -106,8 +106,8 @@ export function AddExpenseForm({
 
   async function handleSave() {
     setError('');
-    if (!customerId) {
-      setError('Select a customer');
+    if (!vendorId) {
+      setError('Select a vendor');
       return;
     }
     if (!number.trim()) {
@@ -127,7 +127,7 @@ export function AddExpenseForm({
     setSubmitting(true);
     try {
       const created = await onSubmit({
-        customerId,
+        vendorId,
         number: number.trim(),
         issueDate,
         currency,
@@ -166,17 +166,17 @@ export function AddExpenseForm({
         </CardHeader>
         <CardContent className="grid gap-4 sm:grid-cols-2">
           <div className="space-y-2 sm:col-span-2">
-            <Label htmlFor="customerId">Customer *</Label>
+            <Label htmlFor="vendorId">Vendor *</Label>
             <select
-              id="customerId"
+              id="vendorId"
               className={selectClassName}
-              value={customerId}
-              onChange={(e) => setCustomerId(e.target.value)}
+              value={vendorId}
+              onChange={(e) => setVendorId(e.target.value)}
             >
-              <option value="">Select customer</option>
-              {customers.map((c) => (
-                <option key={c.id} value={c.id}>
-                  {c.name}
+              <option value="">Select vendor</option>
+              {vendors.map((v) => (
+                <option key={v.id} value={v.id}>
+                  {v.name}
                 </option>
               ))}
             </select>

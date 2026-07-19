@@ -83,7 +83,7 @@ export class CreateExpenseDto {
   @ApiProperty()
   @IsString()
   @MinLength(1)
-  customerId!: string;
+  vendorId!: string;
 
   @ApiProperty({ description: 'Original invoice number from outside the app' })
   @IsString()

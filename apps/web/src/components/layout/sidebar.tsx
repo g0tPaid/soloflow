@@ -35,6 +35,7 @@ import { useSession } from 'next-auth/react';
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   dashboard: LayoutDashboard,
   customers: Users,
+  vendors: Contact,
   products: Package,
   invoices: FileText,
   quotes: FileSpreadsheet,

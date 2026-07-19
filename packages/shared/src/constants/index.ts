@@ -223,6 +223,11 @@ export const PERMISSIONS = {
   CUSTOMERS_CREATE: 'customers:create',
   CUSTOMERS_UPDATE: 'customers:update',
   CUSTOMERS_DELETE: 'customers:delete',
+  // Vendors
+  VENDORS_READ: 'vendors:read',
+  VENDORS_CREATE: 'vendors:create',
+  VENDORS_UPDATE: 'vendors:update',
+  VENDORS_DELETE: 'vendors:delete',
   // Products
   PRODUCTS_READ: 'products:read',
   PRODUCTS_CREATE: 'products:create',
@@ -257,6 +262,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CUSTOMERS_READ,
     PERMISSIONS.CUSTOMERS_CREATE,
     PERMISSIONS.CUSTOMERS_UPDATE,
+    PERMISSIONS.VENDORS_READ,
+    PERMISSIONS.VENDORS_CREATE,
+    PERMISSIONS.VENDORS_UPDATE,
     PERMISSIONS.PRODUCTS_READ,
     PERMISSIONS.PRODUCTS_CREATE,
     PERMISSIONS.PRODUCTS_UPDATE,
@@ -273,6 +281,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   ACCOUNTANT: [
     PERMISSIONS.ORG_READ,
     PERMISSIONS.CUSTOMERS_READ,
+    PERMISSIONS.VENDORS_READ,
     PERMISSIONS.PRODUCTS_READ,
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.INVOICES_CREATE,
@@ -289,6 +298,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.CUSTOMERS_READ,
     PERMISSIONS.CUSTOMERS_CREATE,
     PERMISSIONS.CUSTOMERS_UPDATE,
+    PERMISSIONS.VENDORS_READ,
     PERMISSIONS.PRODUCTS_READ,
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.INVOICES_CREATE,
@@ -300,6 +310,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
   EMPLOYEE: [
     PERMISSIONS.ORG_READ,
     PERMISSIONS.CUSTOMERS_READ,
+    PERMISSIONS.VENDORS_READ,
     PERMISSIONS.PRODUCTS_READ,
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.QUOTES_READ,
@@ -328,6 +339,7 @@ export type FeatureFlag = (typeof FEATURE_FLAGS)[keyof typeof FEATURE_FLAGS];
 export const NAV_MODULES = [
   { key: 'dashboard', label: 'Dashboard', href: '/dashboard', enabled: true },
   { key: 'customers', label: 'Customers', href: '/customers', enabled: true },
+  { key: 'vendors', label: 'Vendors', href: '/vendors', enabled: true },
   { key: 'products', label: 'Products', href: '/products', enabled: true },
   { key: 'invoices', label: 'Invoices', href: '/invoices', enabled: true },
   { key: 'quotes', label: 'Quotes', href: '/quotes', enabled: true },

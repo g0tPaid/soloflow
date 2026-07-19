@@ -11,6 +11,7 @@ const MODULE_LABELS: Record<string, string> = {
   '/expenses': 'Expenses',
   '/receipts': 'Receipts',
   '/customers': 'Customers',
+  '/vendors': 'Vendors',
   '/products': 'Products',
   '/settings': 'Company',
 };

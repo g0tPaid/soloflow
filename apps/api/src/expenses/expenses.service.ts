@@ -68,6 +68,7 @@ export class ExpensesService {
         orderBy: { createdAt: 'desc' },
         include: {
           customer: { select: { id: true, name: true } },
+          vendor: { select: { id: true, name: true } },
           items: { select: { costAmount: true } },
         },
       }),
@@ -92,6 +93,7 @@ export class ExpensesService {
       where: { id, organizationId },
       include: {
         customer: true,
+        vendor: true,
         items: { include: { product: true }, orderBy: { id: 'asc' } },
       },
     });
@@ -102,11 +104,11 @@ export class ExpensesService {
   }
 
   async create(organizationId: string, dto: CreateExpenseDto) {
-    const customer = await this.prisma.customer.findFirst({
-      where: { id: dto.customerId, organizationId, isActive: true },
+    const vendor = await this.prisma.vendor.findFirst({
+      where: { id: dto.vendorId, organizationId, isActive: true },
       select: { id: true },
     });
-    if (!customer) throw new BadRequestException('Customer not found');
+    if (!vendor) throw new BadRequestException('Vendor not found');
 
     const number = await this.assertUniqueNumber(organizationId, dto.number);
     const { rates, costCurrency, defaultCurrency, fxEnabled } = await this.loadCostSettings(organizationId);
@@ -155,7 +157,8 @@ export class ExpensesService {
     const invoice = await this.prisma.invoice.create({
       data: {
         organizationId,
-        customerId: dto.customerId,
+        customerId: null,
+        vendorId: dto.vendorId,
         number,
         status: InvoiceStatus.PAID,
         issueDate: new Date(dto.issueDate),
@@ -189,6 +192,7 @@ export class ExpensesService {
       },
       include: {
         customer: true,
+        vendor: true,
         items: { include: { product: true }, orderBy: { id: 'asc' } },
       },
     });
@@ -304,6 +308,7 @@ export class ExpensesService {
         data: { shippingCost, shippingCostCny, totalCost },
         include: {
           customer: true,
+          vendor: true,
           items: { include: { product: true }, orderBy: { id: 'asc' } },
         },
       });
@@ -325,6 +330,7 @@ export class ExpensesService {
     shippingCostCny?: unknown;
     totalCost: unknown;
     customer: { id: string; name: string } | null;
+    vendor: { id: string; name: string } | null;
     items: { costAmount: unknown }[];
   }) {
     const revenue = Number(invoice.total);
@@ -349,13 +355,15 @@ export class ExpensesService {
       totalCost,
       profit,
       customer: invoice.customer,
+      vendor: invoice.vendor,
     };
   }
 
   private toExpenseDetail(invoice: {
     id: string;
     organizationId: string;
-    customerId: string;
+    customerId: string | null;
+    vendorId?: string | null;
     number: string;
     status: string;
     issueDate: Date;
@@ -377,6 +385,7 @@ export class ExpensesService {
     createdAt: Date;
     updatedAt: Date;
     customer: unknown;
+    vendor?: unknown;
     items: Array<{
       id: string;
       productId: string | null;

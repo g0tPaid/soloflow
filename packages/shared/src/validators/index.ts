@@ -172,6 +172,11 @@ export const createCustomerSchema = z.object({
 
 export const updateCustomerSchema = createCustomerSchema.partial();
 
+// ─── Vendor ──────────────────────────────────────────────────────────────────
+
+export const createVendorSchema = createCustomerSchema;
+export const updateVendorSchema = createVendorSchema.partial();
+
 // ─── Product ─────────────────────────────────────────────────────────────────
 
 export const createProductSchema = z.object({
@@ -302,7 +307,7 @@ export const createExpenseItemSchema = z.object({
 });
 
 export const createExpenseSchema = z.object({
-  customerId: z.string().min(1, 'Customer is required'),
+  vendorId: z.string().min(1, 'Vendor is required'),
   number: z.string().min(1, 'Invoice number is required').max(50),
   issueDate: dateStringSchema,
   currency: z.string().length(3).optional(),
@@ -325,6 +330,7 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
+export type CreateVendorInput = z.infer<typeof createVendorSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;

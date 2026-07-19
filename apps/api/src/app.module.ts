@@ -8,6 +8,7 @@ import { HealthModule } from './health/health.module';
 import { AuthModule } from './auth/auth.module';
 import { OrganizationsModule } from './organizations/organizations.module';
 import { CustomersModule } from './customers/customers.module';
+import { VendorsModule } from './vendors/vendors.module';
 import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ExpensesModule } from './expenses/expenses.module';
@@ -39,6 +40,7 @@ const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
     AuthModule,
     OrganizationsModule,
     CustomersModule,
+    VendorsModule,
     ProductsModule,
     InvoicesModule,
     QuotesModule,
