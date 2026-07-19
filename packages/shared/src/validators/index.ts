@@ -67,6 +67,8 @@ export const createOrganizationSchema = z.object({
       email: z.string().optional(),
       website: z.string().optional(),
       instagramUrl: z.string().optional(),
+      /** Company Tax Registration Number (TRN) */
+      trn: z.string().optional(),
       bankName: z.string().optional(),
       accountName: z.string().optional(),
       accountNumber: z.string().optional(),
@@ -105,6 +107,8 @@ export const updateOrganizationSchema = z.object({
       email: z.string().optional(),
       website: z.string().optional(),
       instagramUrl: z.string().optional(),
+      /** Company Tax Registration Number (TRN) */
+      trn: z.string().optional(),
       bankName: z.string().optional(),
       accountName: z.string().optional(),
       accountNumber: z.string().optional(),

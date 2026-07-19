@@ -187,6 +187,11 @@ export function InvoicePrintView({
             )}
 
             <div className="mt-1.5 flex flex-wrap items-center justify-center gap-x-3 gap-y-0.5 text-[11px] text-slate-600">
+              {branding.trn && (
+                <span className="inline-flex items-center gap-1 font-medium text-slate-700">
+                  TRN {branding.trn}
+                </span>
+              )}
               {branding.phone && (
                 <span className="inline-flex items-center gap-1">
                   <Phone className="h-3 w-3" style={{ color: colors.accent }} />

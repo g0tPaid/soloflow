@@ -63,6 +63,11 @@ class BrandingDto {
   @IsString()
   instagramUrl?: string;
 
+  @ApiProperty({ required: false, description: 'Company Tax Registration Number (TRN)' })
+  @IsOptional()
+  @IsString()
+  trn?: string;
+
   @IsOptional()
   @IsString()
   bankName?: string;

@@ -321,6 +321,8 @@ export interface OrganizationBranding {
   email?: string;
   website?: string;
   instagramUrl?: string;
+  /** Company Tax Registration Number */
+  trn?: string;
   bankName?: string;
   accountName?: string;
   accountNumber?: string;

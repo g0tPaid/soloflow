@@ -82,6 +82,7 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         email: branding.email ?? '',
         website: branding.website ?? '',
         instagramUrl: branding.instagramUrl ?? 'https://www.instagram.com/sevencolortrading/',
+        trn: branding.trn ?? '',
         bankName: branding.bankName ?? '',
         accountName: branding.accountName ?? '',
         accountNumber: branding.accountNumber ?? '',
@@ -195,6 +196,18 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
               placeholder="e.g. Premium Kerala Products"
               {...register('branding.tagline')}
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="trn">TRN Number</Label>
+            <Input
+              id="trn"
+              placeholder="e.g. 100123456700003"
+              {...register('branding.trn')}
+            />
+            <p className="text-xs text-muted-foreground">
+              Tax Registration Number shown on invoices and quotes
+            </p>
           </div>
         </CardContent>
       </Card>
