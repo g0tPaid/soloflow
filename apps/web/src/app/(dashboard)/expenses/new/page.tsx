@@ -10,7 +10,7 @@ import { Card, CardContent } from '@/components/ui/card';
 import type { CreateExpenseInput } from '@flowbooks/shared';
 
 export default function NewExpensePage() {
-  const { data: session } = useSession();
+  const { data: session, status } = useSession();
   const { organizationId, organization, businessCurrency, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
 
@@ -23,11 +23,37 @@ export default function NewExpensePage() {
   const customers = customersData?.data ?? [];
 
   async function handleCreate(data: CreateExpenseInput) {
-    const created = await api.expenses.create(session!.accessToken!, organizationId!, data);
+    const token = session?.accessToken;
+    if (!token || !organizationId) {
+      throw new Error('Session expired or not signed in. Please sign out and sign in again, then retry.');
+    }
+    const payload = JSON.parse(JSON.stringify(data, (_, value) => (value === null ? undefined : value))) as CreateExpenseInput;
+    const created = await api.expenses.create(token, organizationId, payload);
     await queryClient.invalidateQueries({ queryKey: ['expenses', organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] });
     return created;
+  }
+
+  if (status === 'authenticated' && !session?.accessToken) {
+    return (
+      <div className="mx-auto max-w-4xl space-y-6">
+        <Card className="border-dashed">
+          <CardContent className="flex flex-col items-center justify-center py-12 text-center">
+            <p className="font-medium">Your session expired</p>
+            <p className="text-sm text-muted-foreground mt-1 mb-4">
+              Sign in again to add expenses.
+            </p>
+            <Link
+              href="/login"
+              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
+            >
+              Sign in
+            </Link>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (

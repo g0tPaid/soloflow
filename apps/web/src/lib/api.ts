@@ -106,6 +106,11 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
     const message = Array.isArray(body.message)
       ? body.message.join(', ')
       : body.message || res.statusText;
+    if (res.status === 401) {
+      throw new Error(
+        'Session expired or not signed in. Please sign out and sign in again, then retry.',
+      );
+    }
     throw new Error(message || `API error: ${res.status}`);
   }
 

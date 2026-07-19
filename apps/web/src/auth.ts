@@ -7,6 +7,28 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
 const googleEnabled =
   !!process.env.AUTH_GOOGLE_ID?.trim() && !!process.env.AUTH_GOOGLE_SECRET?.trim();
 
+function isApiJwtExpired(accessToken: string): boolean {
+  try {
+    const payloadPart = accessToken.split('.')[1];
+    if (!payloadPart) return true;
+    const normalized = payloadPart.replace(/-/g, '+').replace(/_/g, '/');
+    const padded = normalized.padEnd(
+      normalized.length + ((4 - (normalized.length % 4)) % 4),
+      '=',
+    );
+    const json =
+      typeof atob === 'function'
+        ? atob(padded)
+        : Buffer.from(payloadPart, 'base64url').toString('utf8');
+    const payload = JSON.parse(json) as { exp?: number };
+    if (typeof payload.exp !== 'number') return false;
+    // Prefer re-login a minute before API rejects the token.
+    return payload.exp * 1000 <= Date.now() + 60_000;
+  } catch {
+    return true;
+  }
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
@@ -78,11 +100,20 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
         token.isSuperAdmin = authUser.isSuperAdmin ?? false;
       }
 
+      if (token.accessToken && isApiJwtExpired(String(token.accessToken))) {
+        delete token.accessToken;
+        token.isSuperAdmin = false;
+        return token;
+      }
+
       if (token.accessToken && token.isSuperAdmin === undefined) {
         try {
-          const profile = (await api.auth.me(token.accessToken as string)) as { isSuperAdmin?: boolean };
+          const profile = (await api.auth.me(token.accessToken as string)) as {
+            isSuperAdmin?: boolean;
+          };
           token.isSuperAdmin = profile.isSuperAdmin ?? false;
         } catch {
+          delete token.accessToken;
           token.isSuperAdmin = false;
         }
       }
@@ -91,7 +122,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
     },
     async session({ session, token }) {
       session.user.id = token.id as string;
-      session.accessToken = token.accessToken as string;
+      session.accessToken = token.accessToken as string | undefined;
       session.user.isSuperAdmin = Boolean(token.isSuperAdmin);
       return session;
     },
@@ -101,6 +132,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: 'jwt',
+    // Keep NextAuth aligned with API JWT default (7d) so stale UI sessions don't linger.
+    maxAge: 7 * 24 * 60 * 60,
   },
   secret: process.env.AUTH_SECRET,
 });
