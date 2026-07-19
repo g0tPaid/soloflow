@@ -222,6 +222,16 @@ export function ExpenseForm({
             <p className="text-muted-foreground">Invoice total (revenue)</p>
             <p className="font-medium">{formatCurrency(revenue, expense.currency)}</p>
           </div>
+          {Number(expense.inputTaxAmount ?? 0) > 0 && (
+            <div>
+              <p className="text-muted-foreground">
+                Input VAT ({Number(expense.inputTaxRate ?? 0)}%)
+              </p>
+              <p className="font-medium">
+                {formatCurrency(Number(expense.inputTaxAmount ?? 0), expense.currency)}
+              </p>
+            </div>
+          )}
           <div>
             <p className="text-muted-foreground">Due date</p>
             <p className="font-medium">{formatDate(expense.dueDate)}</p>

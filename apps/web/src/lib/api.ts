@@ -202,6 +202,10 @@ export interface Invoice {
   taxAmount: string | number;
   /** Invoice VAT percent (5 = 5%). */
   taxRate?: string | number;
+  /** Purchase / input VAT percent on vendor expenses. */
+  inputTaxRate?: string | number;
+  /** Purchase / input VAT amount. */
+  inputTaxAmount?: string | number;
   shipping: string | number;
   shippingCost?: string | number;
   shippingCostCny?: string | number;
@@ -298,6 +302,68 @@ export interface ExpenseDetail extends Invoice {
   marginPercent: number;
 }
 
+export interface VatReturnLine {
+  id: string;
+  number: string;
+  issueDate: string;
+  status: string;
+  currency: string;
+  partyName: string;
+  taxRate: number;
+  vatAmount: number;
+  vatAmountAed: number;
+  href: string;
+  netAmount?: number;
+  netAmountAed?: number;
+  purchaseCost?: number;
+  vendorTrn?: string | null;
+  recoverable?: boolean;
+}
+
+export interface VatReturnReport {
+  currency: 'AED';
+  companyTrn: string | null;
+  taxConfig: {
+    vatRegistered?: boolean;
+    filingFrequency?: 'quarterly' | 'monthly';
+    defaultEmirate?: string;
+  };
+  period: { from: string; to: string; filingDueDate: string };
+  boxes: {
+    box1: {
+      label: string;
+      emirate: string | null;
+      amountExVat: number;
+      vatAmount: number;
+    };
+    box9: {
+      label: string;
+      vatAmount: number;
+      nonRecoverableVatAmount: number;
+    };
+    box12: { label: string; vatAmount: number };
+    box13: { label: string; vatAmount: number };
+    box14: {
+      label: string;
+      vatAmount: number;
+      payable: boolean;
+      netVat: number;
+    };
+  };
+  totals: {
+    standardRatedSuppliesAed: number;
+    outputVatAed: number;
+    recoverableInputVatAed: number;
+    nonRecoverableInputVatAed: number;
+    netVatAed: number;
+  };
+  counts: { salesInvoices: number; purchaseExpenses: number };
+  outputLines: VatReturnLine[];
+  inputLines: VatReturnLine[];
+  emaraTaxUrl: string;
+  notes: string[];
+}
+
 function buildQuery(params?: Record<string, string | number | undefined>) {
   const normalized = { page: 1, ...(params ?? {}) };
   const search = new URLSearchParams();
@@ -355,6 +421,11 @@ export interface Organization {
     timezone: string;
     branding?: OrganizationBranding;
     fxRates?: Record<string, number>;
+    taxConfig?: {
+      vatRegistered?: boolean;
+      filingFrequency?: 'quarterly' | 'monthly';
+      defaultEmirate?: string;
+    };
   };
 }
 
@@ -475,6 +546,17 @@ export const api = {
         period: string;
         counts: { customers: number; products: number };
       }>('/dashboard/metrics', { token, organizationId }),
+  },
+  reports: {
+    vat: (
+      token: string,
+      organizationId: string,
+      params?: { from?: string; to?: string },
+    ) =>
+      apiFetch<VatReturnReport>(
+        `/reports/vat${buildQuery(params as Record<string, string | number | undefined>)}`,
+        { token, organizationId },
+      ),
   },
   customers: {
     list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>

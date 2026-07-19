@@ -139,6 +139,15 @@ export class CreateExpenseDto {
   @IsString()
   shippingToCountry?: string;
 
+  @ApiProperty({
+    required: false,
+    description: 'Purchase VAT percent paid to the vendor (UAE input VAT). 5 = 5%.',
+  })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  inputTaxRate?: number;
+
   @ApiProperty({ type: [CreateExpenseItemDto] })
   @IsArray()
   @ValidateNested({ each: true })

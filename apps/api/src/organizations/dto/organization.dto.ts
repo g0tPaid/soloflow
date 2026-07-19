@@ -7,9 +7,28 @@ import {
   ValidateNested,
   IsObject,
   IsBoolean,
+  IsIn,
 } from 'class-validator';
 import { Type } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
+
+class TaxConfigDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  vatRegistered?: boolean;
+
+  @ApiProperty({ required: false, enum: ['quarterly', 'monthly'] })
+  @IsOptional()
+  @IsIn(['quarterly', 'monthly'])
+  filingFrequency?: 'quarterly' | 'monthly';
+
+  @ApiProperty({ required: false, example: 'Dubai' })
+  @IsOptional()
+  @IsString()
+  @MaxLength(50)
+  defaultEmirate?: string;
+}
 
 class AddressDto {
   @IsOptional()
@@ -206,4 +225,11 @@ export class UpdateOrganizationDto {
   @IsOptional()
   @IsBoolean()
   fxEnabled?: boolean;
+
+  @ApiProperty({ required: false, description: 'UAE VAT filing preferences' })
+  @IsOptional()
+  @IsObject()
+  @ValidateNested()
+  @Type(() => TaxConfigDto)
+  taxConfig?: TaxConfigDto;
 }

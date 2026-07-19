@@ -10,9 +10,19 @@ type Props = {
   taxRate: number;
   onTaxRateChange: (value: number) => void;
   idPrefix?: string;
+  label?: string;
+  hintOn?: string;
+  hintOff?: string;
 };
 
-export function VatFields({ taxRate, onTaxRateChange, idPrefix = 'vat' }: Props) {
+export function VatFields({
+  taxRate,
+  onTaxRateChange,
+  idPrefix = 'vat',
+  label = 'Add VAT to this invoice',
+  hintOn = 'VAT is calculated on subtotal − discount + shipping, then added to the total.',
+  hintOff = 'Turn this on to charge VAT. Choose a percentage and the total updates automatically.',
+}: Props) {
   const vatOn = taxRate > 0;
 
   return (
@@ -25,7 +35,7 @@ export function VatFields({ taxRate, onTaxRateChange, idPrefix = 'vat' }: Props)
           onChange={(e) => onTaxRateChange(e.target.checked ? (taxRate > 0 ? taxRate : 5) : 0)}
           className="size-5 rounded border-input accent-[#E40046]"
         />
-        <span className="text-sm font-semibold">Add VAT to this invoice</span>
+        <span className="text-sm font-semibold">{label}</span>
       </label>
 
       {vatOn ? (
@@ -64,14 +74,10 @@ export function VatFields({ taxRate, onTaxRateChange, idPrefix = 'vat' }: Props)
               </button>
             ))}
           </div>
-          <p className="text-xs text-muted-foreground">
-            VAT is calculated on subtotal − discount + shipping, then added to the total.
-          </p>
+          <p className="text-xs text-muted-foreground">{hintOn}</p>
         </div>
       ) : (
-        <p className="text-sm text-muted-foreground">
-          Turn this on to charge VAT. Choose a percentage and the total updates automatically.
-        </p>
+        <p className="text-sm text-muted-foreground">{hintOff}</p>
       )}
     </div>
   );
