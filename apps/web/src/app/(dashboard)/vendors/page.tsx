@@ -113,15 +113,24 @@ export default function VendorsPage() {
             <Link
               key={vendor.id}
               href={`/vendors/${vendor.id}`}
-              className="flex items-center justify-between px-4 py-3 hover:bg-muted/50"
+              className="flex items-center justify-between gap-4 px-4 py-3 hover:bg-muted/50"
             >
-              <div>
-                <p className="font-medium">{vendor.name}</p>
-                <p className="text-sm text-muted-foreground">
+              <div className="min-w-0 flex-1">
+                <p className="font-medium truncate">{vendor.name}</p>
+                <p className="text-sm text-muted-foreground truncate">
                   {[vendor.email, vendor.phone].filter(Boolean).join(' · ') || 'No contact info'}
                 </p>
               </div>
-              <span className="text-sm text-muted-foreground">Edit →</span>
+              <div className="shrink-0 text-right">
+                {vendor.taxId ? (
+                  <p className="text-sm">
+                    <span className="text-muted-foreground">TRN </span>
+                    <span className="font-medium">{vendor.taxId}</span>
+                  </p>
+                ) : (
+                  <p className="text-sm text-primary">Add TRN Number →</p>
+                )}
+              </div>
             </Link>
           ))}
         </div>

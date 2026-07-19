@@ -129,8 +129,13 @@ export function VendorForm({
               </select>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID</Label>
-              <Input id="taxId" {...register('taxId')} />
+              <Label htmlFor="taxId">TRN Number</Label>
+              <Input
+                id="taxId"
+                placeholder="e.g. 100123456700003"
+                {...register('taxId')}
+              />
+              <p className="text-xs text-muted-foreground">Tax Registration Number</p>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="notes">Notes</Label>
