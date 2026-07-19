@@ -669,10 +669,15 @@ export class AdminService {
           OR: [
             { number: { contains: q, mode: 'insensitive' } },
             { customer: { name: { contains: q, mode: 'insensitive' } } },
+            { vendor: { name: { contains: q, mode: 'insensitive' } } },
           ],
         },
         take: 8,
-        include: { organization: { select: { name: true } }, customer: { select: { name: true } } },
+        include: {
+          organization: { select: { name: true } },
+          customer: { select: { name: true } },
+          vendor: { select: { name: true } },
+        },
       }),
       this.prisma.customer.findMany({
         where: { name: { contains: q, mode: 'insensitive' } },
@@ -697,7 +702,7 @@ export class AdminService {
       invoices: invoices.map((i) => ({
         id: i.id,
         label: i.number,
-        sub: `${i.organization.name} · ${i.customer.name}`,
+        sub: `${i.organization.name} · ${i.customer?.name ?? i.vendor?.name ?? '—'}`,
         href: `/admin/invoices?q=${encodeURIComponent(i.number)}`,
       })),
       expenses: invoices.map((i) => ({
@@ -730,13 +735,14 @@ export class AdminService {
     issueDate: Date;
     createdAt: Date;
     organization: { name: string };
-    customer: { name: string };
+    customer: { name: string } | null;
+    vendor?: { name: string } | null;
   }) {
     return {
       id: i.id,
       number: i.number,
       company: i.organization.name,
-      customer: i.customer.name,
+      customer: i.customer?.name ?? i.vendor?.name ?? '—',
       amount: Number(i.total),
       currency: i.currency,
       status: i.status,
