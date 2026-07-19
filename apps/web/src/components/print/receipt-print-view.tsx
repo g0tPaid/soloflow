@@ -72,6 +72,9 @@ export function ReceiptPrintView({
               <p className="mt-1 text-xs text-slate-500">{companyAddress.join(' · ')}</p>
             )}
             <div className="mt-2 flex flex-wrap items-center justify-center gap-3 text-xs text-slate-600">
+              {branding.trn && (
+                <span className="font-medium text-slate-700">TRN {branding.trn}</span>
+              )}
               {branding.phone && (
                 <span className="inline-flex items-center gap-1">
                   <Phone className="h-3 w-3 text-emerald-600" />
