@@ -311,6 +311,32 @@ export const api = {
         '/auth/login',
         { method: 'POST', body: JSON.stringify(data) },
       ),
+    forgotPassword: async (data: { email: string }) => {
+      if (typeof window !== 'undefined') {
+        return browserJsonRequest<{ message: string }>('/api/auth/forgot-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      }
+      return apiFetch<{ message: string }>('/auth/forgot-password', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
+    resetPassword: async (data: { token: string; password: string }) => {
+      if (typeof window !== 'undefined') {
+        return browserJsonRequest<{ message: string }>('/api/auth/reset-password', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(data),
+        });
+      }
+      return apiFetch<{ message: string }>('/auth/reset-password', {
+        method: 'POST',
+        body: JSON.stringify(data),
+      });
+    },
     bootstrap: () =>
       apiFetch<{ user: { id: string; email: string; name: string; isSuperAdmin?: boolean }; token: string }>(
         '/auth/bootstrap',

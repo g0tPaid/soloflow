@@ -90,7 +90,15 @@ export default function LoginPage() {
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="password">Password</Label>
+              <div className="flex items-center justify-between gap-2">
+                <Label htmlFor="password">Password</Label>
+                <Link
+                  href="/forgot-password"
+                  className="text-xs font-medium text-red-600 hover:underline"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <Input
                 id="password"
                 type="password"
@@ -101,6 +109,11 @@ export default function LoginPage() {
                 <p className="text-sm text-destructive">{errors.password.message}</p>
               )}
             </div>
+            {searchParams.get('reset') === '1' ? (
+              <p className="text-sm text-emerald-700">
+                Password updated. Sign in with your new password.
+              </p>
+            ) : null}
             {error && <p className="text-sm text-destructive">{error}</p>}
             <Button type="submit" className="w-full bg-red-600 hover:bg-red-700" disabled={loading}>
               {loading ? 'Signing in...' : 'Sign in'}

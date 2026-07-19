@@ -2,6 +2,8 @@ import { Test, TestingModule } from '@nestjs/testing';
 import { AuthService } from './auth.service';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
+import { ConfigService } from '@nestjs/config';
+import { MailService } from '../mail/mail.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -13,10 +15,26 @@ describe('AuthService', () => {
       create: jest.fn(),
       update: jest.fn(),
     },
+    verificationToken: {
+      deleteMany: jest.fn(),
+      create: jest.fn(),
+      findFirst: jest.fn(),
+    },
   };
 
   const mockJwt = {
     sign: jest.fn().mockReturnValue('test-token'),
+  };
+
+  const mockMail = {
+    send: jest.fn().mockResolvedValue({ delivered: true, mode: 'resend' }),
+  };
+
+  const mockConfig = {
+    get: jest.fn((key: string, fallback?: string) => {
+      if (key === 'APP_URL') return 'http://localhost:3000';
+      return fallback;
+    }),
   };
 
   beforeEach(async () => {
@@ -25,6 +43,8 @@ describe('AuthService', () => {
         AuthService,
         { provide: PrismaService, useValue: mockPrisma },
         { provide: JwtService, useValue: mockJwt },
+        { provide: MailService, useValue: mockMail },
+        { provide: ConfigService, useValue: mockConfig },
       ],
     }).compile();
 

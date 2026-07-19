@@ -34,3 +34,22 @@ export class LoginDto {
   @MinLength(8)
   password!: string;
 }
+
+export class ForgotPasswordDto {
+  @ApiProperty({ example: 'john@example.com' })
+  @Transform(normalizeEmail)
+  @IsEmail()
+  email!: string;
+}
+
+export class ResetPasswordDto {
+  @ApiProperty({ description: 'Token from the reset email link' })
+  @IsString()
+  @MinLength(20)
+  token!: string;
+
+  @ApiProperty({ example: 'newpassword123' })
+  @IsString()
+  @MinLength(8)
+  password!: string;
+}
