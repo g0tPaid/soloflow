@@ -541,10 +541,16 @@ function InvoicePdfBody({
   invoice,
   org,
   baseUrl,
+  documentLabel = 'INVOICE',
+  numberLabel = 'Invoice #',
+  dueDateLabel = 'Due Date',
 }: {
   invoice: Invoice;
   org: Organization;
   baseUrl: string;
+  documentLabel?: string;
+  numberLabel?: string;
+  dueDateLabel?: string;
 }) {
   const currency = invoice.currency;
   const customer = invoice.customer;
@@ -596,7 +602,7 @@ function InvoicePdfBody({
             </View>
           </View>
           <View style={styles.colHalf}>
-            <Text style={[styles.invoiceTitle, { color: colors.accent }]}>INVOICE</Text>
+            <Text style={[styles.invoiceTitle, { color: colors.accent }]}>{documentLabel}</Text>
             <View
               style={[
                 styles.metaBox,
@@ -604,7 +610,7 @@ function InvoicePdfBody({
               ]}
             >
               <View style={styles.row}>
-                <Text style={styles.muted}>Invoice #</Text>
+                <Text style={styles.muted}>{numberLabel}</Text>
                 <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>
               </View>
               <View style={styles.row}>
@@ -613,7 +619,7 @@ function InvoicePdfBody({
               </View>
               {invoice.dueDate ? (
                 <View style={styles.row}>
-                  <Text style={styles.muted}>Due Date</Text>
+                  <Text style={styles.muted}>{dueDateLabel}</Text>
                   <Text style={{ fontWeight: 'bold' }}>{fmtDate(invoice.dueDate)}</Text>
                 </View>
               ) : null}
@@ -1063,6 +1069,19 @@ function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string) {
       return (
         <Document>
           <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+        </Document>
+      );
+    case 'quotes':
+      return (
+        <Document>
+          <InvoicePdfBody
+            invoice={document.invoice}
+            org={document.org}
+            baseUrl={baseUrl}
+            documentLabel="QUOTE"
+            numberLabel="Quote #"
+            dueDateLabel="Valid Until"
+          />
         </Document>
       );
     case 'receipts':

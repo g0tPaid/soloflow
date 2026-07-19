@@ -1,6 +1,6 @@
 import { buildServerPdfUrl } from '@/lib/build-server-pdf-url';
 
-export type ServerPdfType = 'invoices' | 'receipts' | 'expenses';
+export type ServerPdfType = 'invoices' | 'receipts' | 'expenses' | 'quotes';
 
 export async function fetchServerPdfFile(
   type: ServerPdfType,

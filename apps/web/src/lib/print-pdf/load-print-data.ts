@@ -1,11 +1,13 @@
 import 'server-only';
 
 import { api, type ExpenseDetail, type Invoice, type Organization } from '@/lib/api';
+import { quoteAsInvoiceForPrint } from '@/lib/quote-print';
 
 export type LoadedPrintDocument =
   | { type: 'invoices'; invoice: Invoice; org: Organization }
   | { type: 'receipts'; invoice: Invoice; org: Organization }
-  | { type: 'expenses'; expense: ExpenseDetail };
+  | { type: 'expenses'; expense: ExpenseDetail }
+  | { type: 'quotes'; invoice: Invoice; org: Organization };
 
 export async function loadPrintDocument(
   accessToken: string,
@@ -27,6 +29,13 @@ export async function loadPrintDocument(
       return type === 'invoices'
         ? { type: 'invoices', invoice, org }
         : { type: 'receipts', invoice, org };
+    }
+    case 'quotes': {
+      const [quote, org] = await Promise.all([
+        api.quotes.get(accessToken, organizationId, id),
+        api.organizations.get(accessToken, organizationId),
+      ]);
+      return { type: 'quotes', invoice: quoteAsInvoiceForPrint(quote), org };
     }
     case 'expenses': {
       const expense = await api.expenses.get(accessToken, organizationId, id);

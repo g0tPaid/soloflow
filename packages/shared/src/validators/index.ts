@@ -239,6 +239,44 @@ export const updateInvoiceSchema = z.object({
   items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
 });
 
+// ─── Quotes ──────────────────────────────────────────────────────────────────
+
+export const quoteItemSchema = invoiceItemSchema;
+
+export const createQuoteSchema = z.object({
+  customerId: z.string().min(1, 'Customer is required'),
+  number: z.string().min(1, 'Quote number is required').max(50).optional(),
+  issueDate: dateStringSchema.optional(),
+  validUntil: optionalDateField.optional(),
+  currency: z.string().length(3).optional(),
+  notes: z.string().optional().nullable(),
+  discount: z.number().min(0).optional(),
+  shipping: z.number().min(0).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
+  shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
+  shippingFromCountry: z.string().optional().nullable(),
+  shippingToCountry: z.string().optional().nullable(),
+  items: z.array(quoteItemSchema).min(1, 'At least one item is required'),
+});
+
+export const updateQuoteSchema = z.object({
+  number: z.string().min(1, 'Quote number is required').max(50).optional(),
+  status: z
+    .enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED', 'CONVERTED'])
+    .optional(),
+  validUntil: optionalDateField.optional(),
+  notes: z.string().optional().nullable(),
+  discount: z.number().min(0).optional(),
+  shipping: z.number().min(0).optional(),
+  taxRate: z.number().min(0).max(100).optional(),
+  shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
+  shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
+  shippingFromCountry: z.string().optional().nullable(),
+  shippingToCountry: z.string().optional().nullable(),
+  items: z.array(quoteItemSchema).min(1, 'At least one item is required').optional(),
+});
+
 export const updateExpenseCostsSchema = z.object({
   items: z
     .array(
@@ -290,7 +328,10 @@ export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
+export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
+export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;
 export type UpdateExpenseCostsInput = z.infer<typeof updateExpenseCostsSchema>;
 export type CreateExpenseInput = z.infer<typeof createExpenseSchema>;
 export type CreateExpenseItemInput = z.infer<typeof createExpenseItemSchema>;
 export type InvoiceItemInput = z.infer<typeof invoiceItemSchema>;
+export type QuoteItemInput = z.infer<typeof quoteItemSchema>;

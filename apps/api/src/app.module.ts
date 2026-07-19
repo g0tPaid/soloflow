@@ -11,6 +11,7 @@ import { CustomersModule } from './customers/customers.module';
 import { ProductsModule } from './products/products.module';
 import { InvoicesModule } from './invoices/invoices.module';
 import { ExpensesModule } from './expenses/expenses.module';
+import { QuotesModule } from './quotes/quotes.module';
 import { DashboardModule } from './dashboard/dashboard.module';
 import { AdminModule } from './admin/admin.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
@@ -40,6 +41,7 @@ const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
     CustomersModule,
     ProductsModule,
     InvoicesModule,
+    QuotesModule,
     ExpensesModule,
     DashboardModule,
     AdminModule,

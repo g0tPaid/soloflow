@@ -100,6 +100,7 @@ model Organization {
   customers         Customer[]
   products          Product[]
   invoices          Invoice[]
+  quotes            Quote[]
   auditLogs         AuditLog[]
   customFieldDefs   CustomFieldDefinition[]
   featureFlags      FeatureFlag[]
@@ -127,6 +128,8 @@ model OrganizationSettings {
   fxRates        Json    @default("{\"USD\":1,\"CNY\":7.25,\"EUR\":0.92,\"GBP\":0.79}")
   invoicePrefix  String  @default("INV")
   invoiceNextNum Int     @default(1)
+  quotePrefix    String  @default("QUO")
+  quoteNextNum   Int     @default(1)
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
 
@@ -207,6 +210,7 @@ model Customer {
 
   organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invoices     Invoice[]
+  quotes       Quote[]
 
   @@index([organizationId])
   @@index([organizationId, email])
@@ -230,6 +234,7 @@ model Product {
 
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   invoiceItems InvoiceItem[]
+  quoteItems   QuoteItem[]
 
   @@index([organizationId])
   @@index([organizationId, sku])
@@ -290,6 +295,7 @@ model Invoice {
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customer     Customer      @relation(fields: [customerId], references: [id])
   items        InvoiceItem[]
+  sourceQuotes Quote[]       @relation("QuoteConvertedInvoice")
 
   @@unique([organizationId, number])
   @@index([organizationId])
@@ -318,6 +324,73 @@ model InvoiceItem {
 
   @@index([invoiceId])
   @@map("invoice_items")
+}
+
+enum QuoteStatus {
+  DRAFT
+  SENT
+  ACCEPTED
+  REJECTED
+  EXPIRED
+  CANCELLED
+  CONVERTED
+}
+
+model Quote {
+  id                  String        @id @default(cuid())
+  organizationId      String
+  customerId          String
+  number              String
+  status              QuoteStatus   @default(DRAFT)
+  issueDate           DateTime      @default(now())
+  /// Valid until (mirrors invoice dueDate)
+  validUntil          DateTime?
+  currency            String        @default("USD")
+  subtotal            Decimal       @default(0) @db.Decimal(12, 2)
+  taxAmount           Decimal       @default(0) @db.Decimal(12, 2)
+  taxRate             Decimal       @default(0) @db.Decimal(5, 2)
+  shipping            Decimal       @default(0) @db.Decimal(12, 2)
+  discount            Decimal       @default(0) @db.Decimal(12, 2)
+  total               Decimal       @default(0) @db.Decimal(12, 2)
+  shippingMethod      ShippingMethod?
+  shippingTerms       ShippingTerms?
+  shippingFromCountry String?
+  shippingToCountry   String?
+  notes               String?
+  convertedInvoiceId  String?
+  customFields        Json          @default("{}")
+  createdAt           DateTime      @default(now())
+  updatedAt           DateTime      @updatedAt
+
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  customer         Customer     @relation(fields: [customerId], references: [id])
+  convertedInvoice Invoice?     @relation("QuoteConvertedInvoice", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
+  items            QuoteItem[]
+
+  @@unique([organizationId, number])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([organizationId, customerId])
+  @@map("quotes")
+}
+
+model QuoteItem {
+  id          String  @id @default(cuid())
+  quoteId     String
+  productId   String?
+  name        String?
+  description String
+  imageUrl    String?
+  quantity    Decimal @default(1) @db.Decimal(12, 4)
+  unitPrice   Decimal @default(0) @db.Decimal(12, 2)
+  taxRate     Decimal @default(0) @db.Decimal(5, 4)
+  amount      Decimal @default(0) @db.Decimal(12, 2)
+
+  quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id])
+
+  @@index([quoteId])
+  @@map("quote_items")
 }
 
 // ─── Extensibility ───────────────────────────────────────────────────────────

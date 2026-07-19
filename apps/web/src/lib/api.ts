@@ -1,6 +1,8 @@
 import type {
   CreateInvoiceInput,
   UpdateInvoiceInput,
+  CreateQuoteInput,
+  UpdateQuoteInput,
   UpdateExpenseCostsInput,
   CreateExpenseInput,
   UpdateOrganizationInput,
@@ -212,6 +214,56 @@ export interface Invoice {
   updatedAt: string;
   customer?: Customer;
   items?: InvoiceItem[];
+}
+
+export type QuoteStatus =
+  | 'DRAFT'
+  | 'SENT'
+  | 'ACCEPTED'
+  | 'REJECTED'
+  | 'EXPIRED'
+  | 'CANCELLED'
+  | 'CONVERTED';
+
+export interface QuoteItem {
+  id: string;
+  productId?: string | null;
+  name?: string | null;
+  description: string;
+  imageUrl?: string | null;
+  quantity: string | number;
+  unitPrice: string | number;
+  taxRate: string | number;
+  amount: string | number;
+  product?: Product | null;
+}
+
+export interface Quote {
+  id: string;
+  organizationId: string;
+  customerId: string;
+  number: string;
+  status: QuoteStatus;
+  issueDate: string;
+  validUntil?: string | null;
+  currency: string;
+  subtotal: string | number;
+  taxAmount: string | number;
+  /** Quote VAT percent (5 = 5%). */
+  taxRate?: string | number;
+  shipping: string | number;
+  discount: string | number;
+  total: string | number;
+  shippingMethod?: 'AIR' | 'SEA' | 'LOCAL' | null;
+  shippingTerms?: 'DDP' | 'LCL' | 'LOCAL' | null;
+  shippingFromCountry?: string | null;
+  shippingToCountry?: string | null;
+  notes?: string | null;
+  convertedInvoiceId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+  customer?: Customer;
+  items?: QuoteItem[];
 }
 
 export interface ExpenseSummary {
@@ -558,6 +610,61 @@ export const api = {
           ...data,
           items: data.items ? toApiLineItems(data.items) : undefined,
         }),
+        token,
+        organizationId,
+      }),
+  },
+  quotes: {
+    list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
+      apiFetch<PaginatedResult<Quote>>(
+        `/quotes${buildQuery(params)}`,
+        { token, organizationId },
+      ),
+    get: (token: string, organizationId: string, id: string) =>
+      apiFetch<Quote>(`/quotes/${id}`, { token, organizationId }),
+    nextNumber: (token: string, organizationId: string) =>
+      apiFetch<{ number: string }>('/quotes/next-number', { token, organizationId }),
+    create: (token: string, organizationId: string, data: CreateQuoteInput) => {
+      const discount = Number.isFinite(data.discount) ? data.discount! : 0;
+      const shipping = Number.isFinite(data.shipping) ? data.shipping! : 0;
+      const taxRate = Number.isFinite(data.taxRate) ? data.taxRate! : 0;
+      const validUntil = data.validUntil && data.validUntil !== '' ? data.validUntil : null;
+
+      return apiFetch<Quote>('/quotes', {
+        method: 'POST',
+        body: JSON.stringify({
+          customerId: data.customerId,
+          number: data.number?.trim() || undefined,
+          issueDate: data.issueDate,
+          validUntil,
+          currency: data.currency,
+          notes: data.notes || null,
+          discount,
+          shipping,
+          taxRate,
+          shippingMethod: data.shippingMethod ?? null,
+          shippingTerms: data.shippingTerms ?? null,
+          shippingFromCountry: data.shippingFromCountry?.trim() || null,
+          shippingToCountry: data.shippingToCountry?.trim() || null,
+          items: toApiLineItems(data.items),
+        }),
+        token,
+        organizationId,
+      });
+    },
+    update: (token: string, organizationId: string, id: string, data: UpdateQuoteInput) =>
+      apiFetch<Quote>(`/quotes/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          ...data,
+          items: data.items ? toApiLineItems(data.items) : undefined,
+        }),
+        token,
+        organizationId,
+      }),
+    convert: (token: string, organizationId: string, id: string) =>
+      apiFetch<{ quote: Quote; invoice: Invoice }>(`/quotes/${id}/convert`, {
+        method: 'POST',
         token,
         organizationId,
       }),

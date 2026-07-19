@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 
 const MODULE_LABELS: Record<string, string> = {
   '/invoices': 'Invoices',
+  '/quotes': 'Quotes',
   '/expenses': 'Expenses',
   '/receipts': 'Receipts',
   '/customers': 'Customers',

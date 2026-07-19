@@ -1,5 +1,5 @@
 export function buildServerPdfUrl(
-  type: 'invoices' | 'receipts' | 'expenses',
+  type: 'invoices' | 'receipts' | 'expenses' | 'quotes',
   id: string,
   options?: { organizationId?: string | null; filename?: string },
 ) {

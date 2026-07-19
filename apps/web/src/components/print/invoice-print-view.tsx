@@ -92,9 +92,20 @@ type InvoicePrintViewProps = {
   invoice: Invoice;
   org: Organization | null | undefined;
   baseUrl?: string;
+  /** Large document title, e.g. INVOICE or QUOTE */
+  documentLabel?: string;
+  numberLabel?: string;
+  dueDateLabel?: string;
 };
 
-export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProps) {
+export function InvoicePrintView({
+  invoice,
+  org,
+  baseUrl,
+  documentLabel = 'INVOICE',
+  numberLabel = 'Invoice #',
+  dueDateLabel = 'Due Date',
+}: InvoicePrintViewProps) {
   const resolveImage = (url?: string | null) =>
     baseUrl ? resolveImageSrcForPrint(url, baseUrl) : resolveImageSrc(url);
 
@@ -249,7 +260,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                 className="text-3xl font-extrabold tracking-tight sm:text-4xl"
                 style={{ color: colors.accent }}
               >
-                INVOICE
+                {documentLabel}
               </p>
               <div
                 className="mt-4 w-full rounded-xl border px-5 py-4 text-left sm:text-right"
@@ -260,7 +271,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
               >
                 <dl className="space-y-2 text-sm">
                   <div className="flex justify-between gap-4 sm:flex-col sm:gap-1">
-                    <dt className="font-medium text-slate-500">Invoice #</dt>
+                    <dt className="font-medium text-slate-500">{numberLabel}</dt>
                     <dd className="font-semibold text-slate-900">{invoice.number}</dd>
                   </div>
                   <div className="flex justify-between gap-4 sm:flex-col sm:gap-1">
@@ -269,7 +280,7 @@ export function InvoicePrintView({ invoice, org, baseUrl }: InvoicePrintViewProp
                   </div>
                   {invoice.dueDate && (
                     <div className="flex justify-between gap-4 sm:flex-col sm:gap-1">
-                      <dt className="font-medium text-slate-500">Due Date</dt>
+                      <dt className="font-medium text-slate-500">{dueDateLabel}</dt>
                       <dd className="font-semibold text-slate-900">{formatDate(invoice.dueDate)}</dd>
                     </div>
                   )}

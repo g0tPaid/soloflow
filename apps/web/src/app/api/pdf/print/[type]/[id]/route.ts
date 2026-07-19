@@ -5,7 +5,7 @@ import { generatePrintPdf } from '@/lib/generate-print-pdf';
 export const runtime = 'nodejs';
 export const maxDuration = 120;
 
-const VALID_TYPES = new Set(['invoices', 'receipts', 'expenses']);
+const VALID_TYPES = new Set(['invoices', 'receipts', 'expenses', 'quotes']);
 
 export async function GET(
   request: Request,
