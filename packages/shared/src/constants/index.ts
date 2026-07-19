@@ -346,6 +346,6 @@ export const NAV_MODULES = [
   { key: 'expenses', label: 'Expenses', href: '/expenses', enabled: true },
   { key: 'receipts', label: 'Receipts', href: '/receipts', enabled: true },
   { key: 'settings', label: 'Company Details', href: '/settings', enabled: true },
-  { key: 'reports', label: 'Reports', href: '/reports', enabled: false },
+  { key: 'reports', label: 'Reports', href: '/reports', enabled: true },
   { key: 'inventory', label: 'Inventory', href: '/inventory', enabled: false },
 ] as const;

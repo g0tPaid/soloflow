@@ -139,6 +139,13 @@ export const updateOrganizationSchema = z.object({
     .transform((v) => v.toUpperCase())
     .optional(),
   fxEnabled: z.boolean().optional(),
+  taxConfig: z
+    .object({
+      vatRegistered: z.boolean().optional(),
+      filingFrequency: z.enum(['quarterly', 'monthly']).optional(),
+      defaultEmirate: z.string().max(50).optional(),
+    })
+    .optional(),
 });
 
 export const inviteMemberSchema = z.object({
@@ -322,6 +329,8 @@ export const createExpenseSchema = z.object({
   shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
   shippingFromCountry: z.string().optional().nullable(),
   shippingToCountry: z.string().optional().nullable(),
+  /** Purchase VAT % paid to the vendor (UAE input VAT). 5 = 5%. */
+  inputTaxRate: z.number().min(0).max(100).optional().default(0),
   items: z.array(createExpenseItemSchema).min(1, 'At least one item is required'),
 });
 

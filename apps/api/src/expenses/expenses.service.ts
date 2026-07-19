@@ -153,6 +153,9 @@ export class ExpensesService {
     const total = roundMoney(subtotal + shipping);
     const itemsCost = roundMoney(lineData.reduce((sum, row) => sum + row.costAmount, 0));
     const totalCost = roundMoney(itemsCost + shippingCost);
+    const inputTaxRate = Math.max(0, Math.min(100, Number(dto.inputTaxRate) || 0));
+    const inputTaxAmount =
+      inputTaxRate > 0 ? roundMoney(totalCost * (inputTaxRate / 100)) : 0;
 
     const invoice = await this.prisma.invoice.create({
       data: {
@@ -174,6 +177,9 @@ export class ExpensesService {
         shippingCostCny,
         subtotal,
         taxAmount: 0,
+        taxRate: 0,
+        inputTaxRate,
+        inputTaxAmount,
         total,
         totalCost,
         items: {

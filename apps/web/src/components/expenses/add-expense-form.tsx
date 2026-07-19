@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
+import { VatFields } from '@/components/invoices/vat-fields';
 import { formatCurrency, cn } from '@/lib/utils';
 import type { Vendor } from '@/lib/api';
 
@@ -81,9 +82,13 @@ export function AddExpenseForm({
   const [shippingTerms, setShippingTerms] = useState<'DDP' | 'LCL' | 'LOCAL' | undefined>();
   const [shippingFromCountry, setShippingFromCountry] = useState('');
   const [shippingToCountry, setShippingToCountry] = useState('');
+  const [inputTaxRate, setInputTaxRate] = useState(0);
   const [rows, setRows] = useState<LineRow[]>([newRow()]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+
+  const selectedVendor = vendors.find((v) => v.id === vendorId);
+  const vendorHasTrn = Boolean(selectedVendor?.taxId?.trim());
 
   // Always start from company currency; keep synced until the user picks another
   useEffect(() => {
@@ -107,6 +112,8 @@ export function AddExpenseForm({
     convertCurrencyMaybe(Math.max(0, shippingCostCny), entryCurrency, currency, rates, fxEnabled),
   );
   const totalCost = roundMoney(itemsCost + shippingCost);
+  const inputTaxAmount =
+    inputTaxRate > 0 ? roundMoney(totalCost * (inputTaxRate / 100)) : 0;
   const profit = roundMoney(revenue - totalCost);
 
   function updateRow(key: string, patch: Partial<LineRow>) {
@@ -147,6 +154,7 @@ export function AddExpenseForm({
         shippingTerms: shippingTerms ?? null,
         shippingFromCountry: shippingFromCountry.trim() || null,
         shippingToCountry: shippingToCountry.trim() || null,
+        inputTaxRate: Math.max(0, inputTaxRate),
         items: validItems.map((row) => ({
           description: row.description.trim(),
           name: row.description.trim(),
@@ -460,6 +468,40 @@ export function AddExpenseForm({
 
       <Card>
         <CardHeader>
+          <CardTitle>VAT on purchase (input VAT)</CardTitle>
+          <CardDescription>
+            UAE recoverable VAT paid to the vendor. Use 5% for standard-rated purchases.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          <VatFields
+            idPrefix="input-vat"
+            taxRate={inputTaxRate}
+            onTaxRateChange={setInputTaxRate}
+            label="Add VAT on purchase (input VAT)"
+            hintOn="Input VAT is calculated on total purchase cost (line costs + shipping cost)."
+            hintOff="Turn on if the vendor charged VAT on this purchase."
+          />
+          {inputTaxRate > 0 && (
+            <p className="text-sm">
+              Input VAT ≈{' '}
+              <span className="font-medium">{formatCurrency(inputTaxAmount, currency)}</span>
+            </p>
+          )}
+          {inputTaxRate > 0 && vendorId && !vendorHasTrn && (
+            <p className="text-sm text-amber-700">
+              This vendor has no TRN Number. Input VAT will appear as non-recoverable on the UAE VAT
+              report until you add their TRN.
+            </p>
+          )}
+          {selectedVendor?.taxId && (
+            <p className="text-xs text-muted-foreground">Vendor TRN: {selectedVendor.taxId}</p>
+          )}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Summary</CardTitle>
         </CardHeader>
         <CardContent>
@@ -474,6 +516,12 @@ export function AddExpenseForm({
                 {formatCurrency(totalCost, currency)}
               </span>
             </div>
+            {inputTaxAmount > 0 && (
+              <div className="flex justify-between">
+                <span className="text-muted-foreground">Input VAT ({inputTaxRate}%)</span>
+                <span className="font-medium">{formatCurrency(inputTaxAmount, currency)}</span>
+              </div>
+            )}
             <div className="flex justify-between border-t pt-2">
               <span className="font-medium">Profit</span>
               <span

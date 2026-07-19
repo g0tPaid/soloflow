@@ -115,6 +115,13 @@ export class OrganizationsService {
     if (nextCostCurrency) settingsUpdate.costCurrency = nextCostCurrency;
     if (nextDashboardCurrency) settingsUpdate.dashboardCurrency = nextDashboardCurrency;
     if (dto.fxEnabled !== undefined) settingsUpdate.fxEnabled = dto.fxEnabled;
+    if (dto.taxConfig !== undefined) {
+      const currentTaxConfig =
+        org.settings?.taxConfig && typeof org.settings.taxConfig === 'object'
+          ? (org.settings.taxConfig as Record<string, unknown>)
+          : {};
+      settingsUpdate.taxConfig = asJsonValue({ ...currentTaxConfig, ...dto.taxConfig });
+    }
 
     return this.prisma.organization.update({
       where: { id: orgId },
@@ -133,6 +140,9 @@ export class OrganizationsService {
                     costCurrency: nextCostCurrency ?? 'CNY',
                     branding: asJsonValue(nextBranding ?? {}),
                     fxRates: asJsonValue(nextFxRates ?? DEFAULT_FX_RATES),
+                    ...(settingsUpdate.taxConfig
+                      ? { taxConfig: settingsUpdate.taxConfig }
+                      : {}),
                   },
                 },
               }

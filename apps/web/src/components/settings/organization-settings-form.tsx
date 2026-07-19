@@ -57,6 +57,15 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
     (organization.settings?.dashboardCurrency || organization.settings?.currency || 'USD').toUpperCase(),
   );
   const [fxEnabled, setFxEnabled] = useState(organization.settings?.fxEnabled !== false);
+  const [vatRegistered, setVatRegistered] = useState(
+    Boolean(organization.settings?.taxConfig?.vatRegistered),
+  );
+  const [filingFrequency, setFilingFrequency] = useState<'quarterly' | 'monthly'>(
+    organization.settings?.taxConfig?.filingFrequency === 'monthly' ? 'monthly' : 'quarterly',
+  );
+  const [defaultEmirate, setDefaultEmirate] = useState(
+    organization.settings?.taxConfig?.defaultEmirate ?? '',
+  );
   const [cnyPerUsd, setCnyPerUsd] = useState(String(initialFx.CNY ?? 7.25));
   const [eurPerUsd, setEurPerUsd] = useState(String(initialFx.EUR ?? 0.92));
   const [costRatePerUsd, setCostRatePerUsd] = useState(() => {
@@ -136,6 +145,11 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
         dashboardCurrency: dashboardCurrency.toUpperCase(),
         fxEnabled,
         fxRates,
+        taxConfig: {
+          vatRegistered,
+          filingFrequency,
+          defaultEmirate: defaultEmirate.trim() || undefined,
+        },
       });
       setSaved(true);
     } catch (err) {
@@ -556,6 +570,60 @@ export function OrganizationSettingsForm({ organization, onSubmit }: Props) {
             <Label htmlFor="accountNumber">Account number</Label>
             <Input id="accountNumber" {...register('branding.accountNumber')} />
           </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>UAE VAT filing</CardTitle>
+          <CardDescription>
+            Used by the Reports → VAT return worksheet. Company TRN is set in the profile section
+            above.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <label className="flex cursor-pointer items-start gap-3 rounded-md border border-input px-3 py-3 text-sm">
+            <input
+              type="checkbox"
+              className="mt-0.5 h-4 w-4 accent-red-600"
+              checked={vatRegistered}
+              onChange={(e) => setVatRegistered(e.target.checked)}
+            />
+            <span>
+              <span className="font-medium text-foreground">VAT registered with the FTA</span>
+              <span className="mt-0.5 block text-muted-foreground">
+                Turn on if you file VAT-201 returns on EmaraTax.
+              </span>
+            </span>
+          </label>
+          <div className="grid gap-4 sm:grid-cols-2">
+            <div className="space-y-2">
+              <Label htmlFor="filingFrequency">Filing frequency</Label>
+              <select
+                id="filingFrequency"
+                className={selectClassName}
+                value={filingFrequency}
+                onChange={(e) =>
+                  setFilingFrequency(e.target.value === 'monthly' ? 'monthly' : 'quarterly')
+                }
+              >
+                <option value="quarterly">Quarterly (most businesses)</option>
+                <option value="monthly">Monthly (turnover above AED 150m)</option>
+              </select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="defaultEmirate">Default emirate (Box 1 label)</Label>
+              <Input
+                id="defaultEmirate"
+                placeholder="e.g. Dubai"
+                value={defaultEmirate}
+                onChange={(e) => setDefaultEmirate(e.target.value)}
+              />
+            </div>
+          </div>
+          <p className="text-xs text-muted-foreground">
+            Returns and payment are due within 28 days after each tax period ends.
+          </p>
         </CardContent>
       </Card>
 
