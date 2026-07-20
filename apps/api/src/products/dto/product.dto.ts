@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, Min } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, Min } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
@@ -37,6 +37,28 @@ export class CreateProductDto {
   @IsNumber()
   @Min(0)
   taxRate?: number;
+
+  @ApiProperty({ required: false, default: true })
+  @IsOptional()
+  @IsBoolean()
+  trackInventory?: boolean;
+
+  @ApiProperty({ required: false, example: 0 })
+  @IsOptional()
+  @IsNumber()
+  quantityOnHand?: number;
+
+  @ApiProperty({ required: false, example: 5 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  reorderLevel?: number;
+
+  @ApiProperty({ required: false, example: 10 })
+  @IsOptional()
+  @IsNumber()
+  @Min(0)
+  unitCost?: number;
 }
 
 export class UpdateProductDto extends PartialType(CreateProductDto) {}

@@ -155,11 +155,42 @@ export interface Product {
   id: string;
   name: string;
   description?: string | null;
+  sku?: string | null;
   imageUrl?: string | null;
   unitPrice: string | number;
   taxRate: string | number;
   currency: string;
+  trackInventory?: boolean;
+  quantityOnHand?: string | number;
+  reorderLevel?: string | number;
+  unitCost?: string | number;
+  inventoryValue?: number;
+  lowStock?: boolean;
+  outOfStock?: boolean;
   isActive: boolean;
+}
+
+export interface StockMovement {
+  id: string;
+  type: 'ADJUSTMENT' | 'RECEIVE' | 'SALE' | 'RETURN';
+  quantityChange: number;
+  quantityAfter: number;
+  note?: string | null;
+  referenceType?: string | null;
+  referenceId?: string | null;
+  createdAt: string;
+}
+
+export interface InventorySummary {
+  skuCount: number;
+  lowStockCount: number;
+  outOfStockCount: number;
+  onHandUnits: number;
+  inventoryValue: number;
+}
+
+export interface InventoryItemDetail extends Product {
+  movements: StockMovement[];
 }
 
 export type InvoiceStatus =
@@ -701,6 +732,57 @@ export const api = {
         token,
         organizationId,
       }),
+  },
+  inventory: {
+    summary: (token: string, organizationId: string) =>
+      apiFetch<InventorySummary>('/inventory/summary', { token, organizationId }),
+    list: (
+      token: string,
+      organizationId: string,
+      params?: { page?: number; limit?: number; lowStockOnly?: boolean; q?: string },
+    ) =>
+      apiFetch<PaginatedResult<Product>>(
+        `/inventory${buildQuery({
+          page: params?.page,
+          limit: params?.limit,
+          q: params?.q,
+          lowStockOnly: params?.lowStockOnly ? 'true' : undefined,
+        })}`,
+        { token, organizationId },
+      ),
+    get: (token: string, organizationId: string, productId: string) =>
+      apiFetch<InventoryItemDetail>(`/inventory/${productId}`, { token, organizationId }),
+    update: (
+      token: string,
+      organizationId: string,
+      productId: string,
+      data: { trackInventory?: boolean; reorderLevel?: number; unitCost?: number },
+    ) =>
+      apiFetch<Product>(`/inventory/${productId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
+    adjust: (
+      token: string,
+      organizationId: string,
+      productId: string,
+      data: {
+        quantityChange: number;
+        type?: 'ADJUSTMENT' | 'RECEIVE' | 'SALE' | 'RETURN';
+        note?: string;
+      },
+    ) =>
+      apiFetch<{ product: Product; movement: StockMovement }>(
+        `/inventory/${productId}/adjust`,
+        {
+          method: 'POST',
+          body: JSON.stringify(data),
+          token,
+          organizationId,
+        },
+      ),
   },
   invoices: {
     list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
