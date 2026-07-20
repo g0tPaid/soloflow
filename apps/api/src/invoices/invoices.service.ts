@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 
-import { InvoiceStatus, Prisma } from '@flowbooks/database';
+import { InvoiceStatus, Prisma, QuoteStatus } from '@flowbooks/database';
 
 import { normalizePagination } from '../common/pagination';
 
@@ -357,7 +357,78 @@ export class InvoicesService {
 
   }
 
+  /**
+   * Create a draft quote from a customer invoice (copy — invoice is unchanged).
+   */
+  async convertToQuote(organizationId: string, id: string) {
+    const invoice = await this.findOne(organizationId, id);
+    if (!invoice.customerId) {
+      throw new BadRequestException('Only customer invoices can be converted to a quote');
+    }
+    if (invoice.items.length === 0) {
+      throw new BadRequestException('Invoice has no line items');
+    }
 
+    const settings = await this.prisma.organizationSettings.findUnique({
+      where: { organizationId },
+    });
+    const quoteNumber = `${settings?.quotePrefix || 'QUO'}-${String(settings?.quoteNextNum || 1).padStart(5, '0')}`;
+
+    return this.prisma.$transaction(async (tx) => {
+      const quote = await tx.quote.create({
+        data: {
+          organizationId,
+          customerId: invoice.customerId!,
+          number: quoteNumber,
+          status: QuoteStatus.DRAFT,
+          issueDate: new Date(),
+          validUntil: invoice.dueDate,
+          currency: invoice.currency,
+          notes: invoice.notes
+            ? `${invoice.notes}\n\nConverted from invoice ${invoice.number}`
+            : `Converted from invoice ${invoice.number}`,
+          discount: invoice.discount,
+          shipping: invoice.shipping,
+          shippingMethod: invoice.shippingMethod,
+          shippingTerms: invoice.shippingTerms,
+          shippingFromCountry: invoice.shippingFromCountry,
+          shippingToCountry: invoice.shippingToCountry,
+          subtotal: invoice.subtotal,
+          taxRate: invoice.taxRate,
+          taxAmount: invoice.taxAmount,
+          total: invoice.total,
+          convertedInvoiceId: invoice.id,
+          items: {
+            create: invoice.items.map((item) => ({
+              productId: item.productId,
+              name: item.name,
+              description: item.description,
+              imageUrl: item.imageUrl,
+              quantity: item.quantity,
+              unitPrice: item.unitPrice,
+              taxRate: item.taxRate,
+              amount: item.amount,
+            })),
+          },
+        },
+        include: { items: { include: { product: true } }, customer: true },
+      });
+
+      await tx.organizationSettings.upsert({
+        where: { organizationId },
+        create: {
+          organizationId,
+          currency: invoice.currency || 'INR',
+          quoteNextNum: 2,
+        },
+        update: {
+          quoteNextNum: (settings?.quoteNextNum || 1) + 1,
+        },
+      });
+
+      return { invoice, quote };
+    });
+  }
 
   private calculateTotals(
     items: { quantity: number; unitPrice: number }[],

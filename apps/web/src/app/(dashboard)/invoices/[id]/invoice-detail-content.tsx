@@ -1,11 +1,11 @@
 'use client';
 
 import Link from 'next/link';
-import { use, useEffect } from 'react';
-import { useSearchParams } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
+import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil } from 'lucide-react';
+import { FileInput, Pencil } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
@@ -18,11 +18,14 @@ import type { UpdateInvoiceInput } from '@flowbooks/shared';
 
 export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
+  const router = useRouter();
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();
   const { organizationId, businessCurrency, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
+  const [converting, setConverting] = useState(false);
+  const [convertError, setConvertError] = useState('');
 
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id, organizationId],
@@ -59,6 +62,21 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] });
+  }
+
+  async function handleConvert() {
+    if (!session?.accessToken || !organizationId || converting) return;
+    setConverting(true);
+    setConvertError('');
+    try {
+      const { quote } = await api.invoices.convert(session.accessToken, organizationId, id);
+      await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
+      await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
+      router.push(`/quotes/${quote.id}`);
+    } catch (err) {
+      setConvertError(err instanceof Error ? err.message : 'Failed to convert invoice');
+      setConverting(false);
+    }
   }
 
   function openPrintUrl(url: string) {
@@ -146,6 +164,22 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                     fullWidth
                   />
                 </>
+              )}
+              {invoice.customerId && (
+                <Button
+                  type="button"
+                  size="lg"
+                  variant="outline"
+                  onClick={() => void handleConvert()}
+                  disabled={converting}
+                  className="gap-2"
+                >
+                  <FileInput className="h-4 w-4" />
+                  {converting ? 'Converting…' : 'Convert to quote'}
+                </Button>
+              )}
+              {convertError && (
+                <p className="text-sm text-destructive sm:text-right">{convertError}</p>
               )}
             </>
           )}

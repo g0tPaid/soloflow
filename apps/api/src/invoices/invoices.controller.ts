@@ -1,5 +1,5 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
-import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
+import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
@@ -35,6 +35,12 @@ export class InvoicesController {
   @Post()
   create(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateInvoiceDto) {
     return this.invoicesService.create(orgId, dto);
+  }
+
+  @Post(':id/convert')
+  @ApiOperation({ summary: 'Convert invoice into a draft quote' })
+  convert(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.invoicesService.convertToQuote(orgId, id);
   }
 
   @Patch(':id')
