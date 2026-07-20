@@ -105,10 +105,22 @@ export default function InvoicesPage() {
     event.preventDefault();
     event.stopPropagation();
     if (!session?.accessToken || !organizationId || convertingId) return;
+    const ok = window.confirm(
+      'Convert this invoice to a quote? It will be removed from Invoices and no longer count in reports or totals.',
+    );
+    if (!ok) return;
     setConvertingId(id);
     try {
       const { quote } = await api.invoices.convert(session.accessToken, organizationId, id);
-      await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
+      await Promise.all([
+        queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['reports-vat', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory-summary', organizationId] }),
+      ]);
       router.push(`/quotes/${quote.id}`);
     } catch {
       setConvertingId(null);

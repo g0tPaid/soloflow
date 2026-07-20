@@ -4,7 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
 
-import { InvoiceStatus, Prisma, QuoteStatus } from '@flowbooks/database';
+import { InvoiceStatus, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
 
 import { normalizePagination } from '../common/pagination';
 
@@ -358,7 +358,9 @@ export class InvoicesService {
   }
 
   /**
-   * Create a draft quote from a customer invoice (copy — invoice is unchanged).
+   * Move a customer invoice into Quotes: create/reopen a draft quote, restore
+   * stock if the invoice was Paid, then delete the invoice so it leaves
+   * invoices, reports, receipts, and dashboard totals.
    */
   async convertToQuote(organizationId: string, id: string) {
     const invoice = await this.findOne(organizationId, id);
@@ -372,62 +374,146 @@ export class InvoicesService {
     const settings = await this.prisma.organizationSettings.findUnique({
       where: { organizationId },
     });
-    const quoteNumber = `${settings?.quotePrefix || 'QUO'}-${String(settings?.quoteNextNum || 1).padStart(5, '0')}`;
 
-    return this.prisma.$transaction(async (tx) => {
-      const quote = await tx.quote.create({
-        data: {
-          organizationId,
-          customerId: invoice.customerId!,
-          number: quoteNumber,
-          status: QuoteStatus.DRAFT,
-          issueDate: new Date(),
-          validUntil: invoice.dueDate,
-          currency: invoice.currency,
-          notes: invoice.notes
-            ? `${invoice.notes}\n\nConverted from invoice ${invoice.number}`
-            : `Converted from invoice ${invoice.number}`,
-          discount: invoice.discount,
-          shipping: invoice.shipping,
-          shippingMethod: invoice.shippingMethod,
-          shippingTerms: invoice.shippingTerms,
-          shippingFromCountry: invoice.shippingFromCountry,
-          shippingToCountry: invoice.shippingToCountry,
-          subtotal: invoice.subtotal,
-          taxRate: invoice.taxRate,
-          taxAmount: invoice.taxAmount,
-          total: invoice.total,
-          convertedInvoiceId: invoice.id,
-          items: {
-            create: invoice.items.map((item) => ({
-              productId: item.productId,
-              name: item.name,
-              description: item.description,
-              imageUrl: item.imageUrl,
-              quantity: item.quantity,
-              unitPrice: item.unitPrice,
-              taxRate: item.taxRate,
-              amount: item.amount,
-            })),
+    const noteSuffix = `Converted from invoice ${invoice.number}`;
+    const quoteNotes = invoice.notes
+      ? `${invoice.notes}\n\n${noteSuffix}`
+      : noteSuffix;
+
+    const quoteItemCreates = invoice.items.map((item) => ({
+      productId: item.productId,
+      name: item.name,
+      description: item.description,
+      imageUrl: item.imageUrl,
+      quantity: item.quantity,
+      unitPrice: item.unitPrice,
+      taxRate: item.taxRate,
+      amount: item.amount,
+    }));
+
+    const quote = await this.prisma.$transaction(async (tx) => {
+      // Undo sale stock if this invoice had already been marked Paid.
+      if (invoice.status === InvoiceStatus.PAID && invoice.customerId) {
+        for (const item of invoice.items) {
+          if (!item.productId) continue;
+          const product = await tx.product.findFirst({
+            where: {
+              id: item.productId,
+              organizationId,
+              isActive: true,
+              trackInventory: true,
+            },
+          });
+          if (!product) continue;
+          const change = Number(item.quantity);
+          if (!change) continue;
+          const nextQty = Number(product.quantityOnHand) + change;
+          await tx.product.update({
+            where: { id: product.id },
+            data: { quantityOnHand: nextQty },
+          });
+          await tx.stockMovement.create({
+            data: {
+              organizationId,
+              productId: product.id,
+              type: StockMovementType.RETURN,
+              quantityChange: change,
+              quantityAfter: nextQty,
+              note: `Stock restored (invoice ${invoice.number} converted to quote)`,
+              referenceType: 'invoice',
+              referenceId: invoice.id,
+            },
+          });
+        }
+      }
+
+      const sourceQuotes = await tx.quote.findMany({
+        where: { organizationId, convertedInvoiceId: invoice.id },
+        orderBy: { createdAt: 'asc' },
+      });
+
+      let resultQuote;
+
+      if (sourceQuotes.length === 1) {
+        const sourceId = sourceQuotes[0].id;
+        await tx.quoteItem.deleteMany({ where: { quoteId: sourceId } });
+        resultQuote = await tx.quote.update({
+          where: { id: sourceId },
+          data: {
+            status: QuoteStatus.DRAFT,
+            convertedInvoiceId: null,
+            issueDate: invoice.issueDate,
+            validUntil: invoice.dueDate,
+            currency: invoice.currency,
+            notes: quoteNotes,
+            discount: invoice.discount,
+            shipping: invoice.shipping,
+            shippingMethod: invoice.shippingMethod,
+            shippingTerms: invoice.shippingTerms,
+            shippingFromCountry: invoice.shippingFromCountry,
+            shippingToCountry: invoice.shippingToCountry,
+            subtotal: invoice.subtotal,
+            taxRate: invoice.taxRate,
+            taxAmount: invoice.taxAmount,
+            total: invoice.total,
+            items: { create: quoteItemCreates },
           },
-        },
-        include: { items: { include: { product: true } }, customer: true },
-      });
+          include: { items: { include: { product: true } }, customer: true },
+        });
+      } else {
+        if (sourceQuotes.length > 1) {
+          await tx.quote.updateMany({
+            where: { organizationId, convertedInvoiceId: invoice.id },
+            data: { status: QuoteStatus.CANCELLED, convertedInvoiceId: null },
+          });
+        }
 
-      await tx.organizationSettings.upsert({
-        where: { organizationId },
-        create: {
-          organizationId,
-          currency: invoice.currency || 'INR',
-          quoteNextNum: 2,
-        },
-        update: {
-          quoteNextNum: (settings?.quoteNextNum || 1) + 1,
-        },
-      });
+        const quoteNumber = `${settings?.quotePrefix || 'QUO'}-${String(settings?.quoteNextNum || 1).padStart(5, '0')}`;
+        resultQuote = await tx.quote.create({
+          data: {
+            organizationId,
+            customerId: invoice.customerId!,
+            number: quoteNumber,
+            status: QuoteStatus.DRAFT,
+            issueDate: new Date(),
+            validUntil: invoice.dueDate,
+            currency: invoice.currency,
+            notes: quoteNotes,
+            discount: invoice.discount,
+            shipping: invoice.shipping,
+            shippingMethod: invoice.shippingMethod,
+            shippingTerms: invoice.shippingTerms,
+            shippingFromCountry: invoice.shippingFromCountry,
+            shippingToCountry: invoice.shippingToCountry,
+            subtotal: invoice.subtotal,
+            taxRate: invoice.taxRate,
+            taxAmount: invoice.taxAmount,
+            total: invoice.total,
+            items: { create: quoteItemCreates },
+          },
+          include: { items: { include: { product: true } }, customer: true },
+        });
 
-      return { invoice, quote };
+        await tx.organizationSettings.upsert({
+          where: { organizationId },
+          create: {
+            organizationId,
+            currency: invoice.currency || 'INR',
+            quoteNextNum: 2,
+          },
+          update: {
+            quoteNextNum: (settings?.quoteNextNum || 1) + 1,
+          },
+        });
+      }
+
+      // Remove invoice so lists, VAT reports, dashboard, and receipts exclude it.
+      await tx.invoice.delete({ where: { id: invoice.id } });
+
+      return resultQuote;
     });
+
+    return { quote };
   }
 
   private calculateTotals(
