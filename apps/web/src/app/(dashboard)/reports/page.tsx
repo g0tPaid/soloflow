@@ -294,7 +294,9 @@ export default function ReportsPage() {
           <Card>
             <CardHeader>
               <CardTitle>Sales contributing to output VAT</CardTitle>
-              <CardDescription>{data.counts.salesInvoices} invoices in period</CardDescription>
+              <CardDescription>
+                {data.counts.salesInvoices} invoices in period (Paid invoices excluded)
+              </CardDescription>
             </CardHeader>
             <CardContent>
               {data.outputLines.length === 0 ? (
