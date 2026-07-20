@@ -9,13 +9,8 @@ type TaxConfig = {
   defaultEmirate?: string;
 };
 
-/** Paid sale invoices are excluded from VAT revenue / taxable (Box 1) output. */
-const EXCLUDED_FROM_OUTPUT_VAT: InvoiceStatus[] = [
-  InvoiceStatus.PAID,
-  InvoiceStatus.DRAFT,
-  InvoiceStatus.CANCELLED,
-  InvoiceStatus.VOID,
-];
+/** Only Paid sale invoices count toward VAT revenue / taxable (Box 1) output. */
+const INCLUDED_IN_OUTPUT_VAT: InvoiceStatus[] = [InvoiceStatus.PAID];
 
 @Injectable()
 export class ReportsService {
@@ -74,7 +69,7 @@ export class ReportsService {
     });
 
     const sales = invoices.filter(
-      (row) => row.customerId && !EXCLUDED_FROM_OUTPUT_VAT.includes(row.status),
+      (row) => row.customerId && INCLUDED_IN_OUTPUT_VAT.includes(row.status),
     );
     const purchases = invoices.filter((row) => row.vendorId);
 
@@ -194,7 +189,7 @@ export class ReportsService {
         'Figures are converted to AED for EmaraTax entry. Verify against tax invoices before filing.',
         'File and pay within 28 days after the tax period ends.',
         'Input VAT is recoverable only when the vendor has a TRN on file.',
-        'Paid sale invoices are excluded from Box 1 revenue / taxable output VAT (also excludes Draft, Cancelled, and Void).',
+        'Only Paid sale invoices are included in Box 1 revenue / taxable output VAT.',
       ],
     };
   }
