@@ -38,7 +38,7 @@ export class InvoicesController {
   }
 
   @Post(':id/convert')
-  @ApiOperation({ summary: 'Convert invoice into a draft quote' })
+  @ApiOperation({ summary: 'Move invoice into a draft quote (removes the invoice)' })
   convert(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.invoicesService.convertToQuote(orgId, id);
   }
