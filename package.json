@@ -7,6 +7,7 @@
     "dev": "pnpm run --parallel dev",
     "dev:web": "pnpm --filter @flowbooks/web dev",
     "dev:api": "pnpm --filter @flowbooks/api dev",
+    "dev:storefront": "pnpm --filter @practical-things/storefront dev",
     "build": "pnpm run --filter @flowbooks/database generate && pnpm run --filter './packages/*' build && pnpm run --filter './apps/*' build",
     "test": "pnpm run --parallel test",
     "lint": "pnpm run --parallel lint",
