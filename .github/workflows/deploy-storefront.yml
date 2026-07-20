@@ -1,0 +1,22 @@
+name: Deploy Storefront
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - 'apps/storefront/**'
+      - 'pnpm-lock.yaml'
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    container: ghcr.io/railwayapp/cli:latest
+    env:
+      RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy to Railway
+        run: railway up --service storefront --path-as-root apps/storefront
+        env:
+          RAILWAY_TOKEN: ${{ secrets.RAILWAY_TOKEN }}
