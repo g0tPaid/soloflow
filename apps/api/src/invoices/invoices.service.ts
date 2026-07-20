@@ -8,13 +8,18 @@ import { InvoiceStatus, Prisma } from '@flowbooks/database';
 
 import { normalizePagination } from '../common/pagination';
 
+import { InventoryService } from '../inventory/inventory.service';
+
 
 
 @Injectable()
 
 export class InvoicesService {
 
-  constructor(private prisma: PrismaService) {}
+  constructor(
+    private prisma: PrismaService,
+    private inventoryService: InventoryService,
+  ) {}
 
 
 
@@ -322,7 +327,7 @@ export class InvoicesService {
 
 
 
-    return this.prisma.invoice.update({
+    const updated = await this.prisma.invoice.update({
 
       where: { id },
 
@@ -331,6 +336,24 @@ export class InvoicesService {
       include: { items: { include: { product: true } }, customer: true },
 
     });
+
+    if (dto.status && dto.status !== existing.status) {
+      await this.inventoryService.syncInvoiceSaleStock(
+        organizationId,
+        {
+          id: updated.id,
+          status: updated.status,
+          customerId: updated.customerId,
+          items: updated.items.map((item) => ({
+            productId: item.productId,
+            quantity: item.quantity,
+          })),
+        },
+        existing.status,
+      );
+    }
+
+    return updated;
 
   }
 

@@ -198,6 +198,10 @@ export const createProductSchema = z.object({
   unitPrice: z.number().min(0),
   currency: z.string().length(3).optional(),
   taxRate: z.number().min(0).max(1).optional(),
+  trackInventory: z.boolean().optional(),
+  quantityOnHand: z.number().optional(),
+  reorderLevel: z.number().min(0).optional(),
+  unitCost: z.number().min(0).optional(),
 });
 
 export const updateProductSchema = createProductSchema.partial();

@@ -248,6 +248,10 @@ export const PERMISSIONS = {
   // Reports
   REPORTS_READ: 'reports:read',
   REPORTS_EXPORT: 'reports:export',
+  // Inventory
+  INVENTORY_READ: 'inventory:read',
+  INVENTORY_UPDATE: 'inventory:update',
+  INVENTORY_ADJUST: 'inventory:adjust',
   // Audit
   AUDIT_READ: 'audit:read',
 } as const;
@@ -277,6 +281,9 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.QUOTES_UPDATE,
     PERMISSIONS.QUOTES_SEND,
     PERMISSIONS.REPORTS_READ,
+    PERMISSIONS.INVENTORY_READ,
+    PERMISSIONS.INVENTORY_UPDATE,
+    PERMISSIONS.INVENTORY_ADJUST,
   ],
   ACCOUNTANT: [
     PERMISSIONS.ORG_READ,
@@ -291,6 +298,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.QUOTES_UPDATE,
     PERMISSIONS.REPORTS_READ,
     PERMISSIONS.REPORTS_EXPORT,
+    PERMISSIONS.INVENTORY_READ,
     PERMISSIONS.AUDIT_READ,
   ],
   SALES: [
@@ -306,6 +314,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.QUOTES_READ,
     PERMISSIONS.QUOTES_CREATE,
     PERMISSIONS.QUOTES_SEND,
+    PERMISSIONS.INVENTORY_READ,
   ],
   EMPLOYEE: [
     PERMISSIONS.ORG_READ,
@@ -314,6 +323,7 @@ export const ROLE_PERMISSIONS: Record<Role, Permission[]> = {
     PERMISSIONS.PRODUCTS_READ,
     PERMISSIONS.INVOICES_READ,
     PERMISSIONS.QUOTES_READ,
+    PERMISSIONS.INVENTORY_READ,
   ],
   CUSTOM: [],
 };
@@ -346,6 +356,6 @@ export const NAV_MODULES = [
   { key: 'expenses', label: 'Expenses', href: '/expenses', enabled: true },
   { key: 'receipts', label: 'Receipts', href: '/receipts', enabled: true },
   { key: 'reports', label: 'Reports', href: '/reports', enabled: true },
+  { key: 'inventory', label: 'Inventory', href: '/inventory', enabled: true },
   { key: 'settings', label: 'Company Details', href: '/settings', enabled: true },
-  { key: 'inventory', label: 'Inventory', href: '/inventory', enabled: false },
 ] as const;
