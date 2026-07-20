@@ -832,6 +832,12 @@ export const api = {
         token,
         organizationId,
       }),
+    convert: (token: string, organizationId: string, id: string) =>
+      apiFetch<{ invoice: Invoice; quote: Quote }>(`/invoices/${id}/convert`, {
+        method: 'POST',
+        token,
+        organizationId,
+      }),
   },
   quotes: {
     list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>

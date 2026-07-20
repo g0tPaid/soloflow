@@ -1,10 +1,11 @@
 'use client';
 
 import Link from 'next/link';
+import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Pencil, Download, Loader2 } from 'lucide-react';
+import { Plus, FileText, Pencil, Download, Loader2, FileInput } from 'lucide-react';
 import { api, type InvoiceStatus } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -69,9 +70,11 @@ function InvoiceListDownloadButton({
 }
 
 export default function InvoicesPage() {
+  const router = useRouter();
   const { data: session } = useSession();
   const { organizationId, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
+  const [convertingId, setConvertingId] = useState<string | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', organizationId],
@@ -96,6 +99,20 @@ export default function InvoicesPage() {
     event.stopPropagation();
     if (statusMutation.isPending) return;
     statusMutation.mutate({ id, status });
+  }
+
+  async function convertToQuote(id: string, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!session?.accessToken || !organizationId || convertingId) return;
+    setConvertingId(id);
+    try {
+      const { quote } = await api.invoices.convert(session.accessToken, organizationId, id);
+      await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
+      router.push(`/quotes/${quote.id}`);
+    } catch {
+      setConvertingId(null);
+    }
   }
 
   return (
@@ -218,6 +235,19 @@ export default function InvoicesPage() {
                           organizationId={organizationId}
                           number={invoice.number}
                         />
+                      )}
+                      {invoice.customerId && (
+                        <Button
+                          type="button"
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 gap-1.5 sm:flex-none"
+                          disabled={convertingId === invoice.id}
+                          onClick={(e) => void convertToQuote(invoice.id, e)}
+                        >
+                          <FileInput className="h-3.5 w-3.5" />
+                          {convertingId === invoice.id ? 'Converting…' : 'To quote'}
+                        </Button>
                       )}
                       {!isPaid ? (
                         <button
