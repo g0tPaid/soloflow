@@ -22,19 +22,32 @@ export class DashboardService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [paidInvoices, outstandingInvoices, monthInvoices, customerCount, productCount] =
+    const [paidSales, paidCostRows, outstandingInvoices, customerCount, productCount] =
       await Promise.all([
+        // Revenue: only Paid customer invoices this month
+        this.prisma.invoice.findMany({
+          where: {
+            organizationId,
+            status: InvoiceStatus.PAID,
+            customerId: { not: null },
+            issueDate: { gte: startOfMonth },
+          },
+          select: { currency: true, total: true },
+        }),
+        // Expenses: COGS on Paid sales + Paid vendor expenses this month
         this.prisma.invoice.findMany({
           where: {
             organizationId,
             status: InvoiceStatus.PAID,
             issueDate: { gte: startOfMonth },
+            OR: [{ customerId: { not: null } }, { vendorId: { not: null } }],
           },
-          select: { currency: true, total: true },
+          select: { currency: true, totalCost: true },
         }),
         this.prisma.invoice.findMany({
           where: {
             organizationId,
+            customerId: { not: null },
             status: {
               in: [
                 InvoiceStatus.SENT,
@@ -45,13 +58,6 @@ export class DashboardService {
             },
           },
           select: { currency: true, total: true },
-        }),
-        this.prisma.invoice.findMany({
-          where: {
-            organizationId,
-            issueDate: { gte: startOfMonth },
-          },
-          select: { currency: true, total: true, totalCost: true },
         }),
         this.prisma.customer.count({ where: { organizationId, isActive: true } }),
         this.prisma.product.count({ where: { organizationId, isActive: true } }),
@@ -71,11 +77,10 @@ export class DashboardService {
         return sum + fromUsd(usd, displayCurrency, rates);
       }, 0);
 
-    const revenue = roundMoney(toDisplay(paidInvoices, 'total'));
+    const revenue = roundMoney(toDisplay(paidSales, 'total'));
+    const expenses = roundMoney(toDisplay(paidCostRows, 'totalCost'));
+    const profit = roundMoney(revenue - expenses);
     const outstanding = roundMoney(toDisplay(outstandingInvoices, 'total'));
-    const expenses = roundMoney(toDisplay(monthInvoices, 'totalCost'));
-    const invoiceRevenue = roundMoney(toDisplay(monthInvoices, 'total'));
-    const profit = roundMoney(invoiceRevenue - expenses);
     const cashFlow = roundMoney(revenue - expenses);
 
     let secondaryCurrency: string | null = null;

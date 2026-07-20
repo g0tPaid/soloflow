@@ -92,8 +92,8 @@ export default function DashboardPage() {
             )
           : undefined,
       description: metrics?.fxEnabled === false
-        ? `Costs this month (${displayCurrency} invoices only)`
-        : `Costs this month (${displayCurrency})`,
+        ? `Costs on paid invoices (${displayCurrency} only)`
+        : `Costs on paid invoices (${displayCurrency})`,
       icon: TrendingDown,
       trend: 'down' as const,
     },
@@ -107,7 +107,7 @@ export default function DashboardPage() {
               secondaryCurrency,
             )
           : undefined,
-      description: `Revenue minus costs (${displayCurrency})`,
+      description: `Paid revenue minus expenses (${displayCurrency})`,
       icon: Wallet,
       trend: 'up' as const,
     },
