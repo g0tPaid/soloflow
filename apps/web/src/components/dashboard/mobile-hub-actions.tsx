@@ -11,6 +11,9 @@ import {
   Package,
   Settings,
   LogOut,
+  BarChart3,
+  Contact,
+  FileSpreadsheet,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
@@ -59,7 +62,10 @@ const LIST_ACTIONS = [
 
 const NAV_ACTIONS = [
   { href: '/customers', label: 'Customers', icon: Users },
+  { href: '/vendors', label: 'Vendors', icon: Contact },
   { href: '/products', label: 'Products', icon: Package },
+  { href: '/quotes', label: 'Quotes', icon: FileSpreadsheet },
+  { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Company', icon: Settings },
 ] as const;
 
