@@ -21,16 +21,16 @@ import { Button } from '@/components/ui/button';
 
 const CREATE_ACTIONS = [
   {
-    href: '/invoices/new',
-    label: 'New Invoice',
-    icon: FilePlus2,
-    className: 'bg-red-500 hover:bg-red-600 text-white',
-  },
-  {
     href: '/expenses/new',
     label: 'Add Expense',
     icon: Receipt,
     className: 'bg-orange-500 hover:bg-orange-600 text-white',
+  },
+  {
+    href: '/invoices/new',
+    label: 'New Invoice',
+    icon: FilePlus2,
+    className: 'bg-red-500 hover:bg-red-600 text-white',
   },
   {
     href: '/receipts',
