@@ -48,10 +48,10 @@ const LIST_ACTIONS = [
     className: 'bg-red-600 hover:bg-red-700 text-white',
   },
   {
-    href: '/expenses',
-    label: 'All Expenses',
-    icon: Receipt,
-    className: 'bg-orange-600 hover:bg-orange-700 text-white',
+    href: '/quotes/new',
+    label: 'New Quote',
+    icon: FileSpreadsheet,
+    className: 'bg-violet-600 hover:bg-violet-700 text-white',
   },
   {
     href: '/receipts',
