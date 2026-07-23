@@ -120,6 +120,14 @@ export default function CustomersPage() {
                 <p className="text-sm text-muted-foreground">
                   {[customer.email, customer.phone].filter(Boolean).join(' · ') || 'No contact info'}
                 </p>
+                {customer.taxId?.trim() ? (
+                  <p className="mt-0.5 text-sm">
+                    <span className="text-muted-foreground">TRN </span>
+                    <span className="font-medium">{customer.taxId.trim()}</span>
+                  </p>
+                ) : (
+                  <p className="mt-0.5 text-sm text-primary">Add TRN Number →</p>
+                )}
               </div>
               <span className="text-sm text-muted-foreground">Edit →</span>
             </Link>
