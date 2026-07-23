@@ -98,9 +98,6 @@ const styles = StyleSheet.create({
     bottom: 0,
     height: FOOTER_HEIGHT,
   },
-  footerClearance: {
-    height: FOOTER_HEIGHT,
-  },
   pageNumber: {
     position: 'absolute',
     right: 14,
