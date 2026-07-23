@@ -239,6 +239,12 @@ export function InvoicePrintView({
                   {customer?.name}
                 </p>
 
+                {customer?.taxId?.trim() ? (
+                  <p className="mt-1 text-[11px] font-semibold tracking-wide text-slate-700">
+                    TRN : {customer.taxId.trim()}
+                  </p>
+                ) : null}
+
                 <p className="mt-0.5 text-[10px] font-medium italic text-slate-500">
                   Thank you for being a valued partner
                 </p>
