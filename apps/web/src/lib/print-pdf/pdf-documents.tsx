@@ -53,7 +53,7 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   row: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 3 },
-  twoCol: { flexDirection: 'row', gap: 16, marginBottom: 14 },
+  twoCol: { flexDirection: 'row', gap: 12, marginBottom: 8 },
   colHalf: { flex: 1 },
   logo: { width: 72, height: 72, objectFit: 'contain', marginBottom: 6 },
   logoFallback: {
@@ -193,17 +193,16 @@ const styles = StyleSheet.create({
     borderColor: '#f1f5f9',
     backgroundColor: '#f8fafc',
     borderRadius: 8,
-    padding: 10,
+    padding: 8,
     fontSize: 9,
-    lineHeight: 1.4,
+    lineHeight: 1.35,
   },
   totalBox: {
     borderWidth: 1,
     borderColor: '#f1f5f9',
     borderRadius: 8,
-    padding: 12,
+    padding: 10,
     width: '100%',
-    minHeight: 220,
     justifyContent: 'center',
   },
   totalLine: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 4 },
@@ -250,14 +249,14 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     marginBottom: 10,
   },
-  signatureImg: { width: 180, height: 180, objectFit: 'contain', alignSelf: 'center' },
+  // Kept compact so seal + totals fit page 1 on short invoices.
+  signatureImg: { width: 108, height: 108, objectFit: 'contain', alignSelf: 'center' },
   signatureBox: {
     borderWidth: 1,
     borderColor: '#f1f5f9',
     borderRadius: 8,
-    padding: 12,
+    padding: 8,
     width: '100%',
-    minHeight: 220,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -689,7 +688,7 @@ function InvoicePdfBody({
         })}
 
         {invoice.notes ? (
-          <View style={{ marginTop: 12, marginBottom: 8 }} wrap={false}>
+          <View style={{ marginTop: 8, marginBottom: 4 }} wrap={false}>
             <Text style={[styles.sectionLabel, { color: colors.accent }]}>Notes</Text>
             <View style={styles.notesBox}>
               <Text>{invoice.notes}</Text>
@@ -697,10 +696,11 @@ function InvoicePdfBody({
           </View>
         ) : null}
 
-        <View style={[styles.twoCol, { marginTop: 8, alignItems: 'stretch' }]} wrap={false}>
+        {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
+        <View style={[styles.twoCol, { marginTop: 6, marginBottom: 4, alignItems: 'stretch' }]} wrap={false}>
           <View style={styles.colHalf}>
             <View style={styles.signatureBox}>
-              <Text style={[styles.sectionLabel, { color: colors.accent, marginBottom: 8 }]}>
+              <Text style={[styles.sectionLabel, { color: colors.accent, marginBottom: 4 }]}>
                 Authorized signature
               </Text>
               {signatureSrc ? (
@@ -762,8 +762,6 @@ function InvoicePdfBody({
                 ))}
               </View>
             </View>
-            {/* Keeps offers above the fixed footer paint zone */}
-            <View style={styles.footerClearance} />
           </View>
         ) : bannerSrc ? (
           <View wrap={false}>
@@ -773,11 +771,8 @@ function InvoicePdfBody({
                 <Image src={bannerSrc} style={styles.banner} cache={false} />
               </View>
             </View>
-            <View style={styles.footerClearance} />
           </View>
-        ) : (
-          <View style={styles.footerClearance} />
-        )}
+        ) : null}
       </View>
 
       <PageFooter contacts={footerContacts as string[]} colors={colors} />
