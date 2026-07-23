@@ -131,6 +131,13 @@ const styles = StyleSheet.create({
     marginBottom: 6,
   },
   billToName: { fontSize: 12, fontWeight: 'bold', color: '#0f172a', marginBottom: 2 },
+  billToTrn: {
+    fontSize: 9,
+    fontWeight: 'bold',
+    color: '#334155',
+    marginBottom: 2,
+    letterSpacing: 0.4,
+  },
   billToThanks: { fontSize: 8, fontStyle: 'italic', color: '#64748b', marginBottom: 6 },
   metaBox: {
     borderWidth: 1,
@@ -465,6 +472,11 @@ function CompanyHeader({
         <Text style={[styles.tagline, { color: accent }]}>{branding.tagline}</Text>
       ) : null}
       {address ? <Text style={styles.muted}>{address}</Text> : null}
+      {branding.trn?.trim() ? (
+        <Text style={[styles.muted, { marginTop: 4, fontWeight: 'bold', color: '#334155' }]}>
+          TRN {branding.trn.trim()}
+        </Text>
+      ) : null}
       <Text style={[styles.muted, { marginTop: 4 }]}>
         {[branding.phone, branding.email, branding.website].filter(Boolean).join(' · ')}
       </Text>
@@ -588,6 +600,9 @@ function InvoicePdfBody({
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
               </Text>
               <Text style={styles.billToName}>{customer?.name}</Text>
+              {customer?.taxId?.trim() ? (
+                <Text style={styles.billToTrn}>TRN : {customer.taxId.trim()}</Text>
+              ) : null}
               <Text style={styles.billToThanks}>Thank you for being a valued partner</Text>
               {customerAddress.length > 0 ? (
                 <Text style={[styles.muted, { textAlign: 'center', marginBottom: 3 }]}>
@@ -820,6 +835,11 @@ function ReceiptPdfBody({
               RECEIVED FROM
             </Text>
             <Text style={{ fontWeight: 'bold', marginBottom: 3 }}>{invoice.customer?.name}</Text>
+            {invoice.customer?.taxId?.trim() ? (
+              <Text style={[styles.muted, { fontWeight: 'bold', color: '#334155', marginBottom: 2 }]}>
+                TRN : {invoice.customer.taxId.trim()}
+              </Text>
+            ) : null}
             {customerAddress.map((line) => (
               <Text key={line} style={styles.muted}>
                 {line}

@@ -132,8 +132,15 @@ export function CustomerForm({
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taxId">Tax ID / GST</Label>
-              <Input id="taxId" {...register('taxId')} />
+              <Label htmlFor="taxId">TRN Number</Label>
+              <Input
+                id="taxId"
+                placeholder="Customer tax registration number"
+                {...register('taxId')}
+              />
+              <p className="text-xs text-muted-foreground">
+                Shown on invoices as TRN under the customer name.
+              </p>
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="notes">Notes</Label>
