@@ -481,10 +481,10 @@ export function InvoicePrintView({
             </div>
           )}
 
-          <section className="mb-10 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch">
-            <div className="flex min-h-[320px] flex-col rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+          <section className="mb-6 grid grid-cols-1 gap-4 sm:grid-cols-2 sm:items-stretch print:break-inside-avoid">
+            <div className="flex min-h-0 flex-col rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
               <p
-                className="mb-3 text-xs font-bold uppercase tracking-[0.15em]"
+                className="mb-2 text-xs font-bold uppercase tracking-[0.15em]"
                 style={{ color: colors.accent }}
               >
                 Authorized signature
@@ -495,9 +495,9 @@ export function InvoicePrintView({
                   <img
                     src={signatureSrc}
                     alt="Authorized signature"
-                    className="h-[300px] w-[300px] max-w-full bg-white object-contain"
-                    width={300}
-                    height={300}
+                    className="h-[140px] w-[140px] max-w-full bg-white object-contain"
+                    width={140}
+                    height={140}
                   />
                 ) : (
                   <p className="text-sm text-slate-400">No signature uploaded</p>
@@ -505,7 +505,7 @@ export function InvoicePrintView({
               </div>
             </div>
 
-            <div className="flex min-h-[320px] flex-col justify-center rounded-xl border border-slate-100 bg-white p-5 shadow-sm">
+            <div className="flex min-h-0 flex-col justify-center rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
               <div className="space-y-2.5 text-sm">
                 <div className="flex justify-between py-1">
                   <span className="text-slate-600">Subtotal</span>
