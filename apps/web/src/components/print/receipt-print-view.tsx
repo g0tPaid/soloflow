@@ -114,6 +114,11 @@ export function ReceiptPrintView({
             <div className="rounded-xl border border-slate-100 bg-slate-50/80 px-4 py-3 text-sm">
               <p className="text-xs font-bold uppercase tracking-wide text-emerald-700">Received from</p>
               <p className="mt-2 font-semibold text-slate-900">{invoice.customer?.name}</p>
+              {invoice.customer?.taxId?.trim() ? (
+                <p className="mt-0.5 text-xs font-semibold tracking-wide text-slate-700">
+                  TRN : {invoice.customer.taxId.trim()}
+                </p>
+              ) : null}
               {customerAddress.map((line) => (
                 <p key={line} className="text-slate-600">
                   {line}

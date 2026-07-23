@@ -472,6 +472,11 @@ function CompanyHeader({
         <Text style={[styles.tagline, { color: accent }]}>{branding.tagline}</Text>
       ) : null}
       {address ? <Text style={styles.muted}>{address}</Text> : null}
+      {branding.trn?.trim() ? (
+        <Text style={[styles.muted, { marginTop: 4, fontWeight: 'bold', color: '#334155' }]}>
+          TRN {branding.trn.trim()}
+        </Text>
+      ) : null}
       <Text style={[styles.muted, { marginTop: 4 }]}>
         {[branding.phone, branding.email, branding.website].filter(Boolean).join(' · ')}
       </Text>
@@ -830,6 +835,11 @@ function ReceiptPdfBody({
               RECEIVED FROM
             </Text>
             <Text style={{ fontWeight: 'bold', marginBottom: 3 }}>{invoice.customer?.name}</Text>
+            {invoice.customer?.taxId?.trim() ? (
+              <Text style={[styles.muted, { fontWeight: 'bold', color: '#334155', marginBottom: 2 }]}>
+                TRN : {invoice.customer.taxId.trim()}
+              </Text>
+            ) : null}
             {customerAddress.map((line) => (
               <Text key={line} style={styles.muted}>
                 {line}
