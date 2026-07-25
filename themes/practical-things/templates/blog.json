@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "journal": {
+      "type": "journal",
+      "settings": {
+        "heading": "Journal"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["journal", "newsletter"]
+}

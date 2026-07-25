@@ -1,0 +1,39 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Practical Things",
+        "heading": "Buy better things, keep them longer.",
+        "text": "Durable, repairable, timeless products worth owning for decades."
+      }
+    },
+    "principles": {
+      "type": "principles"
+    },
+    "featured_collections": {
+      "type": "featured-collections"
+    },
+    "featured_products": {
+      "type": "featured-products"
+    },
+    "why_exists": {
+      "type": "why-exists"
+    },
+    "journal": {
+      "type": "journal"
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": [
+    "hero",
+    "principles",
+    "featured_collections",
+    "featured_products",
+    "why_exists",
+    "journal",
+    "newsletter"
+  ]
+}

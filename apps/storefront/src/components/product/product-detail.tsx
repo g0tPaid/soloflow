@@ -12,6 +12,22 @@ import { ProductBadges } from '@/components/ui/badge';
 import { BiflScorePanel } from '@/components/ui/score-bar';
 import { ProductCard } from '@/components/product/product-card';
 
+function ListBlock({ title, items }: { title: string; items: string[] }) {
+  if (!items?.length) return null;
+  return (
+    <div>
+      <h3 className="font-serif text-2xl">{title}</h3>
+      <ul className="mt-4 space-y-2 text-sm leading-relaxed text-muted">
+        {items.map((item) => (
+          <li key={item} className="border-l-2 border-accent/40 pl-4">
+            {item}
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+
 export function ProductDetail({
   product,
   related,
@@ -29,6 +45,8 @@ export function ProductDetail({
   const wished = has(product.id);
   const variant = product.variants.find((v) => v.id === variantId);
   const price = variant?.price ?? product.price;
+  const years = product.premiumYears || 20;
+  const savings = Math.max(0, product.longTermCostCheap - product.longTermCostPremium);
 
   useEffect(() => {
     addRecent(product.slug);
@@ -57,7 +75,7 @@ export function ProductDetail({
       <div className="grid gap-10 lg:grid-cols-[1.15fr_0.85fr] lg:gap-16">
         <div>
           <div
-            className="relative aspect-[4/5] cursor-zoom-in overflow-hidden bg-border/40"
+            className="relative aspect-[4/5] cursor-zoom-in overflow-hidden rounded-2xl bg-border/40"
             onClick={() => setZoomed((z) => !z)}
           >
             <Image
@@ -79,7 +97,7 @@ export function ProductDetail({
                 type="button"
                 onClick={() => setActiveImage(i)}
                 className={cn(
-                  'relative aspect-square overflow-hidden border',
+                  'relative aspect-square overflow-hidden rounded-xl border',
                   activeImage === i ? 'border-foreground' : 'border-transparent',
                 )}
               >
@@ -91,9 +109,7 @@ export function ProductDetail({
 
         <div className="lg:sticky lg:top-28 lg:self-start">
           <ProductBadges badges={product.badges} />
-          <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted">
-            {product.brand}
-          </p>
+          <p className="mt-5 text-[11px] uppercase tracking-[0.18em] text-muted">{product.brand}</p>
           <h1 className="mt-2 font-serif text-4xl md:text-5xl">{product.title}</h1>
           <p className="mt-3 text-sm leading-relaxed text-muted">{product.subtitle}</p>
           <p className="mt-6 text-xl tabular-nums">{formatPrice(price)}</p>
@@ -109,7 +125,7 @@ export function ProductDetail({
                     disabled={!v.available}
                     onClick={() => setVariantId(v.id)}
                     className={cn(
-                      'border px-4 py-2 text-sm transition',
+                      'rounded-full border px-4 py-2 text-sm transition',
                       variantId === v.id
                         ? 'border-foreground bg-foreground text-background'
                         : 'border-border hover:border-foreground',
@@ -123,33 +139,39 @@ export function ProductDetail({
             </div>
           )}
 
-          <div className="mt-8 grid gap-3 text-sm text-muted">
-            <p>
-              <span className="text-foreground">Stock:</span>{' '}
-              {product.inStock ? 'In stock' : 'Sold out'}
-            </p>
-            <p>
-              <span className="text-foreground">Shipping:</span>{' '}
-              {product.shippingNote || 'Calculated at checkout'}
-            </p>
-            <p>
-              <span className="text-foreground">Material:</span> {product.material}
-            </p>
-            <p>
-              <span className="text-foreground">Origin:</span> {product.countryOfOrigin}
-            </p>
-            <p>
-              <span className="text-foreground">Manufacturer:</span> {product.manufacturer}
-            </p>
-            <p>
-              <span className="text-foreground">Warranty:</span> {product.warranty}
-            </p>
-          </div>
+          <dl className="mt-8 grid grid-cols-2 gap-4 text-sm">
+            <div>
+              <dt className="text-muted">Expected lifespan</dt>
+              <dd className="mt-1 font-medium">{product.expectedLifespan}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Repairability</dt>
+              <dd className="mt-1 font-medium">{product.repairabilityScore}/100</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Warranty</dt>
+              <dd className="mt-1 font-medium">{product.warranty}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Origin</dt>
+              <dd className="mt-1 font-medium">{product.countryOfOrigin}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Materials</dt>
+              <dd className="mt-1 font-medium">{product.material}</dd>
+            </div>
+            <div>
+              <dt className="text-muted">Spare parts</dt>
+              <dd className="mt-1 font-medium">
+                {product.sparePartsAvailable ? 'Available' : 'Limited'}
+              </dd>
+            </div>
+          </dl>
 
           <div className="mt-8 flex gap-3">
             <Button
               size="lg"
-              className="flex-1"
+              className="flex-1 rounded-full"
               disabled={!product.inStock}
               onClick={() => addItem(product, variantId)}
             >
@@ -158,6 +180,7 @@ export function ProductDetail({
             <Button
               size="lg"
               variant="secondary"
+              className="rounded-full"
               aria-label="Wishlist"
               onClick={() => toggle(product.id)}
             >
@@ -183,10 +206,43 @@ export function ProductDetail({
 
       <section className="mt-24 grid gap-12 border-t border-border pt-16 md:grid-cols-2">
         <div>
-          <h2 className="font-serif text-3xl">Why we chose this</h2>
+          <h2 className="font-serif text-3xl">Why we recommend it</h2>
           <p className="prose-pt mt-5">{product.whyWeChose}</p>
           <p className="prose-pt mt-4">{product.description}</p>
         </div>
+        <div>
+          <h2 className="font-serif text-3xl">Long-term ownership cost</h2>
+          <p className="mt-3 text-sm text-muted">Over {years} years of ownership</p>
+          <div className="mt-6 grid gap-4 sm:grid-cols-2">
+            <div className="rounded-2xl border border-border bg-card p-5">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
+                {product.cheapAlternativeName || 'Cheap alternative'}
+              </p>
+              <p className="mt-3 text-sm text-muted">Replace repeatedly</p>
+              <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostCheap)}</p>
+            </div>
+            <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
+              <p className="text-[11px] uppercase tracking-[0.16em] text-accent">This product</p>
+              <p className="mt-3 text-sm text-muted">One lasting purchase</p>
+              <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostPremium)}</p>
+            </div>
+          </div>
+          {savings > 0 ? (
+            <p className="mt-4 text-sm text-accent">
+              Estimated savings over {years} years: {formatPrice(savings)}
+            </p>
+          ) : null}
+        </div>
+      </section>
+
+      <section className="mt-20 grid gap-10 border-t border-border pt-16 md:grid-cols-2">
+        <ListBlock title="Pros" items={product.pros} />
+        <ListBlock title="Cons" items={product.cons} />
+        <ListBlock title="Who should buy" items={product.whoShouldBuy} />
+        <ListBlock title="Who shouldn’t buy" items={product.whoShouldNotBuy} />
+      </section>
+
+      <section className="mt-20 grid gap-12 border-t border-border pt-16 md:grid-cols-2">
         <div>
           <h2 className="font-serif text-3xl">Maintenance</h2>
           <ul className="mt-5 space-y-3 text-sm leading-relaxed text-muted">
@@ -196,11 +252,17 @@ export function ProductDetail({
               </li>
             ))}
           </ul>
-          <div className="mt-10 aspect-video border border-border bg-border/30">
-            <div className="flex h-full items-center justify-center text-sm text-muted">
-              Product film coming soon
-            </div>
-          </div>
+        </div>
+        <div>
+          <h2 className="font-serif text-3xl">Manufacturing & materials</h2>
+          <p className="mt-5 text-sm leading-relaxed text-muted">
+            Made by {product.manufacturer} in {product.countryOfOrigin}. Primary materials:{' '}
+            {(product.materials || [product.material]).join(', ')}.
+          </p>
+          <p className="mt-4 text-sm text-muted">
+            Replacement parts: {product.sparePartsAvailable ? 'supported' : 'limited availability'}.
+            Repairable: {product.repairable ? 'yes' : 'limited'}.
+          </p>
         </div>
       </section>
 
@@ -220,7 +282,7 @@ export function ProductDetail({
 
       <section className="mt-24">
         <h2 className="font-serif text-3xl">Related products</h2>
-        <div className="mt-10 grid gap-8 sm:grid-cols-2 lg:grid-cols-3">
+        <div className="mt-10 grid gap-10 sm:grid-cols-2 lg:grid-cols-3">
           {related.map((p) => (
             <ProductCard key={p.id} product={p} />
           ))}
@@ -238,7 +300,7 @@ export function ProductDetail({
                 <Link
                   key={slug}
                   href={`/products/${slug}`}
-                  className="border border-border px-4 py-2 text-sm hover:border-foreground"
+                  className="rounded-full border border-border px-4 py-2 text-sm hover:border-foreground"
                 >
                   {slug.replace(/-/g, ' ')}
                 </Link>

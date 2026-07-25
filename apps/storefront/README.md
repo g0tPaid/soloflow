@@ -2,7 +2,10 @@
 
 Premium Buy It For Life ecommerce storefront.
 
-**Buy Once. Buy Better.**
+**Buy less. Repair more. Keep what works.**
+
+V1 centers the Practical Things philosophy: resist planned obsolescence, choose repairable
+products, understand long-term ownership cost, and buy fewer objects that earn their place.
 
 ## Stack
 
@@ -16,21 +19,22 @@ Premium Buy It For Life ecommerce storefront.
 ```bash
 pnpm install
 cp .env.example .env.local
-pnpm dev
+pnpm dev -- --port 3002
 ```
 
-Open [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3002](http://localhost:3002).
 
 ## What’s included
 
-- Home (full-bleed hero, categories, BIFL philosophy, products, journal, reviews, newsletter)
+- Home (full-bleed hero, principles, why-it-exists storytelling, products, journal, newsletter)
 - Shop with filters (material, country, warranty/score, brand, price, availability) + sort
 - Product pages with gallery zoom, sticky buy panel, BIFL scores, maintenance, FAQ, related
+- Philosophy, buying guides, and community contribution workflows
 - Cart drawer, wishlist, instant search (⌘K)
 - Checkout (demo), account stubs
 - Journal magazine layout + article schema
 - About & Contact
-- Sitemap · robots.txt · Open Graph · Product/Article JSON-LD
+- Sitemap · robots.txt · Open Graph · Product/Article/FAQ JSON-LD
 
 Until Shopify/Sanity credentials are set, the app uses a curated mock catalog in `src/lib/catalog.ts`.
 

@@ -1,0 +1,15 @@
+<article>
+  <a href="{{ product.url }}" style="display: block;">
+    <div style="aspect-ratio: 4 / 5; overflow: hidden; background: var(--pt-card);">
+      {% if product.featured_image %}
+        {{ product.featured_image | image_url: width: 900 | image_tag: loading: 'lazy' }}
+      {% endif %}
+    </div>
+    <p class="pt-eyebrow" style="margin-top: 18px;">{{ product.vendor }}</p>
+    <h3 class="pt-serif" style="margin: 8px 0; font-size: 30px; line-height: 1.05;">{{ product.title }}</h3>
+    <p style="color: var(--pt-muted); line-height: 1.6;">
+      {{ product.metafields.practical.lifespan | default: 'Built for long ownership' }}
+    </p>
+    <p>{{ product.price | money }}</p>
+  </a>
+</article>

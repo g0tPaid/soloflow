@@ -1,0 +1,60 @@
+[
+  {
+    "name": "theme_info",
+    "theme_name": "Practical Things",
+    "theme_version": "0.1.0",
+    "theme_author": "Practical Things",
+    "theme_documentation_url": "https://practicalthings.com",
+    "theme_support_url": "mailto:hello@practicalthings.com"
+  },
+  {
+    "name": "Brand colors",
+    "settings": [
+      {
+        "type": "color",
+        "id": "color_background",
+        "label": "Background",
+        "default": "#FAFAF8"
+      },
+      {
+        "type": "color",
+        "id": "color_card",
+        "label": "Card",
+        "default": "#FFFFFF"
+      },
+      {
+        "type": "color",
+        "id": "color_text",
+        "label": "Text",
+        "default": "#111111"
+      },
+      {
+        "type": "color",
+        "id": "color_muted",
+        "label": "Muted text",
+        "default": "#666666"
+      },
+      {
+        "type": "color",
+        "id": "color_accent",
+        "label": "Accent",
+        "default": "#245C4A"
+      },
+      {
+        "type": "color",
+        "id": "color_border",
+        "label": "Border",
+        "default": "#E8E8E8"
+      }
+    ]
+  },
+  {
+    "name": "Typography notes",
+    "settings": [
+      {
+        "type": "paragraph",
+        "content": "Brand typography uses Cormorant Garamond for headings and Inter for body copy. Add hosted font assets or Shopify font picker wiring before production launch."
+      }
+    ]
+  }
+]

@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "main": {
+      "type": "product-main"
+    },
+    "ownership_cost": {
+      "type": "product-ownership-cost"
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["main", "ownership_cost", "newsletter"]
+}

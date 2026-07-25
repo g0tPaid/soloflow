@@ -1,0 +1,53 @@
+<section class="pt-rule" style="background: var(--pt-card);">
+  <div class="pt-container" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 32px; padding: 80px 0;">
+    {% for block in section.blocks %}
+      <article {{ block.shopify_attributes }}>
+        <p class="pt-eyebrow">{{ block.settings.eyebrow }}</p>
+        <h2 class="pt-serif" style="margin: 12px 0 0; font-size: 32px;">{{ block.settings.heading }}</h2>
+        <p style="color: var(--pt-muted); line-height: 1.7;">{{ block.settings.text }}</p>
+      </article>
+    {% endfor %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Principles",
+  "blocks": [
+    {
+      "type": "principle",
+      "name": "Principle",
+      "settings": [
+        {
+          "type": "text",
+          "id": "eyebrow",
+          "label": "Eyebrow",
+          "default": "Principle"
+        },
+        {
+          "type": "text",
+          "id": "heading",
+          "label": "Heading",
+          "default": "Built to last"
+        },
+        {
+          "type": "textarea",
+          "id": "text",
+          "label": "Text",
+          "default": "Materials, construction, and maker reputation should support decades of real use."
+        }
+      ]
+    }
+  ],
+  "presets": [
+    {
+      "name": "Principles",
+      "blocks": [
+        { "type": "principle" },
+        { "type": "principle" },
+        { "type": "principle" }
+      ]
+    }
+  ]
+}
+{% endschema %}

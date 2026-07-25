@@ -6,10 +6,18 @@ import { SITE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'About',
-  description: SITE.description,
+  description:
+    'About Practical Things: an editorial storefront for durable, repairable products and long-term ownership.',
+  alternates: { canonical: `${SITE.url}/about` },
 };
 
 export default function AboutPage() {
+  const proofPoints = [
+    'We calculate value across years owned, not only checkout price.',
+    'We look for repair paths before we celebrate materials.',
+    'We treat warranties, spare parts, and maintenance as part of the product.',
+  ];
+
   return (
     <div>
       <section className="relative min-h-[70vh] overflow-hidden bg-foreground">
@@ -36,21 +44,30 @@ export default function AboutPage() {
         </div>
       </section>
 
-      <section className="container-pt grid gap-12 py-20 md:grid-cols-2 md:py-28">
-        <h2 className="font-serif text-4xl md:text-5xl">Why quality matters</h2>
+      <section className="container-pt grid gap-12 py-20 md:grid-cols-[0.85fr_1.15fr] md:py-28">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">What we are building</p>
+          <h2 className="mt-4 font-serif text-4xl md:text-5xl">
+            A storefront for people tired of replacing things.
+          </h2>
+        </div>
         <div className="prose-pt space-y-5 text-base text-foreground/85">
           <p>
-            Cheap products cost more over time. They break, disappoint, and fill landfills. We
-            curate objects that earn their keep for decades — tools, bags, cookware, and home goods
-            that improve with age.
+            Cheap products cost more over time. They break, disappoint, and fill landfills. We curate
+            objects that earn their keep for decades - tools, bags, cookware, and home goods that
+            improve with age.
           </p>
           <p>{SITE.philosophy}</p>
+          <p>
+            Practical Things is both shop and publication: a place to compare products, read care
+            notes, understand ownership cost, and choose fewer things with more confidence.
+          </p>
         </div>
       </section>
 
       <section className="border-y border-border bg-card">
         <div className="container-pt grid gap-12 py-20 md:grid-cols-3 md:py-28">
-          {SITE.principles.slice(0, 3).map((item) => (
+          {SITE.principles.map((item) => (
             <div key={item.title}>
               <h3 className="font-serif text-2xl">{item.title}</h3>
               <p className="mt-4 text-sm leading-relaxed text-muted">{item.body}</p>
@@ -59,11 +76,37 @@ export default function AboutPage() {
         </div>
       </section>
 
+      <section className="container-pt grid gap-12 py-20 md:grid-cols-2 md:py-28">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.22em] text-muted">How we earn trust</p>
+          <h2 className="mt-4 font-serif text-4xl md:text-5xl">Evidence before enthusiasm.</h2>
+        </div>
+        <div className="space-y-4">
+          {proofPoints.map((point) => (
+            <div key={point} className="border border-border bg-card p-5">
+              <p className="text-sm leading-7 text-foreground/85">{point}</p>
+            </div>
+          ))}
+          <p className="pt-4 text-sm leading-7 text-muted">
+            V1 is intentionally practical: a deep catalog, buying guides, philosophy, and community
+            workflows that make long-term ownership easier to evaluate.
+          </p>
+        </div>
+      </section>
+
       <section className="container-pt py-20 text-center md:py-28">
-        <h2 className="font-serif text-4xl md:text-5xl">Start with something lasting</h2>
-        <Link href="/shop" className="mt-8 inline-block">
-          <Button size="lg">Shop the collection</Button>
-        </Link>
+        <p className="text-[11px] uppercase tracking-[0.22em] text-muted">Begin</p>
+        <h2 className="mt-4 font-serif text-4xl md:text-5xl">Start with something lasting</h2>
+        <div className="mt-8 flex flex-col items-center justify-center gap-3 sm:flex-row">
+          <Link href="/shop">
+            <Button size="lg">Shop the collection</Button>
+          </Link>
+          <Link href="/philosophy">
+            <Button variant="secondary" size="lg">
+              Read the philosophy
+            </Button>
+          </Link>
+        </div>
       </section>
     </div>
   );
