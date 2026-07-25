@@ -1,22 +1,34 @@
 export type CategorySlug =
   | 'kitchen'
+  | 'workshop'
   | 'tools'
   | 'travel'
   | 'office'
   | 'home'
-  | 'outdoor';
+  | 'outdoors'
+  | 'photography'
+  | 'everyday-carry'
+  | 'coffee'
+  | 'cooking'
+  | 'writing'
+  | 'garage'
+  | 'camping'
+  | 'bathroom'
+  | 'bedroom'
+  | 'garden';
 
 export type ProductBadge =
+  | 'Lifetime Worthy'
   | 'Lifetime Warranty'
   | 'Repairable'
   | "Editor's Pick"
   | 'Best Value'
+  | 'Premium Choice'
   | 'Made in Japan'
   | 'Made in Germany'
   | 'Made in USA'
-  | 'Handmade'
-  | 'Limited Batch'
-  | 'Sustainable';
+  | 'Field Tested'
+  | 'Community Favorite';
 
 export type BiflScores = {
   lifetime: number;
@@ -45,9 +57,21 @@ export type Product = {
   category: CategorySlug;
   brand: string;
   material: string;
+  materials?: string[];
   countryOfOrigin: string;
   manufacturer: string;
   warranty: string;
+  expectedLifespan: string;
+  longTermCostCheap: number;
+  longTermCostPremium: number;
+  cheapAlternativeName: string;
+  premiumYears: number;
+  pros: string[];
+  cons: string[];
+  whoShouldBuy: string[];
+  whoShouldNotBuy: string[];
+  sparePartsAvailable: boolean;
+  repairable: boolean;
   repairabilityScore: number;
   lifetimeScore: number;
   overallRating: number;
@@ -79,6 +103,25 @@ export type Article = {
   publishedAt: string;
   tags: string[];
   body: string[];
+};
+
+export type GuideSection = {
+  h2: string;
+  paragraphs: string[];
+};
+
+export type BuyingGuide = {
+  slug: string;
+  title: string;
+  excerpt: string;
+  intro: string;
+  sections: GuideSection[];
+  faqs: { q: string; a: string }[];
+  relatedProductSlugs: string[];
+  publishedAt: string;
+  readingMinutes: number;
+  seoTitle: string;
+  seoDescription: string;
 };
 
 export type Review = {

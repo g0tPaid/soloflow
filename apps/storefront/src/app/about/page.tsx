@@ -2,11 +2,11 @@ import type { Metadata } from 'next';
 import Image from 'next/image';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
+import { SITE } from '@/lib/site';
 
 export const metadata: Metadata = {
   title: 'About',
-  description:
-    'Why Practical Things exists — quality, longevity, repairability, and buying less.',
+  description: SITE.description,
 };
 
 export default function AboutPage() {
@@ -25,12 +25,12 @@ export default function AboutPage() {
         <div className="relative z-10 flex min-h-[70vh] items-end px-6 pb-16 md:px-12">
           <div className="max-w-2xl">
             <p className="text-[11px] uppercase tracking-[0.24em] text-white/75">
-              Practical Things
+              {SITE.name}
             </p>
             <h1 className="mt-4 font-serif text-5xl text-white md:text-7xl">
-              Buy once.
-              <br />
               Buy better.
+              <br />
+              Own longer.
             </h1>
           </div>
         </div>
@@ -44,29 +44,13 @@ export default function AboutPage() {
             curate objects that earn their keep for decades — tools, bags, cookware, and home goods
             that improve with age.
           </p>
-          <p>
-            Every product must answer one question: will this still be useful in 20 years? If the
-            answer is no, it does not belong here.
-          </p>
+          <p>{SITE.philosophy}</p>
         </div>
       </section>
 
       <section className="border-y border-border bg-card">
         <div className="container-pt grid gap-12 py-20 md:grid-cols-3 md:py-28">
-          {[
-            {
-              title: 'Buying less saves money',
-              body: 'A $400 bag that lasts twenty years costs less than five $80 bags that fail.',
-            },
-            {
-              title: 'Sustainability is longevity',
-              body: 'The greenest product is the one you do not replace. Repairability is non-negotiable.',
-            },
-            {
-              title: 'Craft over trend',
-              body: 'Timeless design ages into character. Trends age into regret.',
-            },
-          ].map((item) => (
+          {SITE.principles.slice(0, 3).map((item) => (
             <div key={item.title}>
               <h3 className="font-serif text-2xl">{item.title}</h3>
               <p className="mt-4 text-sm leading-relaxed text-muted">{item.body}</p>
