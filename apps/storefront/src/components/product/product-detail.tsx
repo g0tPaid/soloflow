@@ -4,7 +4,7 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { useEffect, useState } from 'react';
 import { Heart } from 'lucide-react';
-import type { Product } from '@/lib/types';
+import type { Product, Review } from '@/lib/types';
 import { formatPrice, cn } from '@/lib/utils';
 import { useCart, useRecentlyViewed, useWishlist } from '@/lib/store';
 import { Button } from '@/components/ui/button';
@@ -31,9 +31,11 @@ function ListBlock({ title, items }: { title: string; items: string[] }) {
 export function ProductDetail({
   product,
   related,
+  reviews = [],
 }: {
   product: Product;
   related: Product[];
+  reviews?: Review[];
 }) {
   const [activeImage, setActiveImage] = useState(0);
   const [variantId, setVariantId] = useState(product.variants[0]?.id || 'default');
@@ -161,10 +163,22 @@ export function ProductDetail({
               <dd className="mt-1 font-medium">{product.material}</dd>
             </div>
             <div>
+              <dt className="text-muted">Weight</dt>
+              <dd className="mt-1 font-medium">
+                {product.weightGrams >= 1000
+                  ? `${(product.weightGrams / 1000).toFixed(1)} kg`
+                  : `${product.weightGrams} g`}
+              </dd>
+            </div>
+            <div>
               <dt className="text-muted">Spare parts</dt>
               <dd className="mt-1 font-medium">
                 {product.sparePartsAvailable ? 'Available' : 'Limited'}
               </dd>
+            </div>
+            <div>
+              <dt className="text-muted">Editor&apos;s rating</dt>
+              <dd className="mt-1 font-medium">{product.overallRating.toFixed(1)} / 5</dd>
             </div>
           </dl>
 
@@ -206,33 +220,37 @@ export function ProductDetail({
 
       <section className="mt-24 grid gap-12 border-t border-border pt-16 md:grid-cols-2">
         <div>
-          <h2 className="font-serif text-3xl">Why we recommend it</h2>
-          <p className="prose-pt mt-5">{product.whyWeChose}</p>
-          <p className="prose-pt mt-4">{product.description}</p>
+          <h2 className="font-serif text-3xl">The story</h2>
+          <p className="prose-pt mt-5">{product.description}</p>
         </div>
         <div>
-          <h2 className="font-serif text-3xl">Long-term ownership cost</h2>
-          <p className="mt-3 text-sm text-muted">Over {years} years of ownership</p>
-          <div className="mt-6 grid gap-4 sm:grid-cols-2">
-            <div className="rounded-2xl border border-border bg-card p-5">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
-                {product.cheapAlternativeName || 'Cheap alternative'}
-              </p>
-              <p className="mt-3 text-sm text-muted">Replace repeatedly</p>
-              <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostCheap)}</p>
-            </div>
-            <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
-              <p className="text-[11px] uppercase tracking-[0.16em] text-accent">This product</p>
-              <p className="mt-3 text-sm text-muted">One lasting purchase</p>
-              <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostPremium)}</p>
-            </div>
-          </div>
-          {savings > 0 ? (
-            <p className="mt-4 text-sm text-accent">
-              Estimated savings over {years} years: {formatPrice(savings)}
-            </p>
-          ) : null}
+          <h2 className="font-serif text-3xl">Why we recommend it</h2>
+          <p className="prose-pt mt-5">{product.whyWeChose}</p>
         </div>
+      </section>
+
+      <section className="mt-20 border-t border-border pt-16">
+        <h2 className="font-serif text-3xl">Long-term ownership cost</h2>
+        <p className="mt-3 text-sm text-muted">Over {years} years of ownership</p>
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:max-w-3xl">
+          <div className="rounded-2xl border border-border bg-card p-5">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-muted">
+              {product.cheapAlternativeName || 'Cheap alternative'}
+            </p>
+            <p className="mt-3 text-sm text-muted">Replace repeatedly</p>
+            <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostCheap)}</p>
+          </div>
+          <div className="rounded-2xl border border-accent/30 bg-accent/5 p-5">
+            <p className="text-[11px] uppercase tracking-[0.16em] text-accent">This product</p>
+            <p className="mt-3 text-sm text-muted">One lasting purchase</p>
+            <p className="mt-4 font-serif text-3xl">{formatPrice(product.longTermCostPremium)}</p>
+          </div>
+        </div>
+        {savings > 0 ? (
+          <p className="mt-4 text-sm text-accent">
+            Estimated savings over {years} years: {formatPrice(savings)}
+          </p>
+        ) : null}
       </section>
 
       <section className="mt-20 grid gap-10 border-t border-border pt-16 md:grid-cols-2">
@@ -265,6 +283,33 @@ export function ProductDetail({
           </p>
         </div>
       </section>
+
+      {reviews.length > 0 && (
+        <section className="mt-20 border-t border-border pt-16">
+          <h2 className="font-serif text-3xl">Community reviews</h2>
+          <div className="mt-10 grid gap-8 md:grid-cols-2 lg:grid-cols-3">
+            {reviews.map((review) => (
+              <figure key={review.id} className="rounded-2xl border border-border bg-card p-6">
+                <div className="flex items-center gap-1 text-accent" aria-label={`${review.rating} stars`}>
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <span key={i} className={i < review.rating ? 'opacity-100' : 'opacity-25'}>
+                      ★
+                    </span>
+                  ))}
+                </div>
+                <blockquote className="mt-4 font-serif text-xl leading-snug">
+                  “{review.quote}”
+                </blockquote>
+                <figcaption className="mt-5 text-sm text-muted">
+                  <span className="text-foreground">{review.name}</span>
+                  <span className="mx-2">·</span>
+                  {review.location}
+                </figcaption>
+              </figure>
+            ))}
+          </div>
+        </section>
+      )}
 
       {product.faq.length > 0 && (
         <section className="mt-20 border-t border-border pt-16">

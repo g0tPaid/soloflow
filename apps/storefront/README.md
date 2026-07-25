@@ -13,6 +13,7 @@ products, understand long-term ownership cost, and buy fewer objects that earn t
 - Tailwind CSS v4 · Framer Motion
 - Zustand (cart / wishlist) · React Hook Form + Zod
 - Shopify Storefront API ready · Sanity CMS ready
+- Shopify OS 2.0 theme scaffold in `/themes/practical-things`
 
 ## Local
 
@@ -26,15 +27,13 @@ Open [http://localhost:3002](http://localhost:3002).
 
 ## What’s included
 
-- Home (full-bleed hero, principles, why-it-exists storytelling, products, journal, newsletter)
-- Shop with filters (material, country, warranty/score, brand, price, availability) + sort
-- Product pages with gallery zoom, sticky buy panel, BIFL scores, maintenance, FAQ, related
-- Philosophy, buying guides, and community contribution workflows
+- Home (hero, principles, collections, products, ownership stories, journal, newsletter)
+- Shop filters: lifespan, repairability, country, warranty, material, lifetime warranty, spare parts, editor rating, weight, category, brand, price
+- Product pages with gallery, story, BIFL scores, long-term cost, pros/cons, maintenance, reviews, FAQ schema
+- Philosophy, 10 buying guides, community contribution forms
+- Journal with reading progress, category tags, search, author pages
 - Cart drawer, wishlist, instant search (⌘K)
-- Checkout (demo), account stubs
-- Journal magazine layout + article schema
-- About & Contact
-- Sitemap · robots.txt · Open Graph · Product/Article/FAQ JSON-LD
+- Sitemap · robots.txt · Open Graph · Organization/Product/Article/FAQ/Breadcrumb JSON-LD
 
 Until Shopify/Sanity credentials are set, the app uses a curated mock catalog in `src/lib/catalog.ts`.
 
@@ -50,12 +49,15 @@ Until Shopify/Sanity credentials are set, the app uses a curated mock catalog in
 
 | Token | Value |
 |---|---|
-| Background | `#FAFAF7` |
-| Text | `#1B1B1B` |
-| Accent | `#2E6F40` |
+| Background | `#FAFAF8` |
+| Cards | `#FFFFFF` |
+| Text | `#111111` |
+| Secondary | `#666666` |
+| Accent | `#245C4A` |
+| Borders | `#E8E8E8` |
 | Headings | Cormorant Garamond |
 | Body | Inter |
 
 ## Deploy
 
-Any Node host (Vercel / Railway / Netlify). Set `NEXT_PUBLIC_SITE_URL` to the production origin.
+See `DEPLOY.md` for Railway notes.

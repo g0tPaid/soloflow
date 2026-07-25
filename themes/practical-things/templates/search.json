@@ -1,19 +1,8 @@
 {
   "sections": {
-    "search_intro": {
-      "type": "hero",
-      "settings": {
-        "eyebrow": "Search",
-        "heading": "Find fewer, better things.",
-        "text": "Search the catalog for durable products, guides, and long-term ownership notes."
-      }
-    },
-    "results": {
-      "type": "featured-products",
-      "settings": {
-        "heading": "Search results"
-      }
+    "main": {
+      "type": "main-search"
     }
   },
-  "order": ["search_intro", "results"]
+  "order": ["main"]
 }

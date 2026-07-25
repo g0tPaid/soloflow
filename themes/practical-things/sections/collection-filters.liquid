@@ -80,6 +80,24 @@
       ]
     },
     {
+      "type": "country",
+      "name": "Country filter",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Country"
+        },
+        {
+          "type": "text",
+          "id": "help_text",
+          "label": "Help text",
+          "default": "Example: USA, Japan, Germany, Italy."
+        }
+      ]
+    },
+    {
       "type": "warranty",
       "name": "Warranty filter",
       "settings": [
@@ -116,20 +134,92 @@
       ]
     },
     {
-      "type": "country",
-      "name": "Country filter",
+      "type": "lifetime_warranty",
+      "name": "Lifetime warranty filter",
       "settings": [
         {
           "type": "text",
           "id": "label",
           "label": "Label",
-          "default": "Country"
+          "default": "Lifetime warranty"
         },
         {
           "type": "text",
           "id": "help_text",
           "label": "Help text",
-          "default": "Example: USA, Japan, Germany, Italy."
+          "default": "Toggle: only products with a lifetime warranty."
+        }
+      ]
+    },
+    {
+      "type": "spare_parts",
+      "name": "Spare parts filter",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Spare parts"
+        },
+        {
+          "type": "text",
+          "id": "help_text",
+          "label": "Help text",
+          "default": "Toggle: spare parts available / supported."
+        }
+      ]
+    },
+    {
+      "type": "editor_rating",
+      "name": "Editor rating filter",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Editor rating"
+        },
+        {
+          "type": "text",
+          "id": "help_text",
+          "label": "Help text",
+          "default": "Example: 4+ stars or editor score."
+        }
+      ]
+    },
+    {
+      "type": "weight",
+      "name": "Weight filter",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Weight"
+        },
+        {
+          "type": "text",
+          "id": "help_text",
+          "label": "Help text",
+          "default": "Example: max weight in grams or kilograms."
+        }
+      ]
+    },
+    {
+      "type": "category",
+      "name": "Category filter",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Category"
+        },
+        {
+          "type": "text",
+          "id": "help_text",
+          "label": "Help text",
+          "default": "Example: kitchen, tools, apparel, home."
         }
       ]
     },
@@ -156,10 +246,14 @@
     "blocks": [
       { "type": "lifespan" },
       { "type": "repairability" },
+      { "type": "country" },
       { "type": "warranty" },
       { "type": "material" },
-      { "type": "country" },
-      { "type": "rating" }
+      { "type": "lifetime_warranty" },
+      { "type": "spare_parts" },
+      { "type": "editor_rating" },
+      { "type": "weight" },
+      { "type": "category" }
     ]
   }
 }

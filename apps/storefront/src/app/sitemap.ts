@@ -1,6 +1,7 @@
 import type { MetadataRoute } from 'next';
 import { articles, products } from '@/lib/catalog';
 import { guides } from '@/lib/guides';
+import { getAuthors } from '@/lib/authors';
 import { SITE } from '@/lib/site';
 
 export default function sitemap(): MetadataRoute.Sitemap {
@@ -35,6 +36,13 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.6,
   }));
 
+  const authorRoutes = getAuthors().map((a) => ({
+    url: `${SITE.url}/journal/author/${a.slug}`,
+    lastModified: new Date(),
+    changeFrequency: 'monthly' as const,
+    priority: 0.5,
+  }));
+
   const guideRoutes = guides.map((guide) => ({
     url: `${SITE.url}/guides/${guide.slug}`,
     lastModified: new Date(guide.publishedAt),
@@ -42,5 +50,5 @@ export default function sitemap(): MetadataRoute.Sitemap {
     priority: 0.7,
   }));
 
-  return [...staticRoutes, ...productRoutes, ...articleRoutes, ...guideRoutes];
+  return [...staticRoutes, ...productRoutes, ...articleRoutes, ...authorRoutes, ...guideRoutes];
 }

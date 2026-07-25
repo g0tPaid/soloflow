@@ -6,9 +6,12 @@
     "ownership_cost": {
       "type": "product-ownership-cost"
     },
+    "related": {
+      "type": "related-products"
+    },
     "newsletter": {
       "type": "newsletter"
     }
   },
-  "order": ["main", "ownership_cost", "newsletter"]
+  "order": ["main", "ownership_cost", "related", "newsletter"]
 }

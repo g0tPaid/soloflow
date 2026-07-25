@@ -53,7 +53,7 @@
     "settings": [
       {
         "type": "paragraph",
-        "content": "Brand typography uses Cormorant Garamond for headings and Inter for body copy. Add hosted font assets or Shopify font picker wiring before production launch."
+        "content": "Brand typography loads Cormorant Garamond (headings) and Inter (body) from Google Fonts in layout/theme.liquid."
       }
     ]
   }

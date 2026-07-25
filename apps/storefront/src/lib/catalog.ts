@@ -156,6 +156,7 @@ export const products: Product[] = [
     repairabilityScore: 95,
     lifetimeScore: 98,
     overallRating: 4.9,
+    weightGrams: 3200,
     scores: {
       lifetime: 98,
       repairability: 95,
@@ -237,6 +238,7 @@ export const products: Product[] = [
     repairabilityScore: 92,
     lifetimeScore: 94,
     overallRating: 4.8,
+    weightGrams: 1100,
     scores: {
       lifetime: 94,
       repairability: 92,
@@ -312,6 +314,7 @@ export const products: Product[] = [
     repairabilityScore: 90,
     lifetimeScore: 96,
     overallRating: 4.9,
+    weightGrams: 220,
     scores: {
       lifetime: 96,
       repairability: 90,
@@ -383,6 +386,7 @@ export const products: Product[] = [
     repairabilityScore: 88,
     lifetimeScore: 93,
     overallRating: 4.7,
+    weightGrams: 1800,
     scores: {
       lifetime: 93,
       repairability: 88,
@@ -452,6 +456,7 @@ export const products: Product[] = [
     repairabilityScore: 85,
     lifetimeScore: 97,
     overallRating: 4.8,
+    weightGrams: 4500,
     scores: {
       lifetime: 97,
       repairability: 85,
@@ -514,6 +519,7 @@ export const products: Product[] = [
     repairabilityScore: 70,
     lifetimeScore: 85,
     overallRating: 4.6,
+    weightGrams: 280,
     scores: {
       lifetime: 85,
       repairability: 70,
@@ -579,6 +585,7 @@ export const products: Product[] = [
     repairabilityScore: 91,
     lifetimeScore: 95,
     overallRating: 4.7,
+    weightGrams: 450,
     scores: {
       lifetime: 95,
       repairability: 91,
@@ -647,6 +654,7 @@ export const products: Product[] = [
     repairabilityScore: 94,
     lifetimeScore: 96,
     overallRating: 4.8,
+    weightGrams: 2100,
     scores: {
       lifetime: 96,
       repairability: 94,
@@ -715,6 +723,7 @@ export const products: Product[] = [
     repairabilityScore: 93,
     lifetimeScore: 94,
     overallRating: 4.8,
+    weightGrams: 140,
     scores: {
       lifetime: 94,
       repairability: 93,
@@ -789,6 +798,7 @@ export const products: Product[] = [
     repairabilityScore: 92,
     lifetimeScore: 93,
     overallRating: 4.7,
+    weightGrams: 900,
     scores: {
       lifetime: 93,
       repairability: 92,
@@ -863,6 +873,7 @@ export const products: Product[] = [
     repairabilityScore: 96,
     lifetimeScore: 95,
     overallRating: 4.9,
+    weightGrams: 320,
     scores: {
       lifetime: 95,
       repairability: 96,
@@ -937,6 +948,7 @@ export const products: Product[] = [
     repairabilityScore: 90,
     lifetimeScore: 92,
     overallRating: 4.7,
+    weightGrams: 1600,
     scores: {
       lifetime: 92,
       repairability: 90,

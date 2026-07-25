@@ -75,6 +75,8 @@ export type Product = {
   repairabilityScore: number;
   lifetimeScore: number;
   overallRating: number;
+  /** Product weight in grams for shop filters and shipping context. */
+  weightGrams: number;
   scores: BiflScores;
   badges: ProductBadge[];
   whyWeChose: string;

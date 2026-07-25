@@ -26,3 +26,13 @@
 {% if page_description %}
   <meta name="twitter:description" content="{{ page_description | escape }}">
 {% endif %}
+
+<script type="application/ld+json">
+  {
+    "@context": "https://schema.org",
+    "@type": "Organization",
+    "name": {{ shop.name | json }},
+    "url": {{ shop.url | json }},
+    "description": {{ shop.description | default: "The world's most trusted collection of products built to last." | json }}
+  }
+</script>

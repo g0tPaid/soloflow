@@ -1,14 +1,11 @@
 {
   "sections": {
-    "cart_story": {
-      "type": "why-exists",
-      "settings": {
-        "heading": "Review what earns its place"
-      }
+    "main": {
+      "type": "main-cart"
     },
     "newsletter": {
       "type": "newsletter"
     }
   },
-  "order": ["cart_story", "newsletter"]
+  "order": ["main", "newsletter"]
 }
