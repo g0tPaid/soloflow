@@ -473,10 +473,17 @@ export const api = {
       return apiFetch('/auth/register', { method: 'POST', body: JSON.stringify(data) });
     },
     login: (data: { email: string; password: string }) =>
-      apiFetch<{ user: { id: string; email: string; name: string; isSuperAdmin?: boolean }; token: string }>(
-        '/auth/login',
-        { method: 'POST', body: JSON.stringify(data) },
-      ),
+      apiFetch<{
+        user: { id: string; email: string; name: string; isSuperAdmin?: boolean };
+        token: string;
+        refreshToken: string;
+      }>('/auth/login', { method: 'POST', body: JSON.stringify(data) }),
+    refresh: (data: { refreshToken: string }) =>
+      apiFetch<{
+        user: { id: string; email: string; name: string; isSuperAdmin?: boolean };
+        token: string;
+        refreshToken: string;
+      }>('/auth/refresh', { method: 'POST', body: JSON.stringify(data) }),
     forgotPassword: async (data: { email: string }) => {
       if (typeof window !== 'undefined') {
         return browserJsonRequest<{ message: string }>('/api/auth/forgot-password', {
@@ -504,10 +511,11 @@ export const api = {
       });
     },
     bootstrap: () =>
-      apiFetch<{ user: { id: string; email: string; name: string; isSuperAdmin?: boolean }; token: string }>(
-        '/auth/bootstrap',
-        { method: 'POST', body: JSON.stringify({}) },
-      ),
+      apiFetch<{
+        user: { id: string; email: string; name: string; isSuperAdmin?: boolean };
+        token: string;
+        refreshToken: string;
+      }>('/auth/bootstrap', { method: 'POST', body: JSON.stringify({}) }),
     me: (token: string) =>
       apiFetch<{ id: string; email: string; name: string; isSuperAdmin?: boolean }>('/auth/me', {
         headers: { Authorization: `Bearer ${token}` },

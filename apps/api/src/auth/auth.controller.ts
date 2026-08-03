@@ -1,7 +1,7 @@
 import { Controller, Post, Get, Body, UseGuards, Request } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, RefreshDto } from './dto/auth.dto';
 import { JwtAuthGuard } from './jwt-auth.guard';
 
 @ApiTags('Auth')
@@ -19,6 +19,12 @@ export class AuthController {
   @ApiOperation({ summary: 'Login with email and password' })
   login(@Body() dto: LoginDto) {
     return this.authService.login(dto);
+  }
+
+  @Post('refresh')
+  @ApiOperation({ summary: 'Refresh access token (multi-device sessions)' })
+  refresh(@Body() dto: RefreshDto) {
+    return this.authService.refresh(dto);
   }
 
   @Post('forgot-password')

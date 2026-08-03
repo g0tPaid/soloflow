@@ -12,9 +12,10 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
-import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
+import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto, RefreshDto } from './dto/auth.dto';
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
+const REFRESH_TOKEN_TTL_MS = 30 * 24 * 60 * 60 * 1000; // 30 days
 const RESET_IDENTIFIER_PREFIX = 'password-reset:';
 
 function superAdminEmails(): Set<string> {
@@ -104,8 +105,8 @@ export class AuthService {
       select: { id: true, email: true, name: true, createdAt: true, isSuperAdmin: true },
     });
 
-    const token = this.generateToken(user.id, user.email);
-    return { user: refreshed!, token };
+    const token = await this.issueSessionTokens(user.id, user.email);
+    return { user: refreshed!, ...token };
   }
 
   async login(dto: LoginDto) {
@@ -140,11 +141,49 @@ export class AuthService {
       select: { id: true, email: true, name: true, isSuperAdmin: true },
     });
 
-    const token = this.generateToken(user.id, email);
+    const tokens = await this.issueSessionTokens(user.id, email);
     return {
       user: refreshed!,
-      token,
+      ...tokens,
     };
+  }
+
+  /**
+   * Rotate refresh token and issue a new access token.
+   * Each device keeps its own refresh token; logging in elsewhere does not revoke others.
+   */
+  async refresh(dto: RefreshDto) {
+    const tokenHash = hashToken(dto.refreshToken.trim());
+    const record = await this.prisma.refreshToken.findUnique({
+      where: { tokenHash },
+      include: { user: true },
+    });
+
+    if (!record || record.expiresAt.getTime() < Date.now()) {
+      if (record) {
+        await this.prisma.refreshToken.delete({ where: { id: record.id } }).catch(() => undefined);
+      }
+      throw new UnauthorizedException('Session expired. Please sign in again.');
+    }
+
+    if (record.user.suspendedAt) {
+      throw new ForbiddenException('Account suspended');
+    }
+
+    // Rotate only this device's refresh token.
+    await this.prisma.refreshToken.delete({ where: { id: record.id } });
+
+    const email = normalizeEmail(record.user.email);
+    await this.ensureSuperAdminFlag(record.userId, email);
+    await this.touchActive(record.userId);
+
+    const tokens = await this.issueSessionTokens(record.userId, email);
+    const refreshed = await this.prisma.user.findUnique({
+      where: { id: record.userId },
+      select: { id: true, email: true, name: true, isSuperAdmin: true },
+    });
+
+    return { user: refreshed!, ...tokens };
   }
 
   /**
@@ -241,6 +280,7 @@ export class AuthService {
     });
 
     await this.prisma.verificationToken.deleteMany({ where: { identifier: record.identifier } });
+    await this.revokeAllRefreshTokens(user.id);
 
     return { message: 'Password updated. You can sign in with your new password.' };
   }
@@ -263,7 +303,7 @@ export class AuthService {
       });
     }
 
-    const token = this.generateToken(user.id, user.email);
+    const tokens = await this.issueSessionTokens(user.id, user.email);
     await this.ensureSuperAdminFlag(user.id, user.email);
     await this.touchActive(user.id);
     const refreshed = await this.prisma.user.findUnique({
@@ -272,7 +312,7 @@ export class AuthService {
     });
     return {
       user: refreshed!,
-      token,
+      ...tokens,
     };
   }
 
@@ -298,6 +338,27 @@ export class AuthService {
     });
     if (!user) throw new UnauthorizedException();
     return user;
+  }
+
+  private async issueSessionTokens(userId: string, email: string) {
+    const token = this.generateToken(userId, email);
+    const rawRefresh = randomBytes(32).toString('hex');
+    const tokenHash = hashToken(rawRefresh);
+    const expiresAt = new Date(Date.now() + REFRESH_TOKEN_TTL_MS);
+
+    await this.prisma.refreshToken.create({
+      data: {
+        userId,
+        tokenHash,
+        expiresAt,
+      },
+    });
+
+    return { token, refreshToken: rawRefresh };
+  }
+
+  private async revokeAllRefreshTokens(userId: string) {
+    await this.prisma.refreshToken.deleteMany({ where: { userId } });
   }
 
   private generateToken(userId: string, email: string) {

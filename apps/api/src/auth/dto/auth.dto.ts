@@ -53,3 +53,10 @@ export class ResetPasswordDto {
   @MinLength(8)
   password!: string;
 }
+
+export class RefreshDto {
+  @ApiProperty({ description: 'Refresh token issued at login' })
+  @IsString()
+  @MinLength(20)
+  refreshToken!: string;
+}

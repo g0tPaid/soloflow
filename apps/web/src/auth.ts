@@ -7,6 +7,12 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
 const googleEnabled =
   !!process.env.AUTH_GOOGLE_ID?.trim() && !!process.env.AUTH_GOOGLE_SECRET?.trim();
 
+type SessionTokens = {
+  token: string;
+  refreshToken: string;
+  user?: { isSuperAdmin?: boolean };
+};
+
 function isApiJwtExpired(accessToken: string): boolean {
   try {
     const payloadPart = accessToken.split('.')[1];
@@ -29,6 +35,10 @@ function isApiJwtExpired(accessToken: string): boolean {
   }
 }
 
+async function refreshApiSession(refreshToken: string): Promise<SessionTokens> {
+  return api.auth.refresh({ refreshToken });
+}
+
 export const { handlers, signIn, signOut, auth } = NextAuth({
   trustHost: true,
   providers: [
@@ -46,6 +56,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
                   email: result.user.email,
                   name: result.user.name,
                   accessToken: result.token,
+                  refreshToken: result.refreshToken,
                   isSuperAdmin: result.user.isSuperAdmin ?? false,
                 };
               } catch {
@@ -83,6 +94,7 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
             email: result.user.email,
             name: result.user.name,
             accessToken: result.token,
+            refreshToken: result.refreshToken,
             isSuperAdmin: result.user.isSuperAdmin ?? false,
           };
         } catch {
@@ -94,15 +106,35 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   callbacks: {
     async jwt({ token, user }) {
       if (user) {
-        const authUser = user as { accessToken?: string; id?: string; isSuperAdmin?: boolean };
+        const authUser = user as {
+          accessToken?: string;
+          refreshToken?: string;
+          id?: string;
+          isSuperAdmin?: boolean;
+        };
         token.accessToken = authUser.accessToken;
+        token.refreshToken = authUser.refreshToken;
         token.id = authUser.id ?? user.id;
         token.isSuperAdmin = authUser.isSuperAdmin ?? false;
+        return token;
       }
 
       if (token.accessToken && isApiJwtExpired(String(token.accessToken))) {
-        delete token.accessToken;
-        token.isSuperAdmin = false;
+        if (token.refreshToken) {
+          try {
+            const refreshed = await refreshApiSession(String(token.refreshToken));
+            token.accessToken = refreshed.token;
+            token.refreshToken = refreshed.refreshToken;
+            token.isSuperAdmin = refreshed.user?.isSuperAdmin ?? token.isSuperAdmin ?? false;
+          } catch {
+            delete token.accessToken;
+            delete token.refreshToken;
+            token.isSuperAdmin = false;
+          }
+        } else {
+          delete token.accessToken;
+          token.isSuperAdmin = false;
+        }
         return token;
       }
 
@@ -113,8 +145,19 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           };
           token.isSuperAdmin = profile.isSuperAdmin ?? false;
         } catch {
-          delete token.accessToken;
-          token.isSuperAdmin = false;
+          // Do not sign the user out on transient API errors — try refresh, then keep the token.
+          if (token.refreshToken) {
+            try {
+              const refreshed = await refreshApiSession(String(token.refreshToken));
+              token.accessToken = refreshed.token;
+              token.refreshToken = refreshed.refreshToken;
+              token.isSuperAdmin = refreshed.user?.isSuperAdmin ?? false;
+            } catch {
+              token.isSuperAdmin = false;
+            }
+          } else {
+            token.isSuperAdmin = false;
+          }
         }
       }
 
@@ -132,8 +175,8 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
   },
   session: {
     strategy: 'jwt',
-    // Keep NextAuth aligned with API JWT default (7d) so stale UI sessions don't linger.
-    maxAge: 7 * 24 * 60 * 60,
+    // Keep NextAuth aligned with refresh token window so devices stay signed in independently.
+    maxAge: 30 * 24 * 60 * 60,
   },
   secret: process.env.AUTH_SECRET,
 });
