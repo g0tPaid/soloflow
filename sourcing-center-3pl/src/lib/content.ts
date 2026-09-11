@@ -6,7 +6,7 @@ export const company = {
   legalNameFull: "Xiamen Ajmal Seven Color Trading Co Ltd",
   tagline: "One Platform for Product Ideation & Sourcing from China.",
   description:
-    "Discover winning product ideas, validate demand, connect with verified manufacturers, manage production, and source directly from China — all from one intelligent platform.",
+    "Discover winning product ideas, validate demand, connect with verified manufacturers, manage production, and source directly from China — then fulfill from our own 3PL warehouses in Xiamen and Dubai.",
   founded: "2014",
   emails: {
     corporate: "info@sevencolor.online",
@@ -147,9 +147,9 @@ export const services = [
     description: "From concept and tooling to mass production with IP-aware workflows.",
   },
   {
-    href: "/logistics",
+    href: "/3pl",
     title: "3PL & Logistics",
-    description: "Own warehouses in Xiamen and Dubai, then sea, air, and express to your door.",
+    description: "Own 3PL warehouses in Xiamen and Dubai — receive, store, pick, pack, and ship — then sea, air, and express.",
   },
   {
     href: "/services",
@@ -245,6 +245,14 @@ export const caseStudies = [
 ];
 
 export const knowledgeArticles = [
+  {
+    slug: "3pl-warehouses-xiamen-dubai",
+    title: "3PL warehouses in Xiamen and Dubai for China importers",
+    category: "3PL",
+    readTime: "6 min",
+    excerpt:
+      "Sourcing Center (Seven Color Trading Co Ltd) operates its own 3PL warehouses in Xiamen, China and Dubai / Al Ain, UAE. This is receive–store–pick–pack–ship fulfillment on the same desk as factory sourcing — not a broker.",
+  },
   {
     slug: "how-to-write-an-rfq",
     title: "How to write an RFQ Chinese factories actually respond to",

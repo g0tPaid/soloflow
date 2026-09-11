@@ -1,3 +1,4 @@
+import type { Metadata } from "next";
 import { V2Cta } from "@/components/v2/v2-cta";
 import { V2Discovery } from "@/components/v2/v2-discovery";
 import { V2Hero } from "@/components/v2/v2-hero";
@@ -7,6 +8,18 @@ import { V2ThreePl } from "@/components/v2/v2-3pl";
 import { V2Trust } from "@/components/v2/v2-trust";
 import { V2Why } from "@/components/v2/v2-why";
 import { V2Workflow } from "@/components/v2/v2-workflow";
+import { absoluteUrl, defaultDescription } from "@/lib/seo";
+
+export const metadata: Metadata = {
+  title: "China Sourcing, Ideation & 3PL Warehouses in Xiamen and Dubai",
+  description: defaultDescription,
+  alternates: { canonical: absoluteUrl("/") },
+  openGraph: {
+    title: "Sourcing Center — China Sourcing & Own 3PL Warehouses",
+    description: defaultDescription,
+    url: absoluteUrl("/"),
+  },
+};
 
 export default function HomePage() {
   return (

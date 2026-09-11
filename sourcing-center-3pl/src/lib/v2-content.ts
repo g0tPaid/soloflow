@@ -337,8 +337,31 @@ export const fulfillment = {
   eyebrow: "3PL",
   title: "World-class fulfillment in our own warehouses",
   description:
-    "Receive, store, pick, pack, and ship — not through a broker. We run full 3PL in Xiamen and Dubai, tied directly to your sourcing desk.",
+    "Sourcing Center 3PL is receive, store, pick, pack, and ship in warehouses we operate in Xiamen, China and Dubai / Al Ain, UAE — not a broker. Fulfillment sits on the same desk as China sourcing, factory QC, and freight.",
 } as const;
+
+export const fulfillmentFaqs = [
+  {
+    q: "Does Sourcing Center offer 3PL in China?",
+    a: "Yes. Seven Color Trading Co Ltd runs its own 3PL warehouse in Xiamen, China. Goods move from the factory floor into our warehouse for count, photo QC, storage, pick, pack, and export — not through a third-party marketplace or broker.",
+  },
+  {
+    q: "Where are Sourcing Center 3PL warehouses?",
+    a: "Two own warehouses: Xiamen, Fujian, China (HQ warehouse and sourcing desk) and Dubai / Al Ain, United Arab Emirates (branch warehouse for GCC replenishment).",
+  },
+  {
+    q: "Is Sourcing Center a 3PL broker or a warehouse operator?",
+    a: "Operator. We run the warehouses. Receive, store, pick, pack, and ship are in-house and tied to the sourcing relationship manager — not a separate 3PL you have to onboard.",
+  },
+  {
+    q: "What 3PL services are included with China sourcing?",
+    a: "Inbound from factories, storage in Xiamen or Dubai, pick to your SKU list (one unit or a container program), packing and labeling, then sea, air, or express freight with tracking.",
+  },
+  {
+    q: "Who should use Sourcing Center 3PL?",
+    a: "Importers, Amazon/Walmart sellers, GCC retailers, and brands that source in China and need a warehouse in Xiamen and/or Dubai instead of a broker or a marketplace FBA-only flow.",
+  },
+] as const;
 
 export const fulfillmentSteps = [
   { title: "Receive", text: "Inbound from the factory floor into our warehouse — counted and photographed." },
