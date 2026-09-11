@@ -162,15 +162,31 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
           {invoice && organizationId && (
             <>
-              <Button
-                type="button"
-                size="lg"
-                onClick={scrollToEdit}
-                className="gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit invoice — change prices &amp; items
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={scrollToEdit}
+                  className="flex-1 gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit invoice
+                </Button>
+                {invoice.status !== 'VOID' &&
+                  invoice.status !== 'CANCELLED' &&
+                  invoiceBalanceDue(invoice) > 0.005 && (
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="outline"
+                      className="flex-1 gap-2 border-amber-500 text-amber-800 hover:bg-amber-600 hover:text-white"
+                      onClick={() => setShowPayment(true)}
+                    >
+                      <Banknote className="h-4 w-4" />
+                      Record payment
+                    </Button>
+                  )}
+              </div>
               {!isNew && (
                 <>
                   <DownloadInvoicePdfButton

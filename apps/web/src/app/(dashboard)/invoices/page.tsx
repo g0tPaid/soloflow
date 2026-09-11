@@ -273,6 +273,22 @@ export default function InvoicesPage() {
                           Edit
                         </Link>
                       </Button>
+                      {canRecordPayment && (
+                        <Button
+                          type="button"
+                          size="sm"
+                          variant="outline"
+                          className="flex-1 gap-1.5 border-amber-500 text-amber-800 hover:bg-amber-600 hover:text-white sm:flex-none"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setPaymentInvoice(invoice);
+                          }}
+                        >
+                          <Banknote className="h-3.5 w-3.5" />
+                          Record payment
+                        </Button>
+                      )}
                       {organizationId && (
                         <InvoiceListDownloadButton
                           invoiceId={invoice.id}
@@ -292,22 +308,6 @@ export default function InvoicesPage() {
                           <FileInput className="h-3.5 w-3.5" />
                           {convertingId === invoice.id ? 'Converting…' : 'To quote'}
                         </Button>
-                      )}
-                      {canRecordPayment && (
-                        <button
-                          type="button"
-                          onClick={(e) => {
-                            e.preventDefault();
-                            e.stopPropagation();
-                            setPaymentInvoice(invoice);
-                          }}
-                          className="flex-1 rounded-full border border-amber-500 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-600 hover:text-white sm:flex-none sm:py-1"
-                        >
-                          <span className="inline-flex items-center gap-1">
-                            <Banknote className="h-3.5 w-3.5" />
-                            Record payment
-                          </span>
-                        </button>
                       )}
                       {canRecordPayment && (
                         <button
