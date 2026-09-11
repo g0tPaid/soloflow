@@ -1,7 +1,7 @@
 From 77130cb9207aff3b109daeef3b5a023c5146d801 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 10:37:26 +0000
-Subject: [PATCH 1/4] Restore the homepage 3PL warehouse section.
+Subject: [PATCH 1/5] Restore the homepage 3PL warehouse section.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -286,7 +286,7 @@ index fc2ce17..f66448b 100644
 From a09b6fa2bc583ce53b795fa4e3e606a9696cd542 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:06:16 +0000
-Subject: [PATCH 2/4] Highlight 3PL across nav, hero, homepage, and footer.
+Subject: [PATCH 2/5] Highlight 3PL across nav, hero, homepage, and footer.
 
 Make warehouse fulfillment a featured red-pill nav item, a hero strip, and a dark accent band on the landing page so 3PL is not another muted section.
 ---
@@ -638,7 +638,7 @@ index e5ed2c4..5629761 100644
 From f4c6b25ff12c204d9a18f5b3a86daab1e6a1c308 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:25:09 +0000
-Subject: [PATCH 3/4] Make 3PL a large heading and add crawlable SEO for search
+Subject: [PATCH 3/5] Make 3PL a large heading and add crawlable SEO for search
  and AI apps.
 
 Enlarge the 3PL label above the warehouse headline, add a /3pl landing page, FAQ schema, llms.txt, and richer metadata so Gemini, ChatGPT, and search engines can cite the Xiamen and Dubai warehouses.
@@ -1728,7 +1728,7 @@ index f66448b..5ef860e 100644
 From c9a22243e0a8519d6bfe8f3cb93831fe9605f94d Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:37:51 +0000
-Subject: [PATCH 4/4] Keep the large homepage 3PL heading clear of the sticky
+Subject: [PATCH 4/5] Keep the large homepage 3PL heading clear of the sticky
  nav.
 
 ---
@@ -1752,6 +1752,134 @@ index 7ee2f5e..c04fcb7 100644
            <div
              className="pointer-events-none absolute inset-0 opacity-80"
              style={{
+-- 
+2.43.0
+
+
+From f7821ddd3378660aaf9dccdb81415d84919f7eed Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 11 Sep 2026 11:49:29 +0000
+Subject: [PATCH 5/5] Restore admin access at /admin and the client desk.
+
+Map /admin and /login to the dashboard, put Admin back in the nav, and stop robots.txt from disallowing /dashboard.
+---
+ next.config.ts                        | 11 +++++++++--
+ src/app/(dashboard)/layout.tsx        |  6 ++++++
+ src/app/robots.ts                     |  2 +-
+ src/components/layout/site-footer.tsx |  5 +++--
+ src/components/v2/v2-nav.tsx          | 13 +++++++++++++
+ 5 files changed, 32 insertions(+), 5 deletions(-)
+
+diff --git a/next.config.ts b/next.config.ts
+index df8e448..402925c 100644
+--- a/next.config.ts
++++ b/next.config.ts
+@@ -1,8 +1,15 @@
+-import type { NextConfig } from 'next';
+-import path from 'path';
++import type { NextConfig } from "next";
++import path from "path";
+ 
+ const nextConfig: NextConfig = {
+   outputFileTracingRoot: path.join(__dirname),
++  async redirects() {
++    return [
++      { source: "/admin", destination: "/dashboard", permanent: false },
++      { source: "/admin/:path*", destination: "/dashboard/:path*", permanent: false },
++      { source: "/login", destination: "/dashboard", permanent: false },
++    ];
++  },
+ };
+ 
+ export default nextConfig;
+diff --git a/src/app/(dashboard)/layout.tsx b/src/app/(dashboard)/layout.tsx
+index dcf6e10..90facea 100644
+--- a/src/app/(dashboard)/layout.tsx
++++ b/src/app/(dashboard)/layout.tsx
+@@ -1,5 +1,11 @@
++import type { Metadata } from "next";
+ import { DashboardShell } from "@/components/dashboard/shell";
+ 
++export const metadata: Metadata = {
++  title: "Client desk",
++  robots: { index: false, follow: false },
++};
++
+ export default function DashboardLayout({ children }: { children: React.ReactNode }) {
+   return <DashboardShell>{children}</DashboardShell>;
+ }
+diff --git a/src/app/robots.ts b/src/app/robots.ts
+index 4c27bd5..7bb24b3 100644
+--- a/src/app/robots.ts
++++ b/src/app/robots.ts
+@@ -18,7 +18,7 @@ const aiCrawlers = [
+ export default function robots(): MetadataRoute.Robots {
+   return {
+     rules: [
+-      { userAgent: "*", allow: "/", disallow: ["/dashboard"] },
++      { userAgent: "*", allow: "/" },
+       ...aiCrawlers.map((userAgent) => ({ userAgent, allow: "/" })),
+     ],
+     sitemap: `${siteUrl}/sitemap.xml`,
+diff --git a/src/components/layout/site-footer.tsx b/src/components/layout/site-footer.tsx
+index ae502e5..79d1c71 100644
+--- a/src/components/layout/site-footer.tsx
++++ b/src/components/layout/site-footer.tsx
+@@ -29,13 +29,13 @@ export function SiteFooter() {
+                   <Link
+                     href={s.href}
+                     className={
+-                      s.href === "/logistics"
++                      s.href === "/3pl"
+                         ? "inline-flex items-center gap-2 font-semibold text-accent hover:opacity-90"
+                         : "text-paper/80 hover:text-paper dark:text-muted dark:hover:text-ink"
+                     }
+                   >
+                     {s.title}
+-                    {s.href === "/logistics" ? (
++                    {s.href === "/3pl" ? (
+                       <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
+                         3PL
+                       </span>
+@@ -56,6 +56,7 @@ export function SiteFooter() {
+                 ["Case studies", "/case-studies"],
+                 ["Knowledge", "/knowledge"],
+                 ["Contact", "/contact"],
++                ["Admin", "/admin"],
+               ].map(([label, href]) => (
+                 <li key={href}>
+                   <Link href={href} className="text-paper/80 hover:text-paper dark:text-muted dark:hover:text-ink">
+diff --git a/src/components/v2/v2-nav.tsx b/src/components/v2/v2-nav.tsx
+index 22f06e3..ccce8e3 100644
+--- a/src/components/v2/v2-nav.tsx
++++ b/src/components/v2/v2-nav.tsx
+@@ -62,6 +62,12 @@ export function V2Nav() {
+           ))}
+         </nav>
+         <div className="hidden items-center gap-2 md:flex">
++          <Link
++            href="/admin"
++            className="rounded-full px-3 py-2 text-sm text-muted transition hover:text-ink"
++          >
++            Admin
++          </Link>
+           <Link
+             href="#rfq"
+             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
+@@ -103,6 +109,13 @@ export function V2Nav() {
+                   {l.label}
+                 </Link>
+               ))}
++              <Link
++                href="/admin"
++                onClick={() => setOpen(false)}
++                className="rounded-xl px-3 py-3 text-sm text-ink"
++              >
++                Admin
++              </Link>
+               <Link
+                 href="#rfq"
+                 onClick={() => setOpen(false)}
 -- 
 2.43.0
 

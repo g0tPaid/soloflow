@@ -63,6 +63,12 @@ export function V2Nav() {
         </nav>
         <div className="hidden items-center gap-2 md:flex">
           <Link
+            href="/admin"
+            className="rounded-full px-3 py-2 text-sm text-muted transition hover:text-ink"
+          >
+            Admin
+          </Link>
+          <Link
             href="#rfq"
             className="rounded-full bg-ink px-4 py-2 text-sm font-medium text-paper transition hover:opacity-90"
           >
@@ -103,6 +109,13 @@ export function V2Nav() {
                   {l.label}
                 </Link>
               ))}
+              <Link
+                href="/admin"
+                onClick={() => setOpen(false)}
+                className="rounded-xl px-3 py-3 text-sm text-ink"
+              >
+                Admin
+              </Link>
               <Link
                 href="#rfq"
                 onClick={() => setOpen(false)}
