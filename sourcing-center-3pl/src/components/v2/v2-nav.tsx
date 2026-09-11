@@ -8,7 +8,7 @@ import { SourcingLogo } from "@/components/brand/sourcing-logo";
 import { cn } from "@/lib/utils";
 
 const links = [
-  { href: "#discovery", label: "Discover" },
+  { href: "/#visit", label: "Visit China" },
   { href: "#new-idea", label: "New idea" },
   { href: "#network", label: "Network" },
   { href: "/3pl", label: "3PL", highlight: true },

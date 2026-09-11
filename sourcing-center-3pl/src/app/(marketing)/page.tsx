@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
+import { V2ChinaVisit } from "@/components/v2/v2-china-visit";
 import { V2Cta } from "@/components/v2/v2-cta";
-import { V2Discovery } from "@/components/v2/v2-discovery";
 import { V2Hero } from "@/components/v2/v2-hero";
 import { V2Ideation } from "@/components/v2/v2-ideation";
 import { V2Network } from "@/components/v2/v2-network";
@@ -11,11 +11,11 @@ import { V2Workflow } from "@/components/v2/v2-workflow";
 import { absoluteUrl, defaultDescription } from "@/lib/seo";
 
 export const metadata: Metadata = {
-  title: "China Sourcing, Ideation & 3PL Warehouses in Xiamen and Dubai",
+  title: "China Sourcing, Factory Visits & 3PL Warehouses in Xiamen and Dubai",
   description: defaultDescription,
   alternates: { canonical: absoluteUrl("/") },
   openGraph: {
-    title: "Sourcing Center — China Sourcing & Own 3PL Warehouses",
+    title: "Sourcing Center — China Sourcing, Factory Visits & Own 3PL",
     description: defaultDescription,
     url: absoluteUrl("/"),
   },
@@ -25,7 +25,7 @@ export default function HomePage() {
   return (
     <>
       <V2Hero />
-      <V2Discovery />
+      <V2ChinaVisit />
       <V2Ideation />
       <V2Network />
       <V2ThreePl />

@@ -56,6 +56,7 @@ export function SiteFooter() {
                 ["Case studies", "/case-studies"],
                 ["Knowledge", "/knowledge"],
                 ["Contact", "/contact"],
+                ["Visit China", "/visit"],
                 ["Admin", "/admin"],
               ].map(([label, href]) => (
                 <li key={href}>

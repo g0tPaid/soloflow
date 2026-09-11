@@ -147,6 +147,11 @@ export const services = [
     description: "From concept and tooling to mass production with IP-aware workflows.",
   },
   {
+    href: "/visit",
+    title: "China Factory Visit",
+    description: "Schedule a hosted trip to Xiamen — factories, warehouse, QC, and pickup. Not a tourist tour.",
+  },
+  {
     href: "/3pl",
     title: "3PL & Logistics",
     description: "Own 3PL warehouses in Xiamen and Dubai — receive, store, pick, pack, and ship — then sea, air, and express.",

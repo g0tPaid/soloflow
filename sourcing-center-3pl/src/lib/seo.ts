@@ -4,6 +4,8 @@ import { fulfillment, fulfillmentFaqs, fulfillmentHubs, fulfillmentSteps } from 
 export const siteUrl = "https://sourcing.center";
 
 export const seoKeywords = [
+  "factory visit China",
+  "schedule China sourcing trip",
   "3PL China",
   "3PL Xiamen",
   "3PL Dubai",

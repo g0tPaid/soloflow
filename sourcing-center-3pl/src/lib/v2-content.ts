@@ -33,78 +33,6 @@ export const companyHighlights = [
   },
 ] as const;
 
-export const discoveryFilters = [
-  "Trending Products",
-  "Low Competition",
-  "High Margin",
-  "Fast Growing",
-  "Private Label Ready",
-  "OEM Ready",
-] as const;
-
-export const trendingProducts = [
-  {
-    name: "Portable Blender Bottle",
-    tag: "Trending",
-    growth: "+142%",
-    moq: "50 pcs",
-    price: "$3.80–$6.20",
-    lead: "12–18 days",
-    image: "/products/portable-blender-v2.jpg",
-    tone: "from-[#1a1a1a] to-[#3a3a3a]",
-  },
-  {
-    name: "Smart LED Vanity Mirror",
-    tag: "High Margin",
-    growth: "+98%",
-    moq: "100 pcs",
-    price: "$14–$22",
-    lead: "18–25 days",
-    image: "/products/led-mirror-v2.jpg",
-    tone: "from-[#111827] to-[#374151]",
-  },
-  {
-    name: "Matte Luxury Gift Box",
-    tag: "Private Label",
-    growth: "+76%",
-    moq: "200 pcs",
-    price: "$1.10–$2.40",
-    lead: "10–15 days",
-    image: "/products/luxury-gift-box-v2.jpg",
-    tone: "from-[#3f0d12] to-[#7f1d1d]",
-  },
-  {
-    name: "Hotel Lobby Lounge Chair",
-    tag: "OEM Ready",
-    growth: "+64%",
-    moq: "20 pcs",
-    price: "$85–$140",
-    lead: "25–35 days",
-    image: "/products/hotel-lounge-chair-v2.jpg",
-    tone: "from-[#1c1917] to-[#44403c]",
-  },
-  {
-    name: "Pet Travel Carrier",
-    tag: "Fast Growing",
-    growth: "+121%",
-    moq: "100 pcs",
-    price: "$9.50–$16",
-    lead: "15–22 days",
-    image: "/products/pet-carrier-v2.jpg",
-    tone: "from-[#0c1a17] to-[#134e4a]",
-  },
-  {
-    name: "Silk Blend Evening Dress",
-    tag: "Low Competition",
-    growth: "+55%",
-    moq: "30 pcs",
-    price: "$28–$48",
-    lead: "20–30 days",
-    image: "/products/evening-dress-v2.jpg",
-    tone: "from-[#1e1033] to-[#4c1d95]",
-  },
-] as const;
-
 /** Existing brand / catalog-style ideation demo */
 export const ideationDemo = {
   input: "I want to start a skincare brand.",
@@ -331,6 +259,45 @@ export const supplySteps = [
   "Europe",
   "Middle East",
   "Australia",
+] as const;
+
+export const chinaVisit = {
+  eyebrow: "China visit",
+  title: "Schedule a factory visit in China",
+  description:
+    "The Xiamen desk hosts you — airport pickup, factory floors in your category, warehouse and QC, then commercial wrap. Not a tourist tour.",
+} as const;
+
+export const chinaVisitDays = [
+  {
+    title: "Day 1 · HQ",
+    text: "Land in Xiamen. Meet the relationship manager, walk our warehouse, and lock the itinerary.",
+  },
+  {
+    title: "Day 2 · Factories",
+    text: "Two verified factories in your category — production line, capacity, and samples on the table.",
+  },
+  {
+    title: "Day 3 · QC & terms",
+    text: "Inspection standard, photo/video pack, pricing, and the shipping lane you will actually buy.",
+  },
+] as const;
+
+export const chinaVisitIncludes = [
+  "Hosted by Seven Color Trading in Xiamen",
+  "Factory appointments we already run",
+  "HQ warehouse walk-through",
+  "Interpreter on the floor",
+  "Hotel and transfer coordination",
+] as const;
+
+export const chinaVisitDurations = ["3 days", "5 days", "1 week", "Custom"] as const;
+
+export const chinaVisitFocus = [
+  "Factories in my category",
+  "HQ warehouse / 3PL",
+  "QC line",
+  "New product / OEM tooling",
 ] as const;
 
 export const fulfillment = {

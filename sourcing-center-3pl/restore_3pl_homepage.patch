@@ -1,7 +1,7 @@
 From 77130cb9207aff3b109daeef3b5a023c5146d801 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 10:37:26 +0000
-Subject: [PATCH 1/5] Restore the homepage 3PL warehouse section.
+Subject: [PATCH 1/6] Restore the homepage 3PL warehouse section.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -286,7 +286,7 @@ index fc2ce17..f66448b 100644
 From a09b6fa2bc583ce53b795fa4e3e606a9696cd542 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:06:16 +0000
-Subject: [PATCH 2/5] Highlight 3PL across nav, hero, homepage, and footer.
+Subject: [PATCH 2/6] Highlight 3PL across nav, hero, homepage, and footer.
 
 Make warehouse fulfillment a featured red-pill nav item, a hero strip, and a dark accent band on the landing page so 3PL is not another muted section.
 ---
@@ -638,7 +638,7 @@ index e5ed2c4..5629761 100644
 From f4c6b25ff12c204d9a18f5b3a86daab1e6a1c308 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:25:09 +0000
-Subject: [PATCH 3/5] Make 3PL a large heading and add crawlable SEO for search
+Subject: [PATCH 3/6] Make 3PL a large heading and add crawlable SEO for search
  and AI apps.
 
 Enlarge the 3PL label above the warehouse headline, add a /3pl landing page, FAQ schema, llms.txt, and richer metadata so Gemini, ChatGPT, and search engines can cite the Xiamen and Dubai warehouses.
@@ -1728,7 +1728,7 @@ index f66448b..5ef860e 100644
 From c9a22243e0a8519d6bfe8f3cb93831fe9605f94d Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:37:51 +0000
-Subject: [PATCH 4/5] Keep the large homepage 3PL heading clear of the sticky
+Subject: [PATCH 4/6] Keep the large homepage 3PL heading clear of the sticky
  nav.
 
 ---
@@ -1759,7 +1759,7 @@ index 7ee2f5e..c04fcb7 100644
 From f7821ddd3378660aaf9dccdb81415d84919f7eed Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 11:49:29 +0000
-Subject: [PATCH 5/5] Restore admin access at /admin and the client desk.
+Subject: [PATCH 5/6] Restore admin access at /admin and the client desk.
 
 Map /admin and /login to the dashboard, put Admin back in the nav, and stop robots.txt from disallowing /dashboard.
 ---
@@ -1880,6 +1880,765 @@ index 22f06e3..ccce8e3 100644
                <Link
                  href="#rfq"
                  onClick={() => setOpen(false)}
+-- 
+2.43.0
+
+
+From 677ea54e0230102fdbd47c450808b1c039f195a3 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 11 Sep 2026 12:01:13 +0000
+Subject: [PATCH 6/6] Remove product discovery and restore China factory-visit
+ scheduling.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Drop the trending-products module from the homepage. Put the hosted Xiamen visit booking back as a homepage section and /visit form — it was not carried into v2.
+---
+ public/llms.txt                        |   2 +
+ src/app/(marketing)/page.tsx           |   8 +-
+ src/app/(marketing)/visit/page.tsx     |  63 +++++++++++
+ src/app/sitemap.ts                     |   1 +
+ src/components/layout/site-footer.tsx  |   1 +
+ src/components/v2/china-visit-form.tsx | 149 +++++++++++++++++++++++++
+ src/components/v2/v2-china-visit.tsx   |  59 ++++++++++
+ src/components/v2/v2-cta.tsx           |  11 +-
+ src/components/v2/v2-discovery.tsx     | 100 -----------------
+ src/components/v2/v2-hero.tsx          |  23 +++-
+ src/components/v2/v2-nav.tsx           |   2 +-
+ src/lib/content.ts                     |   5 +
+ src/lib/seo.ts                         |   2 +
+ src/lib/v2-content.ts                  | 111 +++++++-----------
+ 14 files changed, 355 insertions(+), 182 deletions(-)
+ create mode 100644 src/app/(marketing)/visit/page.tsx
+ create mode 100644 src/components/v2/china-visit-form.tsx
+ create mode 100644 src/components/v2/v2-china-visit.tsx
+ delete mode 100644 src/components/v2/v2-discovery.tsx
+
+diff --git a/public/llms.txt b/public/llms.txt
+index 5017d27..efa68eb 100644
+--- a/public/llms.txt
++++ b/public/llms.txt
+@@ -33,6 +33,7 @@ Guide: https://sourcing.center/knowledge/3pl-warehouses-xiamen-dubai
+ - Verified / audited manufacturers
+ - Photo and video QC before goods ship
+ - Private label, OEM, and ODM
++- Hosted factory visits in Xiamen (schedule at https://sourcing.center/visit)
+ - Own 3PL in Xiamen and Dubai
+ - Sea, air, and express from China with Dubai hub support
+ 
+@@ -46,6 +47,7 @@ Hours: Monday–Sunday, 8:30 AM–7:00 PM (GST / CST).
+ ## Key pages
+ 
+ - [Home](https://sourcing.center/): Ideation, sourcing, and 3PL overview
++- [China factory visit](https://sourcing.center/visit): Schedule a hosted trip to Xiamen
+ - [3PL warehouses](https://sourcing.center/3pl): Own 3PL in Xiamen and Dubai
+ - [Logistics](https://sourcing.center/logistics): Sea, air, express, customs
+ - [About](https://sourcing.center/about): Company, licenses, DUNS
+diff --git a/src/app/(marketing)/page.tsx b/src/app/(marketing)/page.tsx
+index 9c7fb8f..0c5082e 100644
+--- a/src/app/(marketing)/page.tsx
++++ b/src/app/(marketing)/page.tsx
+@@ -1,6 +1,6 @@
+ import type { Metadata } from "next";
++import { V2ChinaVisit } from "@/components/v2/v2-china-visit";
+ import { V2Cta } from "@/components/v2/v2-cta";
+-import { V2Discovery } from "@/components/v2/v2-discovery";
+ import { V2Hero } from "@/components/v2/v2-hero";
+ import { V2Ideation } from "@/components/v2/v2-ideation";
+ import { V2Network } from "@/components/v2/v2-network";
+@@ -11,11 +11,11 @@ import { V2Workflow } from "@/components/v2/v2-workflow";
+ import { absoluteUrl, defaultDescription } from "@/lib/seo";
+ 
+ export const metadata: Metadata = {
+-  title: "China Sourcing, Ideation & 3PL Warehouses in Xiamen and Dubai",
++  title: "China Sourcing, Factory Visits & 3PL Warehouses in Xiamen and Dubai",
+   description: defaultDescription,
+   alternates: { canonical: absoluteUrl("/") },
+   openGraph: {
+-    title: "Sourcing Center — China Sourcing & Own 3PL Warehouses",
++    title: "Sourcing Center — China Sourcing, Factory Visits & Own 3PL",
+     description: defaultDescription,
+     url: absoluteUrl("/"),
+   },
+@@ -25,7 +25,7 @@ export default function HomePage() {
+   return (
+     <>
+       <V2Hero />
+-      <V2Discovery />
++      <V2ChinaVisit />
+       <V2Ideation />
+       <V2Network />
+       <V2ThreePl />
+diff --git a/src/app/(marketing)/visit/page.tsx b/src/app/(marketing)/visit/page.tsx
+new file mode 100644
+index 0000000..deb778b
+--- /dev/null
++++ b/src/app/(marketing)/visit/page.tsx
+@@ -0,0 +1,63 @@
++import type { Metadata } from "next";
++import { ChinaVisitForm } from "@/components/v2/china-visit-form";
++import { CtaBand } from "@/components/shared/page-shell";
++import { Container } from "@/components/ui/primitives";
++import { company } from "@/lib/content";
++import { absoluteUrl } from "@/lib/seo";
++import { chinaVisit, chinaVisitDays, chinaVisitIncludes } from "@/lib/v2-content";
++
++export const metadata: Metadata = {
++  title: "Schedule a Factory Visit in China",
++  description:
++    "Book a hosted factory visit in Xiamen with Seven Color Trading — airport pickup, verified factories, warehouse, and QC. Not a tourist tour.",
++  keywords: [
++    "China factory visit",
++    "schedule factory tour Xiamen",
++    "sourcing trip China",
++    "Seven Color Trading visit",
++  ],
++  alternates: { canonical: absoluteUrl("/visit") },
++  openGraph: {
++    title: "Schedule a Factory Visit in China | Sourcing Center",
++    description: chinaVisit.description,
++    url: absoluteUrl("/visit"),
++  },
++};
++
++export default function VisitPage() {
++  return (
++    <>
++      <Container className="pb-16 pt-28 sm:pt-32">
++        <p className="text-sm font-medium uppercase tracking-[0.2em] text-muted">
++          {company.legalName} · Xiamen desk
++        </p>
++        <h1 className="mt-3 max-w-3xl font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
++          {chinaVisit.title}
++        </h1>
++        <p className="mt-4 max-w-2xl text-muted sm:text-lg">{chinaVisit.description}</p>
++        <div className="mt-10 grid items-start gap-8 lg:grid-cols-[1fr_1fr]">
++          <div className="space-y-4">
++            {chinaVisitDays.map((day) => (
++              <article key={day.title} className="rounded-3xl border border-line bg-paper-elevated p-6">
++                <h2 className="font-display text-xl font-semibold text-ink">{day.title}</h2>
++                <p className="mt-2 text-sm text-muted">{day.text}</p>
++              </article>
++            ))}
++            <ul className="rounded-3xl border border-line bg-paper p-6 text-sm text-ink">
++              {chinaVisitIncludes.map((item) => (
++                <li key={item} className="border-b border-line py-2 last:border-0 last:pb-0 first:pt-0">
++                  {item}
++                </li>
++              ))}
++            </ul>
++          </div>
++          <ChinaVisitForm />
++        </div>
++      </Container>
++      <CtaBand
++        title="Prefer WhatsApp first?"
++        description="Message the China desk and we will lock dates the same day."
++      />
++    </>
++  );
++}
+diff --git a/src/app/sitemap.ts b/src/app/sitemap.ts
+index 8d997ad..1f6fc8b 100644
+--- a/src/app/sitemap.ts
++++ b/src/app/sitemap.ts
+@@ -4,6 +4,7 @@ import { siteUrl } from "@/lib/seo";
+ 
+ const routes: Array<{ path: string; priority: number; changeFrequency: MetadataRoute.Sitemap[number]["changeFrequency"] }> = [
+   { path: "", priority: 1, changeFrequency: "weekly" },
++  { path: "/visit", priority: 0.92, changeFrequency: "weekly" },
+   { path: "/3pl", priority: 0.95, changeFrequency: "weekly" },
+   { path: "/logistics", priority: 0.9, changeFrequency: "weekly" },
+   { path: "/about", priority: 0.8, changeFrequency: "monthly" },
+diff --git a/src/components/layout/site-footer.tsx b/src/components/layout/site-footer.tsx
+index 79d1c71..7ba6303 100644
+--- a/src/components/layout/site-footer.tsx
++++ b/src/components/layout/site-footer.tsx
+@@ -56,6 +56,7 @@ export function SiteFooter() {
+                 ["Case studies", "/case-studies"],
+                 ["Knowledge", "/knowledge"],
+                 ["Contact", "/contact"],
++                ["Visit China", "/visit"],
+                 ["Admin", "/admin"],
+               ].map(([label, href]) => (
+                 <li key={href}>
+diff --git a/src/components/v2/china-visit-form.tsx b/src/components/v2/china-visit-form.tsx
+new file mode 100644
+index 0000000..b6e4281
+--- /dev/null
++++ b/src/components/v2/china-visit-form.tsx
+@@ -0,0 +1,149 @@
++"use client";
++
++import { useState } from "react";
++import { motion } from "framer-motion";
++import { Plane, Send } from "lucide-react";
++import {
++  chinaVisitDurations,
++  chinaVisitFocus,
++} from "@/lib/v2-content";
++
++export function ChinaVisitForm() {
++  const [sent, setSent] = useState(false);
++
++  function onSubmit(e: React.FormEvent<HTMLFormElement>) {
++    e.preventDefault();
++    setSent(true);
++  }
++
++  if (sent) {
++    return (
++      <motion.div
++        initial={{ opacity: 0, scale: 0.98 }}
++        animate={{ opacity: 1, scale: 1 }}
++        className="rounded-[1.75rem] border border-line bg-paper p-8 text-center"
++      >
++        <p className="font-display text-2xl font-semibold text-ink">Visit request received</p>
++        <p className="mt-3 text-sm text-muted">
++          The Xiamen desk will confirm factories, hotel, and pickup within 24 hours.
++        </p>
++      </motion.div>
++    );
++  }
++
++  return (
++    <form
++      onSubmit={onSubmit}
++      className="rounded-[1.75rem] border border-line bg-paper p-5 shadow-[0_20px_60px_rgba(17,17,17,0.08)] sm:p-7"
++      aria-label="Schedule a China factory visit"
++    >
++      <div className="mb-5 flex items-center gap-2">
++        <Plane className="h-5 w-5 text-accent" aria-hidden />
++        <div>
++          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-accent">Book a visit</p>
++          <h3 className="font-display text-xl font-semibold text-ink">Tell us when you can be in China</h3>
++        </div>
++      </div>
++      <div className="grid gap-4 sm:grid-cols-2">
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Name *</span>
++          <input
++            required
++            name="name"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Company</span>
++          <input
++            name="company"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Email *</span>
++          <input
++            required
++            type="email"
++            name="email"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">WhatsApp / phone *</span>
++          <input
++            required
++            name="phone"
++            placeholder="+971 … or +86 …"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent placeholder:text-muted/70 focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Preferred start date *</span>
++          <input
++            required
++            type="date"
++            name="startDate"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Duration</span>
++          <select
++            name="duration"
++            defaultValue="3 days"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          >
++            {chinaVisitDurations.map((d) => (
++              <option key={d} value={d}>
++                {d}
++              </option>
++            ))}
++          </select>
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Travelers</span>
++          <input
++            name="travelers"
++            type="number"
++            min={1}
++            defaultValue={1}
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          />
++        </label>
++        <label className="block text-sm">
++          <span className="mb-1.5 block text-muted">Focus</span>
++          <select
++            name="focus"
++            className="w-full rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent focus:ring-2"
++          >
++            {chinaVisitFocus.map((d) => (
++              <option key={d} value={d}>
++                {d}
++              </option>
++            ))}
++          </select>
++        </label>
++        <label className="block text-sm sm:col-span-2">
++          <span className="mb-1.5 block text-muted">What should we put on the itinerary?</span>
++          <textarea
++            name="notes"
++            rows={3}
++            placeholder="Category, factories you already like, whether you want the 3PL warehouse, Canton Fair overlap…"
++            className="w-full resize-y rounded-2xl border border-line bg-paper-elevated px-4 py-3 text-ink outline-none ring-accent placeholder:text-muted/70 focus:ring-2"
++          />
++        </label>
++      </div>
++      <button
++        type="submit"
++        className="mt-5 inline-flex w-full items-center justify-center gap-2 rounded-full bg-accent px-5 py-3 text-sm font-semibold text-white transition hover:opacity-90"
++      >
++        <Send className="h-4 w-4" aria-hidden />
++        Request China visit
++      </button>
++      <p className="mt-3 text-center text-[11px] text-muted">
++        Hosted in Xiamen · reply in 24h · not a brokered tourist tour
++      </p>
++    </form>
++  );
++}
+diff --git a/src/components/v2/v2-china-visit.tsx b/src/components/v2/v2-china-visit.tsx
+new file mode 100644
+index 0000000..fb60c6e
+--- /dev/null
++++ b/src/components/v2/v2-china-visit.tsx
+@@ -0,0 +1,59 @@
++"use client";
++
++import Link from "next/link";
++import { motion } from "framer-motion";
++import { ArrowUpRight, Check } from "lucide-react";
++import { ChinaVisitForm } from "@/components/v2/china-visit-form";
++import { Container } from "@/components/ui/primitives";
++import { chinaVisit, chinaVisitDays, chinaVisitIncludes } from "@/lib/v2-content";
++
++export function V2ChinaVisit() {
++  return (
++    <section id="visit" className="scroll-mt-28 py-8 sm:py-12">
++      <Container>
++        <div className="grid items-start gap-8 lg:grid-cols-[1.05fr_0.95fr] lg:gap-12">
++          <div>
++            <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
++              {chinaVisit.eyebrow}
++            </p>
++            <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
++              {chinaVisit.title}
++            </h2>
++            <p className="mt-4 max-w-xl text-muted sm:text-lg">{chinaVisit.description}</p>
++            <ul className="mt-6 space-y-2">
++              {chinaVisitIncludes.map((item) => (
++                <li key={item} className="flex items-start gap-2 text-sm text-ink">
++                  <Check className="mt-0.5 h-4 w-4 shrink-0 text-accent" aria-hidden />
++                  {item}
++                </li>
++              ))}
++            </ul>
++            <div className="mt-8 grid gap-4">
++              {chinaVisitDays.map((day, i) => (
++                <motion.article
++                  key={day.title}
++                  initial={{ opacity: 0, y: 12 }}
++                  whileInView={{ opacity: 1, y: 0 }}
++                  viewport={{ once: true }}
++                  transition={{ delay: i * 0.05 }}
++                  className="rounded-[1.5rem] border border-line bg-paper-elevated p-5 sm:p-6"
++                >
++                  <h3 className="font-display text-xl font-semibold text-ink">{day.title}</h3>
++                  <p className="mt-2 text-sm leading-relaxed text-muted">{day.text}</p>
++                </motion.article>
++              ))}
++            </div>
++            <Link
++              href="/visit"
++              className="mt-6 inline-flex items-center gap-2 text-sm font-medium text-ink transition hover:text-accent"
++            >
++              Full visit page
++              <ArrowUpRight className="h-4 w-4" aria-hidden />
++            </Link>
++          </div>
++          <ChinaVisitForm />
++        </div>
++      </Container>
++    </section>
++  );
++}
+diff --git a/src/components/v2/v2-cta.tsx b/src/components/v2/v2-cta.tsx
+index b73a4a0..ed067ba 100644
+--- a/src/components/v2/v2-cta.tsx
++++ b/src/components/v2/v2-cta.tsx
+@@ -34,7 +34,7 @@ export function V2Cta() {
+             <div className="mx-auto mt-8 grid max-w-2xl gap-3 sm:grid-cols-2 sm:gap-4">
+               <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.985 }}>
+                 <Link
+-                  href="#discovery"
++                  href="#rfq"
+                   className="hero-cta-primary group flex h-full flex-col rounded-2xl px-5 py-5 text-left sm:px-6 sm:py-6"
+                 >
+                   <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">
+@@ -70,8 +70,15 @@ export function V2Cta() {
+               </motion.div>
+             </div>
+             <Link
+-              href="/3pl"
++              href="/visit"
+               className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-paper transition hover:bg-white/15"
++            >
++              Schedule a China factory visit
++              <ArrowUpRight className="h-4 w-4" aria-hidden />
++            </Link>
++            <Link
++              href="/3pl"
++              className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-paper transition hover:bg-white/15 sm:ml-3"
+             >
+               Own 3PL in Xiamen &amp; Dubai
+               <ArrowUpRight className="h-4 w-4" aria-hidden />
+diff --git a/src/components/v2/v2-discovery.tsx b/src/components/v2/v2-discovery.tsx
+deleted file mode 100644
+index 5c16721..0000000
+--- a/src/components/v2/v2-discovery.tsx
++++ /dev/null
+@@ -1,100 +0,0 @@
+-"use client";
+-
+-import Image from "next/image";
+-import { useState } from "react";
+-import { motion } from "framer-motion";
+-import { Container } from "@/components/ui/primitives";
+-import { cn } from "@/lib/utils";
+-import { discoveryFilters, trendingProducts } from "@/lib/v2-content";
+-
+-export function V2Discovery() {
+-  const [active, setActive] = useState<string>(discoveryFilters[0]);
+-
+-  return (
+-    <section id="discovery" className="scroll-mt-28 py-14 sm:py-20 lg:py-24">
+-      <Container>
+-        <div className="max-w-2xl">
+-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
+-            Product discovery
+-          </p>
+-          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
+-            Find what&apos;s worth making
+-          </h2>
+-          <p className="mt-4 text-muted sm:text-lg">
+-            Signal over catalog noise — growth, margin, MOQ, and lead time at a glance.
+-          </p>
+-        </div>
+-
+-        <div className="mt-10 flex gap-2 overflow-x-auto pb-2">
+-          {discoveryFilters.map((f) => (
+-            <button
+-              key={f}
+-              type="button"
+-              onClick={() => setActive(f)}
+-              className={cn(
+-                "shrink-0 rounded-full px-4 py-2 text-sm font-medium transition",
+-                active === f
+-                  ? "bg-ink text-paper dark:bg-accent"
+-                  : "border border-line text-muted hover:text-ink",
+-              )}
+-            >
+-              {f}
+-            </button>
+-          ))}
+-        </div>
+-
+-        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
+-          {trendingProducts.map((p, i) => (
+-            <motion.article
+-              key={p.name}
+-              initial={{ opacity: 0, y: 24 }}
+-              whileInView={{ opacity: 1, y: 0 }}
+-              viewport={{ once: true, margin: "-40px" }}
+-              transition={{ delay: i * 0.05, duration: 0.45 }}
+-              whileHover={{ y: -4 }}
+-              className="glass-card overflow-hidden rounded-[1.75rem]"
+-            >
+-              <div className="relative h-48 overflow-hidden sm:h-52">
+-                <Image
+-                  src={p.image}
+-                  alt={p.name}
+-                  fill
+-                  sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+-                  className="object-cover"
+-                  priority={i < 3}
+-                />
+-                <div
+-                  className="absolute inset-0 bg-gradient-to-t from-black/55 via-black/10 to-transparent"
+-                  aria-hidden
+-                />
+-                <div className="absolute inset-x-0 bottom-0 flex items-end justify-between p-5">
+-                  <span className="rounded-full bg-white/15 px-3 py-1 text-[11px] font-semibold text-white backdrop-blur">
+-                    {p.tag}
+-                  </span>
+-                  <span className="text-sm font-semibold text-emerald-300">{p.growth}</span>
+-                </div>
+-              </div>
+-              <div className="p-5">
+-                <h3 className="font-display text-xl font-semibold text-ink">{p.name}</h3>
+-                <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
+-                  <div>
+-                    <dt className="text-muted">MOQ</dt>
+-                    <dd className="mt-0.5 font-medium text-ink">{p.moq}</dd>
+-                  </div>
+-                  <div>
+-                    <dt className="text-muted">Factory price</dt>
+-                    <dd className="mt-0.5 font-medium text-ink">{p.price}</dd>
+-                  </div>
+-                  <div className="col-span-2">
+-                    <dt className="text-muted">Lead time</dt>
+-                    <dd className="mt-0.5 font-medium text-ink">{p.lead}</dd>
+-                  </div>
+-                </dl>
+-              </div>
+-            </motion.article>
+-          ))}
+-        </div>
+-      </Container>
+-    </section>
+-  );
+-}
+diff --git a/src/components/v2/v2-hero.tsx b/src/components/v2/v2-hero.tsx
+index ea01a70..2e686e5 100644
+--- a/src/components/v2/v2-hero.tsx
++++ b/src/components/v2/v2-hero.tsx
+@@ -4,7 +4,7 @@ import Image from "next/image";
+ import Link from "next/link";
+ import { useEffect, useState } from "react";
+ import { motion, AnimatePresence } from "framer-motion";
+-import { ArrowUpRight, Lightbulb, Search, ShieldCheck, Warehouse } from "lucide-react";
++import { ArrowUpRight, Lightbulb, Plane, Search, ShieldCheck, Warehouse } from "lucide-react";
+ import { SourcingLogo } from "@/components/brand/sourcing-logo";
+ import { Container } from "@/components/ui/primitives";
+ import { company } from "@/lib/content";
+@@ -185,7 +185,7 @@ export function V2Hero() {
+         >
+           <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.985 }}>
+             <Link
+-              href="#discovery"
++              href="#rfq"
+               className="hero-cta-primary group relative flex h-full flex-col overflow-hidden rounded-2xl px-5 py-5 text-left sm:px-6 sm:py-6"
+             >
+               <span
+@@ -234,8 +234,25 @@ export function V2Hero() {
+           initial={{ opacity: 0, y: 12 }}
+           animate={{ opacity: 1, y: 0 }}
+           transition={{ delay: 0.34 }}
+-          className="mx-auto mt-4 max-w-2xl"
++          className="mx-auto mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"
+         >
++          <Link
++            href="#visit"
++            className="group flex items-center gap-4 rounded-2xl border border-accent/35 bg-accent-soft px-5 py-4 text-left shadow-[0_12px_32px_rgba(214,0,0,0.1)] transition hover:border-accent/55"
++          >
++            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
++              <Plane className="h-5 w-5" aria-hidden />
++            </span>
++            <span className="min-w-0 flex-1">
++              <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
++                China visit
++              </span>
++              <span className="mt-0.5 block text-sm font-medium text-ink sm:text-base">
++                Schedule a factory trip — Xiamen hosts you
++              </span>
++            </span>
++            <ArrowUpRight className="h-5 w-5 shrink-0 text-accent transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
++          </Link>
+           <Link
+             href="#3pl"
+             className="group flex items-center gap-4 rounded-2xl border border-accent/35 bg-accent-soft px-5 py-4 text-left shadow-[0_12px_32px_rgba(214,0,0,0.1)] transition hover:border-accent/55"
+diff --git a/src/components/v2/v2-nav.tsx b/src/components/v2/v2-nav.tsx
+index ccce8e3..0976f93 100644
+--- a/src/components/v2/v2-nav.tsx
++++ b/src/components/v2/v2-nav.tsx
+@@ -8,7 +8,7 @@ import { SourcingLogo } from "@/components/brand/sourcing-logo";
+ import { cn } from "@/lib/utils";
+ 
+ const links = [
+-  { href: "#discovery", label: "Discover" },
++  { href: "/#visit", label: "Visit China" },
+   { href: "#new-idea", label: "New idea" },
+   { href: "#network", label: "Network" },
+   { href: "/3pl", label: "3PL", highlight: true },
+diff --git a/src/lib/content.ts b/src/lib/content.ts
+index e3bd750..05f4a6e 100644
+--- a/src/lib/content.ts
++++ b/src/lib/content.ts
+@@ -146,6 +146,11 @@ export const services = [
+     title: "OEM / ODM",
+     description: "From concept and tooling to mass production with IP-aware workflows.",
+   },
++  {
++    href: "/visit",
++    title: "China Factory Visit",
++    description: "Schedule a hosted trip to Xiamen — factories, warehouse, QC, and pickup. Not a tourist tour.",
++  },
+   {
+     href: "/3pl",
+     title: "3PL & Logistics",
+diff --git a/src/lib/seo.ts b/src/lib/seo.ts
+index cf4af77..2cd5dd4 100644
+--- a/src/lib/seo.ts
++++ b/src/lib/seo.ts
+@@ -4,6 +4,8 @@ import { fulfillment, fulfillmentFaqs, fulfillmentHubs, fulfillmentSteps } from
+ export const siteUrl = "https://sourcing.center";
+ 
+ export const seoKeywords = [
++  "factory visit China",
++  "schedule China sourcing trip",
+   "3PL China",
+   "3PL Xiamen",
+   "3PL Dubai",
+diff --git a/src/lib/v2-content.ts b/src/lib/v2-content.ts
+index 5ef860e..4244d83 100644
+--- a/src/lib/v2-content.ts
++++ b/src/lib/v2-content.ts
+@@ -33,78 +33,6 @@ export const companyHighlights = [
+   },
+ ] as const;
+ 
+-export const discoveryFilters = [
+-  "Trending Products",
+-  "Low Competition",
+-  "High Margin",
+-  "Fast Growing",
+-  "Private Label Ready",
+-  "OEM Ready",
+-] as const;
+-
+-export const trendingProducts = [
+-  {
+-    name: "Portable Blender Bottle",
+-    tag: "Trending",
+-    growth: "+142%",
+-    moq: "50 pcs",
+-    price: "$3.80–$6.20",
+-    lead: "12–18 days",
+-    image: "/products/portable-blender-v2.jpg",
+-    tone: "from-[#1a1a1a] to-[#3a3a3a]",
+-  },
+-  {
+-    name: "Smart LED Vanity Mirror",
+-    tag: "High Margin",
+-    growth: "+98%",
+-    moq: "100 pcs",
+-    price: "$14–$22",
+-    lead: "18–25 days",
+-    image: "/products/led-mirror-v2.jpg",
+-    tone: "from-[#111827] to-[#374151]",
+-  },
+-  {
+-    name: "Matte Luxury Gift Box",
+-    tag: "Private Label",
+-    growth: "+76%",
+-    moq: "200 pcs",
+-    price: "$1.10–$2.40",
+-    lead: "10–15 days",
+-    image: "/products/luxury-gift-box-v2.jpg",
+-    tone: "from-[#3f0d12] to-[#7f1d1d]",
+-  },
+-  {
+-    name: "Hotel Lobby Lounge Chair",
+-    tag: "OEM Ready",
+-    growth: "+64%",
+-    moq: "20 pcs",
+-    price: "$85–$140",
+-    lead: "25–35 days",
+-    image: "/products/hotel-lounge-chair-v2.jpg",
+-    tone: "from-[#1c1917] to-[#44403c]",
+-  },
+-  {
+-    name: "Pet Travel Carrier",
+-    tag: "Fast Growing",
+-    growth: "+121%",
+-    moq: "100 pcs",
+-    price: "$9.50–$16",
+-    lead: "15–22 days",
+-    image: "/products/pet-carrier-v2.jpg",
+-    tone: "from-[#0c1a17] to-[#134e4a]",
+-  },
+-  {
+-    name: "Silk Blend Evening Dress",
+-    tag: "Low Competition",
+-    growth: "+55%",
+-    moq: "30 pcs",
+-    price: "$28–$48",
+-    lead: "20–30 days",
+-    image: "/products/evening-dress-v2.jpg",
+-    tone: "from-[#1e1033] to-[#4c1d95]",
+-  },
+-] as const;
+-
+ /** Existing brand / catalog-style ideation demo */
+ export const ideationDemo = {
+   input: "I want to start a skincare brand.",
+@@ -333,6 +261,45 @@ export const supplySteps = [
+   "Australia",
+ ] as const;
+ 
++export const chinaVisit = {
++  eyebrow: "China visit",
++  title: "Schedule a factory visit in China",
++  description:
++    "The Xiamen desk hosts you — airport pickup, factory floors in your category, warehouse and QC, then commercial wrap. Not a tourist tour.",
++} as const;
++
++export const chinaVisitDays = [
++  {
++    title: "Day 1 · HQ",
++    text: "Land in Xiamen. Meet the relationship manager, walk our warehouse, and lock the itinerary.",
++  },
++  {
++    title: "Day 2 · Factories",
++    text: "Two verified factories in your category — production line, capacity, and samples on the table.",
++  },
++  {
++    title: "Day 3 · QC & terms",
++    text: "Inspection standard, photo/video pack, pricing, and the shipping lane you will actually buy.",
++  },
++] as const;
++
++export const chinaVisitIncludes = [
++  "Hosted by Seven Color Trading in Xiamen",
++  "Factory appointments we already run",
++  "HQ warehouse walk-through",
++  "Interpreter on the floor",
++  "Hotel and transfer coordination",
++] as const;
++
++export const chinaVisitDurations = ["3 days", "5 days", "1 week", "Custom"] as const;
++
++export const chinaVisitFocus = [
++  "Factories in my category",
++  "HQ warehouse / 3PL",
++  "QC line",
++  "New product / OEM tooling",
++] as const;
++
+ export const fulfillment = {
+   eyebrow: "3PL",
+   title: "World-class fulfillment in our own warehouses",
 -- 
 2.43.0
 

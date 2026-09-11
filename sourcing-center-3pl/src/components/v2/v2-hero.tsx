@@ -4,7 +4,7 @@ import Image from "next/image";
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { ArrowUpRight, Lightbulb, Search, ShieldCheck, Warehouse } from "lucide-react";
+import { ArrowUpRight, Lightbulb, Plane, Search, ShieldCheck, Warehouse } from "lucide-react";
 import { SourcingLogo } from "@/components/brand/sourcing-logo";
 import { Container } from "@/components/ui/primitives";
 import { company } from "@/lib/content";
@@ -185,7 +185,7 @@ export function V2Hero() {
         >
           <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.985 }}>
             <Link
-              href="#discovery"
+              href="#rfq"
               className="hero-cta-primary group relative flex h-full flex-col overflow-hidden rounded-2xl px-5 py-5 text-left sm:px-6 sm:py-6"
             >
               <span
@@ -234,8 +234,25 @@ export function V2Hero() {
           initial={{ opacity: 0, y: 12 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.34 }}
-          className="mx-auto mt-4 max-w-2xl"
+          className="mx-auto mt-4 grid max-w-2xl gap-3 sm:grid-cols-2"
         >
+          <Link
+            href="#visit"
+            className="group flex items-center gap-4 rounded-2xl border border-accent/35 bg-accent-soft px-5 py-4 text-left shadow-[0_12px_32px_rgba(214,0,0,0.1)] transition hover:border-accent/55"
+          >
+            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
+              <Plane className="h-5 w-5" aria-hidden />
+            </span>
+            <span className="min-w-0 flex-1">
+              <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
+                China visit
+              </span>
+              <span className="mt-0.5 block text-sm font-medium text-ink sm:text-base">
+                Schedule a factory trip — Xiamen hosts you
+              </span>
+            </span>
+            <ArrowUpRight className="h-5 w-5 shrink-0 text-accent transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
+          </Link>
           <Link
             href="#3pl"
             className="group flex items-center gap-4 rounded-2xl border border-accent/35 bg-accent-soft px-5 py-4 text-left shadow-[0_12px_32px_rgba(214,0,0,0.1)] transition hover:border-accent/55"

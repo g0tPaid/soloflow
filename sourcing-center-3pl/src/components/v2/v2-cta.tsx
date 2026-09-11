@@ -34,7 +34,7 @@ export function V2Cta() {
             <div className="mx-auto mt-8 grid max-w-2xl gap-3 sm:grid-cols-2 sm:gap-4">
               <motion.div whileHover={{ y: -3 }} whileTap={{ scale: 0.985 }}>
                 <Link
-                  href="#discovery"
+                  href="#rfq"
                   className="hero-cta-primary group flex h-full flex-col rounded-2xl px-5 py-5 text-left sm:px-6 sm:py-6"
                 >
                   <span className="inline-flex items-center gap-2 text-[11px] font-semibold uppercase tracking-[0.18em] text-white/75">
@@ -70,8 +70,15 @@ export function V2Cta() {
               </motion.div>
             </div>
             <Link
-              href="/3pl"
+              href="/visit"
               className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-paper transition hover:bg-white/15"
+            >
+              Schedule a China factory visit
+              <ArrowUpRight className="h-4 w-4" aria-hidden />
+            </Link>
+            <Link
+              href="/3pl"
+              className="mt-3 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-paper transition hover:bg-white/15 sm:ml-3"
             >
               Own 3PL in Xiamen &amp; Dubai
               <ArrowUpRight className="h-4 w-4" aria-hidden />
