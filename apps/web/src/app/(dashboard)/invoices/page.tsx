@@ -5,8 +5,8 @@ import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Pencil, Download, Loader2, FileInput } from 'lucide-react';
-import { api, type InvoiceStatus } from '@/lib/api';
+import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
+import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
@@ -14,6 +14,12 @@ import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
+import {
+  invoiceAmountPaid,
+  invoiceBalanceDue,
+  isReceiptEligible,
+} from '@flowbooks/shared';
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -75,6 +81,7 @@ export default function InvoicesPage() {
   const { organizationId, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', organizationId],
@@ -86,13 +93,19 @@ export default function InvoicesPage() {
     mutationFn: ({ id, status }: { id: string; status: InvoiceStatus }) =>
       api.invoices.update(session!.accessToken!, organizationId!, id, { status }),
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
-      await queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] });
-      await queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] });
+      await refreshInvoiceQueries();
     },
   });
 
   const invoices = data?.data ?? [];
+
+  async function refreshInvoiceQueries() {
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] }),
+      queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] }),
+      queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] }),
+    ]);
+  }
 
   function markStatus(id: string, status: InvoiceStatus, event: React.MouseEvent) {
     event.preventDefault();
@@ -189,7 +202,12 @@ export default function InvoicesPage() {
       {invoices.length > 0 && (
         <div className="space-y-3">
           {invoices.map((invoice) => {
-            const isPaid = invoice.status === 'PAID';
+            const paidAmount = invoiceAmountPaid(invoice);
+            const balanceDue = invoiceBalanceDue(invoice);
+            const isPaid = invoice.status === 'PAID' || balanceDue <= 0.005;
+            const isPartial = !isPaid && paidAmount > 0.005;
+            const canRecordPayment =
+              !isPaid && invoice.status !== 'VOID' && invoice.status !== 'CANCELLED';
             return (
               <div
                 key={invoice.id}
@@ -197,7 +215,9 @@ export default function InvoicesPage() {
                   'rounded-xl border bg-card transition-colors',
                   isPaid
                     ? 'border-emerald-400 bg-emerald-50/70 dark:border-emerald-700 dark:bg-emerald-950/40'
-                    : 'border-border hover:bg-accent/20',
+                    : isPartial
+                      ? 'border-amber-300 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-950/30'
+                      : 'border-border hover:bg-accent/20',
                 )}
               >
                 <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
@@ -208,6 +228,10 @@ export default function InvoicesPage() {
                       {isPaid ? (
                         <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
                           Paid
+                        </span>
+                      ) : isPartial ? (
+                        <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                          Partial
                         </span>
                       ) : (
                         <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
@@ -224,9 +248,17 @@ export default function InvoicesPage() {
                   </Link>
 
                   <div className="flex flex-col gap-3 sm:items-end">
-                    <p className="text-lg font-medium tabular-nums">
-                      {formatCurrency(Number(invoice.total), invoice.currency)}
-                    </p>
+                    <div className="text-right">
+                      <p className="text-lg font-medium tabular-nums">
+                        {formatCurrency(Number(invoice.total), invoice.currency)}
+                      </p>
+                      {isPartial && (
+                        <p className="text-xs font-medium text-amber-800">
+                          Paid {formatCurrency(paidAmount, invoice.currency)} · Balance{' '}
+                          {formatCurrency(balanceDue, invoice.currency)}
+                        </p>
+                      )}
+                    </div>
                     <p className="hidden text-xs text-muted-foreground sm:block">
                       Due {formatDate(invoice.dueDate)}
                     </p>
@@ -261,7 +293,23 @@ export default function InvoicesPage() {
                           {convertingId === invoice.id ? 'Converting…' : 'To quote'}
                         </Button>
                       )}
-                      {!isPaid ? (
+                      {canRecordPayment && (
+                        <button
+                          type="button"
+                          onClick={(e) => {
+                            e.preventDefault();
+                            e.stopPropagation();
+                            setPaymentInvoice(invoice);
+                          }}
+                          className="flex-1 rounded-full border border-amber-500 bg-white px-3 py-2 text-xs font-medium text-amber-800 transition hover:bg-amber-600 hover:text-white sm:flex-none sm:py-1"
+                        >
+                          <span className="inline-flex items-center gap-1">
+                            <Banknote className="h-3.5 w-3.5" />
+                            Record payment
+                          </span>
+                        </button>
+                      )}
+                      {canRecordPayment && (
                         <button
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'PAID', e)}
@@ -270,7 +318,8 @@ export default function InvoicesPage() {
                         >
                           Mark as paid
                         </button>
-                      ) : (
+                      )}
+                      {(isPaid || isPartial) && (
                         <button
                           type="button"
                           onClick={(e) => markStatus(invoice.id, 'SENT', e)}
@@ -280,6 +329,22 @@ export default function InvoicesPage() {
                           Mark as unpaid
                         </button>
                       )}
+                      {isReceiptEligible(invoice) && organizationId && (
+                        <Button
+                          asChild
+                          variant="outline"
+                          size="sm"
+                          className="flex-1 sm:flex-none"
+                        >
+                          <Link
+                            href={`/print/receipts/${invoice.id}?org=${encodeURIComponent(organizationId)}`}
+                            target="_blank"
+                            rel="noreferrer"
+                          >
+                            Receipt
+                          </Link>
+                        </Button>
+                      )}
                     </div>
                   </div>
                 </CardContent>
@@ -287,6 +352,18 @@ export default function InvoicesPage() {
             );
           })}
         </div>
+      )}
+
+      {paymentInvoice && organizationId && (
+        <RecordPaymentDialog
+          invoice={paymentInvoice}
+          organizationId={organizationId}
+          onClose={() => setPaymentInvoice(null)}
+          onRecorded={async () => {
+            setPaymentInvoice(null);
+            await refreshInvoiceQueries();
+          }}
+        />
       )}
     </div>
   );

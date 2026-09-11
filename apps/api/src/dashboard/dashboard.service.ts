@@ -57,7 +57,7 @@ export class DashboardService {
               ],
             },
           },
-          select: { currency: true, total: true },
+          select: { currency: true, total: true, amountPaid: true },
         }),
         this.prisma.customer.count({ where: { organizationId, isActive: true } }),
         this.prisma.product.count({ where: { organizationId, isActive: true } }),
@@ -77,10 +77,15 @@ export class DashboardService {
         return sum + fromUsd(usd, displayCurrency, rates);
       }, 0);
 
+    const outstandingRows = outstandingInvoices.map((row) => ({
+      currency: row.currency,
+      total: Math.max(0, Number(row.total) - Number(row.amountPaid ?? 0)),
+    }));
+
     const revenue = roundMoney(toDisplay(paidSales, 'total'));
     const expenses = roundMoney(toDisplay(paidCostRows, 'totalCost'));
     const profit = roundMoney(revenue - expenses);
-    const outstanding = roundMoney(toDisplay(outstandingInvoices, 'total'));
+    const outstanding = roundMoney(toDisplay(outstandingRows, 'total'));
     const cashFlow = roundMoney(revenue - expenses);
 
     let secondaryCurrency: string | null = null;

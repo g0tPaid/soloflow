@@ -72,7 +72,7 @@ export class AdminService {
       this.prisma.invoice.count(),
       this.prisma.customer.count(),
       this.prisma.product.count(),
-      this.prisma.invoice.count({ where: { status: InvoiceStatus.PAID } }),
+      this.prisma.invoice.count({ where: { status: { in: [InvoiceStatus.PAID, InvoiceStatus.PARTIAL] } } }),
       this.prisma.user.findMany({
         orderBy: { createdAt: 'desc' },
         take: 8,
@@ -105,7 +105,7 @@ export class AdminService {
         },
       }),
       this.prisma.invoice.findMany({
-        where: { status: InvoiceStatus.PAID },
+        where: { status: { in: [InvoiceStatus.PAID, InvoiceStatus.PARTIAL] } },
         orderBy: { updatedAt: 'desc' },
         take: 8,
         include: {
@@ -257,7 +257,7 @@ export class AdminService {
         this.prisma.product.count({ where: { organizationId: { in: orgIds } } }),
         this.prisma.invoice.count({ where: { organizationId: { in: orgIds } } }),
         this.prisma.invoice.count({
-          where: { organizationId: { in: orgIds }, status: InvoiceStatus.PAID },
+          where: { organizationId: { in: orgIds }, status: { in: [InvoiceStatus.PAID, InvoiceStatus.PARTIAL] } },
         }),
         this.prisma.invoice.findMany({
           where: { organizationId: { in: orgIds } },
@@ -342,7 +342,7 @@ export class AdminService {
         invoices: invoices.map((i) => this.mapInvoiceRow(i)),
         expenses: invoices.map((i) => this.mapExpenseRow(i)),
         receipts: invoices
-          .filter((i) => i.status === InvoiceStatus.PAID)
+          .filter((i) => i.status === InvoiceStatus.PAID || i.status === InvoiceStatus.PARTIAL)
           .map((i) => this.mapReceiptRow(i)),
         customers: customers.map((c) => ({
           id: c.id,
@@ -485,7 +485,9 @@ export class AdminService {
 
   async listReceipts(params: { page?: number; limit?: number; search?: string }) {
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(params.page, params.limit);
-    const where: Record<string, unknown> = { status: InvoiceStatus.PAID };
+    const where: Record<string, unknown> = {
+      status: { in: [InvoiceStatus.PAID, InvoiceStatus.PARTIAL] },
+    };
     if (params.search) {
       where.OR = [
         { number: { contains: params.search, mode: 'insensitive' } },

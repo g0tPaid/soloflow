@@ -8,6 +8,11 @@ import {
   resolveImageSrcForPrint,
 } from '@/lib/organization-branding';
 import { formatCurrency } from '@/lib/utils';
+import {
+  invoiceAmountPaid,
+  invoiceBalanceDue,
+  paymentMethodLabel,
+} from '@flowbooks/shared';
 
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
@@ -42,7 +47,16 @@ export function ReceiptPrintView({
   const logoSrc = resolvePrintImage(org?.logo, baseUrl);
   const signatureSrc = resolvePrintImage(branding.invoiceSignature, baseUrl);
   const currency = invoice.currency;
-  const paidDate = formatDate(invoice.updatedAt || invoice.issueDate);
+  const paidAmount = invoiceAmountPaid(invoice);
+  const balanceDue = invoiceBalanceDue(invoice);
+  const isPartial = balanceDue > 0.005;
+  const payments = invoice.payments ?? [];
+  const lastPayment = payments.length
+    ? payments.reduce((latest, payment) =>
+        new Date(payment.paidAt) > new Date(latest.paidAt) ? payment : latest,
+      )
+    : null;
+  const paidDate = formatDate(lastPayment?.paidAt || invoice.updatedAt || invoice.issueDate);
 
   return (
     <div className="receipt-print mx-auto min-h-screen w-full max-w-[760px] overflow-x-hidden bg-white text-slate-800">
@@ -105,9 +119,11 @@ export function ReceiptPrintView({
               Official receipt
             </p>
             <p className="mt-2 text-3xl font-extrabold text-slate-900">
-              {formatCurrency(Number(invoice.total), currency)}
+              {formatCurrency(paidAmount, currency)}
             </p>
-            <p className="mt-1 text-sm text-emerald-800">Payment received with thanks</p>
+            <p className="mt-1 text-sm text-emerald-800">
+              {isPartial ? 'Partial payment received with thanks' : 'Payment received with thanks'}
+            </p>
           </div>
 
           <div className="mb-6 grid gap-4 sm:grid-cols-2">
@@ -147,7 +163,9 @@ export function ReceiptPrintView({
                 </div>
                 <div className="flex justify-between gap-4">
                   <dt className="text-slate-500">Status</dt>
-                  <dd className="font-semibold text-emerald-700">PAID</dd>
+                  <dd className={`font-semibold ${isPartial ? 'text-amber-700' : 'text-emerald-700'}`}>
+                    {isPartial ? 'PARTIAL' : 'PAID'}
+                  </dd>
                 </div>
               </dl>
             </div>
@@ -248,15 +266,58 @@ export function ReceiptPrintView({
                 className="mt-2 flex justify-between border-t-2 pt-3 text-base font-bold"
                 style={{ borderColor: GREEN }}
               >
-                <span>Amount paid</span>
-                <span style={{ color: GREEN }}>{formatCurrency(Number(invoice.total), currency)}</span>
+                <span>Invoice total</span>
+                <span>{formatCurrency(Number(invoice.total), currency)}</span>
               </div>
+              <div className="flex justify-between pt-2 text-base font-bold">
+                <span>Amount paid</span>
+                <span style={{ color: GREEN }}>{formatCurrency(paidAmount, currency)}</span>
+              </div>
+              {isPartial && (
+                <div className="flex justify-between pt-1 text-sm font-semibold text-amber-800">
+                  <span>Balance due</span>
+                  <span>{formatCurrency(balanceDue, currency)}</span>
+                </div>
+              )}
             </div>
           </div>
 
+          {payments.length > 0 && (
+            <div className="mb-6 overflow-hidden rounded-xl ring-1 ring-slate-100">
+              <table className="w-full border-collapse text-sm">
+                <thead>
+                  <tr style={{ backgroundColor: GREEN_DARK }} className="text-left text-white">
+                    <th className="px-4 py-2 text-xs font-bold uppercase tracking-wider">Payments</th>
+                    <th className="px-3 py-2 text-xs font-bold uppercase tracking-wider">Method</th>
+                    <th className="px-4 py-2 text-right text-xs font-bold uppercase tracking-wider">
+                      Amount
+                    </th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {payments.map((payment) => (
+                    <tr key={payment.id} style={{ borderBottom: '1px solid #f1f5f9' }}>
+                      <td className="px-4 py-2">
+                        <p className="font-medium">{formatDate(payment.paidAt)}</p>
+                        {payment.note ? (
+                          <p className="text-xs text-slate-500">{payment.note}</p>
+                        ) : null}
+                      </td>
+                      <td className="px-3 py-2 text-slate-600">{paymentMethodLabel(payment.method)}</td>
+                      <td className="px-4 py-2 text-right font-semibold tabular-nums">
+                        {formatCurrency(Number(payment.amount), currency)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          )}
+
           <p className="mt-8 text-center text-sm italic text-slate-500">
-            Thank you for your payment. This receipt confirms that invoice {invoice.number} has been
-            paid in full.
+            {isPartial
+              ? `Thank you for your payment. This receipt confirms a partial payment on invoice ${invoice.number}. A balance of ${formatCurrency(balanceDue, currency)} remains due.`
+              : `Thank you for your payment. This receipt confirms that invoice ${invoice.number} has been paid in full.`}
           </p>
         </div>
       </div>

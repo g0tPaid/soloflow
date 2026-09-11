@@ -279,6 +279,9 @@ export function InvoiceForm(props: InvoiceFormProps) {
                   </option>
                 ))}
               </select>
+              <p className="text-xs text-muted-foreground">
+                For half payments use Record payment above. Marking Paid here records the remaining balance.
+              </p>
             </div>
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due date</Label>

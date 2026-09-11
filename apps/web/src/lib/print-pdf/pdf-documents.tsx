@@ -23,6 +23,11 @@ import {
   type InvoiceAccentPalette,
 } from '@/lib/organization-branding';
 import type { LoadedPrintDocument } from '@/lib/print-pdf/load-print-data';
+import {
+  invoiceAmountPaid,
+  invoiceBalanceDue,
+  paymentMethodLabel,
+} from '@flowbooks/shared';
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
@@ -794,9 +799,19 @@ function ReceiptPdfBody({
   const branding = parseBranding(org.settings?.branding);
   const companyAddress = formatAddressLines(branding.address).join(' · ');
   const customerAddress = formatAddressLines(invoice.customer?.address ?? undefined);
-  const paidDate = fmtDate(invoice.updatedAt || invoice.issueDate);
+  const paidAmount = invoiceAmountPaid(invoice);
+  const balanceDue = invoiceBalanceDue(invoice);
+  const isPartial = balanceDue > 0.005;
+  const payments = invoice.payments ?? [];
+  const lastPayment = payments.length
+    ? payments.reduce((latest, payment) =>
+        new Date(payment.paidAt) > new Date(latest.paidAt) ? payment : latest,
+      )
+    : null;
+  const paidDate = fmtDate(lastPayment?.paidAt || invoice.updatedAt || invoice.issueDate);
   const shippingAmount = Number(invoice.shipping ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
+  const taxAmount = Number(invoice.taxAmount ?? 0);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
 
   return (
@@ -817,10 +832,10 @@ function ReceiptPdfBody({
             OFFICIAL RECEIPT
           </Text>
           <Text style={{ fontSize: 22, fontWeight: 'bold', marginTop: 6, color: '#0f172a' }}>
-            {money(invoice.total, currency)}
+            {money(paidAmount, currency)}
           </Text>
           <Text style={{ fontSize: 9, color: GREEN_DARK, marginTop: 4 }}>
-            Payment received with thanks
+            {isPartial ? 'Partial payment received with thanks' : 'Payment received with thanks'}
           </Text>
         </View>
 
@@ -862,7 +877,9 @@ function ReceiptPdfBody({
             </View>
             <View style={styles.row}>
               <Text style={styles.muted}>Status</Text>
-              <Text style={{ fontWeight: 'bold', color: GREEN }}>PAID</Text>
+              <Text style={{ fontWeight: 'bold', color: isPartial ? '#b45309' : GREEN }}>
+                {isPartial ? 'PARTIAL' : 'PAID'}
+              </Text>
             </View>
           </View>
         </View>
@@ -925,13 +942,53 @@ function ReceiptPdfBody({
                   <Text style={{ color: GREEN }}>−{money(discountAmount, currency)}</Text>
                 </View>
               ) : null}
+              {taxAmount > 0 ? (
+                <View style={styles.totalLine}>
+                  <Text style={styles.muted}>
+                    VAT{Number(invoice.taxRate ?? 0) > 0 ? ` (${Number(invoice.taxRate)}%)` : ''}
+                  </Text>
+                  <Text>{money(taxAmount, currency)}</Text>
+                </View>
+              ) : null}
               <View style={[styles.grandTotal, { borderTopColor: GREEN }]}>
-                <Text>Amount paid</Text>
-                <Text style={{ color: GREEN }}>{money(invoice.total, currency)}</Text>
+                <Text>Invoice total</Text>
+                <Text>{money(invoice.total, currency)}</Text>
               </View>
+              <View style={styles.totalLine}>
+                <Text>Amount paid</Text>
+                <Text style={{ color: GREEN }}>{money(paidAmount, currency)}</Text>
+              </View>
+              {isPartial ? (
+                <View style={styles.totalLine}>
+                  <Text style={{ color: '#b45309' }}>Balance due</Text>
+                  <Text style={{ color: '#b45309' }}>{money(balanceDue, currency)}</Text>
+                </View>
+              ) : null}
             </View>
           </View>
         </View>
+
+        {payments.length > 0 ? (
+          <View wrap={false} style={{ marginTop: 10 }}>
+            <View style={[styles.tableHeader, styles.tableHeaderGreen]}>
+              <Text style={{ width: '34%', paddingLeft: 4 }}>Payment date</Text>
+              <Text style={{ width: '36%' }}>Method</Text>
+              <Text style={{ width: '30%', textAlign: 'right', paddingRight: 4 }}>Amount</Text>
+            </View>
+            {payments.map((payment, index) => (
+              <View
+                key={payment.id}
+                style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
+              >
+                <Text style={{ width: '34%', paddingLeft: 4 }}>{fmtDate(payment.paidAt)}</Text>
+                <Text style={{ width: '36%' }}>{paymentMethodLabel(payment.method)}</Text>
+                <Text style={{ width: '30%', textAlign: 'right', paddingRight: 4, fontWeight: 'bold' }}>
+                  {money(payment.amount, currency)}
+                </Text>
+              </View>
+            ))}
+          </View>
+        ) : null}
 
         <Text
           style={[
@@ -939,8 +996,9 @@ function ReceiptPdfBody({
             { textAlign: 'center', marginTop: 16, fontStyle: 'italic', fontSize: 9 },
           ]}
         >
-          Thank you for your payment. This receipt confirms that invoice {invoice.number} has been
-          paid in full.
+          {isPartial
+            ? `Thank you for your payment. This receipt confirms a partial payment on invoice ${invoice.number}. A balance of ${money(balanceDue, currency)} remains due.`
+            : `Thank you for your payment. This receipt confirms that invoice ${invoice.number} has been paid in full.`}
         </Text>
       </View>
     </Page>

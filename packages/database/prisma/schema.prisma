@@ -106,6 +106,7 @@ model Organization {
   customFieldDefs   CustomFieldDefinition[]
   featureFlags      FeatureFlag[]
   stockMovements    StockMovement[]
+  payments          Payment[]
 
   @@map("organizations")
 }
@@ -323,6 +324,14 @@ enum ShippingTerms {
   LOCAL
 }
 
+enum PaymentMethod {
+  CASH
+  BANK
+  CARD
+  MOBILE
+  OTHER
+}
+
 model Invoice {
   id                  String           @id @default(cuid())
   organizationId      String
@@ -347,6 +356,8 @@ model Invoice {
   shippingCostCny     Decimal          @default(0) @db.Decimal(12, 2)
   discount            Decimal          @default(0) @db.Decimal(12, 2)
   total               Decimal          @default(0) @db.Decimal(12, 2)
+  /// Sum of recorded customer payments. Remaining due is total - amountPaid.
+  amountPaid          Decimal          @default(0) @db.Decimal(12, 2)
   totalCost           Decimal          @default(0) @db.Decimal(12, 2)
   shippingMethod      ShippingMethod?
   shippingTerms       ShippingTerms?
@@ -361,6 +372,7 @@ model Invoice {
   customer     Customer?     @relation(fields: [customerId], references: [id])
   vendor       Vendor?       @relation(fields: [vendorId], references: [id])
   items        InvoiceItem[]
+  payments     Payment[]
   sourceQuotes Quote[]       @relation("QuoteConvertedInvoice")
 
   @@unique([organizationId, number])
@@ -391,6 +403,26 @@ model InvoiceItem {
 
   @@index([invoiceId])
   @@map("invoice_items")
+}
+
+model Payment {
+  id             String        @id @default(cuid())
+  organizationId String
+  invoiceId      String
+  amount         Decimal       @db.Decimal(12, 2)
+  paidAt         DateTime      @default(now())
+  method         PaymentMethod @default(CASH)
+  note           String?
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId])
+  @@index([invoiceId])
+  @@index([paidAt])
+  @@map("payments")
 }
 
 enum QuoteStatus {

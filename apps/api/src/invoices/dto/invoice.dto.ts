@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -175,4 +175,27 @@ export class UpdateInvoiceDto {
   @ValidateNested({ each: true })
   @Type(() => InvoiceItemDto)
   items?: InvoiceItemDto[];
+}
+
+export class CreatePaymentDto {
+  @ApiProperty({ example: 500, description: 'Amount received from the customer' })
+  @IsNumber()
+  @Min(0.01)
+  amount!: number;
+
+  @ApiProperty({ required: false, description: 'Payment date (YYYY-MM-DD)' })
+  @IsOptional()
+  @IsDateString()
+  paidAt?: string;
+
+  @ApiProperty({ required: false, enum: ['CASH', 'BANK', 'CARD', 'MOBILE', 'OTHER'] })
+  @IsOptional()
+  @IsIn(['CASH', 'BANK', 'CARD', 'MOBILE', 'OTHER'])
+  method?: 'CASH' | 'BANK' | 'CARD' | 'MOBILE' | 'OTHER';
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  note?: string;
 }

@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
-import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
+import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
@@ -41,6 +41,16 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Move invoice into a draft quote (removes the invoice)' })
   convert(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.invoicesService.convertToQuote(orgId, id);
+  }
+
+  @Post(':id/payments')
+  @ApiOperation({ summary: 'Record a customer payment against an invoice (full or partial)' })
+  recordPayment(
+    @Headers(TENANT_HEADER) orgId: string,
+    @Param('id') id: string,
+    @Body() dto: CreatePaymentDto,
+  ) {
+    return this.invoicesService.recordPayment(orgId, id, dto);
   }
 
   @Patch(':id')

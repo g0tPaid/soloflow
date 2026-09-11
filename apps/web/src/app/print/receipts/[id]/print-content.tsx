@@ -10,6 +10,7 @@ import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { formatCurrency } from '@/lib/utils';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { ReceiptPrintView } from '@/components/print/receipt-print-view';
+import { invoiceAmountPaid, invoiceBalanceDue, isReceiptEligible } from '@flowbooks/shared';
 
 export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -85,16 +86,16 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
     return <p className="p-8 text-center text-sm text-gray-500">Preparing receipt…</p>;
   }
 
-  if (invoice.status !== 'PAID') {
+  if (!isReceiptEligible(invoice)) {
     return (
       <div className="p-8 text-center text-sm text-amber-700">
-        <p className="font-medium">This invoice is not marked as paid yet</p>
+        <p className="font-medium">No payment has been recorded on this invoice yet</p>
         <p className="mt-2">
           Go to{' '}
           <Link href="/invoices" className="underline">
             Invoices
           </Link>{' '}
-          and click <strong>Paid</strong> first.
+          and click <strong>Record payment</strong> or <strong>Mark as paid</strong> first.
         </p>
       </div>
     );
@@ -102,7 +103,12 @@ export function ReceiptPrintPageContent({ params }: { params: Promise<{ id: stri
 
   const org = orgDetail ?? organization;
   const receiptFilename = `receipt-${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
-  const whatsappMessage = `Payment receipt for invoice ${invoice.number} — ${formatCurrency(Number(invoice.total), invoice.currency)}. Thank you!`;
+  const paidAmount = invoiceAmountPaid(invoice);
+  const balanceDue = invoiceBalanceDue(invoice);
+  const whatsappMessage =
+    balanceDue > 0.005
+      ? `Payment receipt for invoice ${invoice.number} — ${formatCurrency(paidAmount, invoice.currency)} received, ${formatCurrency(balanceDue, invoice.currency)} remaining. Thank you!`
+      : `Payment receipt for invoice ${invoice.number} — ${formatCurrency(paidAmount, invoice.currency)}. Thank you!`;
 
   return (
     <>
