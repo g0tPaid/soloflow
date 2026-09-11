@@ -1,11 +1,13 @@
 -- CreateEnum
-CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'BANK', 'CARD', 'MOBILE', 'OTHER');
+DO $$ BEGIN
+  CREATE TYPE "PaymentMethod" AS ENUM ('CASH', 'BANK', 'CARD', 'MOBILE', 'OTHER');
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- AlterTable
 ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "amountPaid" DECIMAL(12,2) NOT NULL DEFAULT 0;
 
 -- CreateTable
-CREATE TABLE "payments" (
+CREATE TABLE IF NOT EXISTS "payments" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
     "invoiceId" TEXT NOT NULL,
@@ -19,12 +21,16 @@ CREATE TABLE "payments" (
     CONSTRAINT "payments_pkey" PRIMARY KEY ("id")
 );
 
-CREATE INDEX "payments_organizationId_idx" ON "payments"("organizationId");
-CREATE INDEX "payments_invoiceId_idx" ON "payments"("invoiceId");
-CREATE INDEX "payments_paidAt_idx" ON "payments"("paidAt");
+CREATE INDEX IF NOT EXISTS "payments_organizationId_idx" ON "payments"("organizationId");
+CREATE INDEX IF NOT EXISTS "payments_invoiceId_idx" ON "payments"("invoiceId");
+CREATE INDEX IF NOT EXISTS "payments_paidAt_idx" ON "payments"("paidAt");
 
-ALTER TABLE "payments" ADD CONSTRAINT "payments_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
-ALTER TABLE "payments" ADD CONSTRAINT "payments_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_organizationId_fkey" FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
+DO $$ BEGIN
+  ALTER TABLE "payments" ADD CONSTRAINT "payments_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+EXCEPTION WHEN duplicate_object THEN NULL; END $$;
 
 -- Existing Paid invoices already represent a full payment.
 UPDATE "invoices"
