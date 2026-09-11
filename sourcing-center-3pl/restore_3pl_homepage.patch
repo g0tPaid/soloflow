@@ -1,0 +1,284 @@
+From 77130cb9207aff3b109daeef3b5a023c5146d801 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 11 Sep 2026 10:37:26 +0000
+Subject: [PATCH] Restore the homepage 3PL warehouse section.
+MIME-Version: 1.0
+Content-Type: text/plain; charset=UTF-8
+Content-Transfer-Encoding: 8bit
+
+Put receive–store–pick–pack–ship fulfillment back on the v2 landing, with Xiamen and Dubai hubs, a nav link, and the same copy on /logistics.
+---
+ src/app/(marketing)/logistics/page.tsx | 45 ++++++++++--
+ src/app/(marketing)/page.tsx           |  2 +
+ src/components/v2/v2-3pl.tsx           | 94 ++++++++++++++++++++++++++
+ src/components/v2/v2-nav.tsx           |  1 +
+ src/lib/content.ts                     |  4 +-
+ src/lib/v2-content.ts                  | 32 ++++++++-
+ 6 files changed, 170 insertions(+), 8 deletions(-)
+ create mode 100644 src/components/v2/v2-3pl.tsx
+
+diff --git a/src/app/(marketing)/logistics/page.tsx b/src/app/(marketing)/logistics/page.tsx
+index 17b3b1b..e1bf06a 100644
+--- a/src/app/(marketing)/logistics/page.tsx
++++ b/src/app/(marketing)/logistics/page.tsx
+@@ -2,21 +2,56 @@ import type { Metadata } from "next";
+ import { WorldShippingMap } from "@/components/home/world-map";
+ import { PageHero, CtaBand } from "@/components/shared/page-shell";
+ import { Container } from "@/components/ui/primitives";
++import { fulfillment, fulfillmentHubs, fulfillmentSteps } from "@/lib/v2-content";
+ 
+ export const metadata: Metadata = {
+-  title: "Logistics",
+-  description: "Sea, air, and express freight from China with Dubai hub support and customs guidance.",
++  title: "3PL & Logistics",
++  description:
++    "Own warehouses in Xiamen and Dubai — receive, store, pick, pack, and ship — plus sea, air, and express freight.",
+ };
+ 
+ export default function LogisticsPage() {
+   return (
+     <>
+       <PageHero
+-        eyebrow="Logistics"
+-        title="Freight that matches how you actually buy"
+-        description="Consolidate in China, stage through Dubai when needed, and deliver with tracking your ops team can trust."
++        eyebrow="3PL & Logistics"
++        title="Warehouses we run — freight that matches how you buy"
++        description="Full 3PL in Xiamen and Dubai, tied to the sourcing desk. Then sea, air, or express with tracking your ops team can trust."
+       />
+       <Container className="py-16">
++        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">{fulfillment.eyebrow}</p>
++        <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
++          {fulfillment.title}
++        </h2>
++        <p className="mt-3 max-w-2xl text-muted">{fulfillment.description}</p>
++        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
++          {fulfillmentSteps.map((step) => (
++            <div key={step.title} className="rounded-3xl border border-line bg-paper-elevated p-6">
++              <h3 className="font-display text-xl font-semibold text-ink">{step.title}</h3>
++              <p className="mt-2 text-sm text-muted">{step.text}</p>
++            </div>
++          ))}
++        </div>
++        <div className="mt-4 grid gap-4 sm:grid-cols-2">
++          {fulfillmentHubs.map((hub) => (
++            <div key={hub.city} className="rounded-3xl border border-line bg-paper p-6">
++              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{hub.role}</p>
++              <h3 className="mt-2 font-display text-xl font-semibold text-ink">
++                {hub.city} · {hub.country}
++              </h3>
++              <p className="mt-2 text-sm text-muted">{hub.text}</p>
++            </div>
++          ))}
++        </div>
++
++        <div className="mt-16">
++          <h2 className="font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
++            Freight lanes
++          </h2>
++          <p className="mt-3 max-w-2xl text-muted">
++            Consolidate in China, stage through Dubai when needed, and deliver with tracking.
++          </p>
++        </div>
+         <WorldShippingMap />
+         <div className="mt-8 grid gap-4 md:grid-cols-3">
+           {[
+diff --git a/src/app/(marketing)/page.tsx b/src/app/(marketing)/page.tsx
+index 6f87fa2..4314ed0 100644
+--- a/src/app/(marketing)/page.tsx
++++ b/src/app/(marketing)/page.tsx
+@@ -3,6 +3,7 @@ import { V2Discovery } from "@/components/v2/v2-discovery";
+ import { V2Hero } from "@/components/v2/v2-hero";
+ import { V2Ideation } from "@/components/v2/v2-ideation";
+ import { V2Network } from "@/components/v2/v2-network";
++import { V2ThreePl } from "@/components/v2/v2-3pl";
+ import { V2Trust } from "@/components/v2/v2-trust";
+ import { V2Why } from "@/components/v2/v2-why";
+ import { V2Workflow } from "@/components/v2/v2-workflow";
+@@ -14,6 +15,7 @@ export default function HomePage() {
+       <V2Discovery />
+       <V2Ideation />
+       <V2Network />
++      <V2ThreePl />
+       <V2Why />
+       <V2Workflow />
+       <V2Trust />
+diff --git a/src/components/v2/v2-3pl.tsx b/src/components/v2/v2-3pl.tsx
+new file mode 100644
+index 0000000..de7302e
+--- /dev/null
++++ b/src/components/v2/v2-3pl.tsx
+@@ -0,0 +1,94 @@
++"use client";
++
++import Link from "next/link";
++import { motion } from "framer-motion";
++import { ArrowUpRight } from "lucide-react";
++import { Container } from "@/components/ui/primitives";
++import { fulfillment, fulfillmentHubs, fulfillmentSteps } from "@/lib/v2-content";
++
++export function V2ThreePl() {
++  return (
++    <section id="3pl" className="scroll-mt-28 border-t border-line bg-paper-elevated/60 py-14 sm:py-20 lg:py-24">
++      <Container>
++        <div className="max-w-2xl">
++          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
++            {fulfillment.eyebrow}
++          </p>
++          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
++            {fulfillment.title}
++          </h2>
++          <p className="mt-4 max-w-xl text-muted sm:text-lg">{fulfillment.description}</p>
++        </div>
++
++        <div className="mt-8 flex gap-2 overflow-x-auto pb-2">
++          {fulfillmentSteps.map((step, i) => (
++            <motion.div
++              key={step.title}
++              initial={{ opacity: 0, y: 10 }}
++              whileInView={{ opacity: 1, y: 0 }}
++              viewport={{ once: true }}
++              transition={{ delay: i * 0.04 }}
++              className="flex shrink-0 items-center gap-2"
++            >
++              <span className="rounded-full border border-line bg-paper px-4 py-2 text-sm font-medium text-ink">
++                {step.title}
++              </span>
++              {i < fulfillmentSteps.length - 1 ? (
++                <span className="text-muted" aria-hidden>
++                  →
++                </span>
++              ) : null}
++            </motion.div>
++          ))}
++        </div>
++
++        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
++          {fulfillmentSteps.map((step, i) => (
++            <motion.div
++              key={step.title}
++              initial={{ opacity: 0, y: 18 }}
++              whileInView={{ opacity: 1, y: 0 }}
++              viewport={{ once: true }}
++              transition={{ delay: i * 0.04 }}
++              className="glass-card rounded-[1.5rem] p-5 sm:p-6"
++            >
++              <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-accent">
++                {String(i + 1).padStart(2, "0")}
++              </p>
++              <h3 className="mt-2 font-display text-xl font-semibold text-ink">{step.title}</h3>
++              <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
++            </motion.div>
++          ))}
++        </div>
++
++        <div className="mt-4 grid gap-4 sm:grid-cols-2">
++          {fulfillmentHubs.map((hub, i) => (
++            <motion.div
++              key={hub.city}
++              initial={{ opacity: 0, y: 18 }}
++              whileInView={{ opacity: 1, y: 0 }}
++              viewport={{ once: true }}
++              transition={{ delay: 0.08 + i * 0.04 }}
++              className="rounded-[1.5rem] border border-line bg-paper p-5 sm:p-6"
++            >
++              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{hub.role}</p>
++              <h3 className="mt-2 font-display text-2xl font-semibold text-ink">
++                {hub.city}
++                <span className="text-muted"> · {hub.country}</span>
++              </h3>
++              <p className="mt-2 text-sm leading-relaxed text-muted">{hub.text}</p>
++            </motion.div>
++          ))}
++        </div>
++
++        <Link
++          href="/logistics"
++          className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-ink transition hover:text-accent"
++        >
++          Freight lanes and customs
++          <ArrowUpRight className="h-4 w-4" aria-hidden />
++        </Link>
++      </Container>
++    </section>
++  );
++}
+diff --git a/src/components/v2/v2-nav.tsx b/src/components/v2/v2-nav.tsx
+index b817710..e5ed2c4 100644
+--- a/src/components/v2/v2-nav.tsx
++++ b/src/components/v2/v2-nav.tsx
+@@ -11,6 +11,7 @@ const links = [
+   { href: "#discovery", label: "Discover" },
+   { href: "#new-idea", label: "New idea" },
+   { href: "#network", label: "Network" },
++  { href: "/#3pl", label: "3PL" },
+   { href: "#workflow", label: "Workflow" },
+   { href: "#trust", label: "Trust" },
+ ];
+diff --git a/src/lib/content.ts b/src/lib/content.ts
+index 6d0863d..bccc3d1 100644
+--- a/src/lib/content.ts
++++ b/src/lib/content.ts
+@@ -148,8 +148,8 @@ export const services = [
+   },
+   {
+     href: "/logistics",
+-    title: "Logistics",
+-    description: "Sea, air, and express freight with customs guidance to your door.",
++    title: "3PL & Logistics",
++    description: "Own warehouses in Xiamen and Dubai, then sea, air, and express to your door.",
+   },
+   {
+     href: "/services",
+diff --git a/src/lib/v2-content.ts b/src/lib/v2-content.ts
+index fc2ce17..f66448b 100644
+--- a/src/lib/v2-content.ts
++++ b/src/lib/v2-content.ts
+@@ -333,13 +333,43 @@ export const supplySteps = [
+   "Australia",
+ ] as const;
+ 
++export const fulfillment = {
++  eyebrow: "3PL",
++  title: "World-class fulfillment in our own warehouses",
++  description:
++    "Receive, store, pick, pack, and ship — not through a broker. We run full 3PL in Xiamen and Dubai, tied directly to your sourcing desk.",
++} as const;
++
++export const fulfillmentSteps = [
++  { title: "Receive", text: "Inbound from the factory floor into our warehouse — counted and photographed." },
++  { title: "Store", text: "Hold stock in Xiamen or Dubai until you release it, with no marketplace middleman." },
++  { title: "Pick", text: "Orders pulled to your SKU list — one unit or a container program." },
++  { title: "Pack", text: "Cartons, labeling, and consolidations staged for the lane you actually buy." },
++  { title: "Ship", text: "Sea, air, or express with tracking — China HQ and Dubai hub on the same desk." },
++] as const;
++
++export const fulfillmentHubs = [
++  {
++    city: "Xiamen",
++    country: "China",
++    role: "HQ warehouse",
++    text: "Sourcing headquarters and warehouse — inbound from factories, QC, and export staging.",
++  },
++  {
++    city: "Dubai / Al Ain",
++    country: "UAE",
++    role: "Branch warehouse",
++    text: "Regional hub for GCC replenishment — stage, pick, and ship closer to your market.",
++  },
++] as const;
++
+ export const whyPoints = [
+   { title: "One partner", text: "Ideas, factories, QC, and freight handled by one China desk." },
+   { title: "Thousands of factories", text: "Mapped capacity across electronics, home, fashion, and industrial." },
+   { title: "Verified suppliers", text: "License checks, audits, and production proof before you commit." },
+   { title: "Factory audits", text: "On-ground teams in China validating what catalogs claim." },
+   { title: "Inspection", text: "Photo & video QC — approve before anything ships." },
+-  { title: "Logistics", text: "Sea, air, and express with Dubai hub support." },
++  { title: "Logistics", text: "Own 3PL in Xiamen and Dubai — plus sea, air, and express." },
+   { title: "Private label", text: "Packaging, branding, and white-label programs that scale." },
+   { title: "OEM / ODM", text: "From concept and tooling to mass production — including brand-new inventions." },
+   { title: "Product development", text: "Turn a sketch or new idea into a manufacturable SKU under NDA." },
+-- 
+2.43.0
+
