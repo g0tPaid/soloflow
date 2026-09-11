@@ -11,10 +11,10 @@ export function V2ThreePl() {
     <section
       id="3pl"
       aria-labelledby="three-pl-heading"
-      className="scroll-mt-28 py-8 sm:py-12"
+      className="scroll-mt-36 py-8 sm:scroll-mt-40 sm:py-12"
     >
       <Container>
-        <div className="relative overflow-hidden rounded-[2rem] border border-accent/40 bg-ink px-5 py-12 text-paper shadow-[0_24px_80px_rgba(214,0,0,0.18)] sm:px-10 sm:py-16 lg:px-14">
+        <div className="relative overflow-hidden rounded-[2rem] border border-accent/40 bg-ink px-5 pb-12 pt-16 text-paper shadow-[0_24px_80px_rgba(214,0,0,0.18)] sm:px-10 sm:pb-16 sm:pt-20 lg:px-14">
           <div
             className="pointer-events-none absolute inset-0 opacity-80"
             style={{
