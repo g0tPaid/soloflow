@@ -5,16 +5,24 @@ import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { FileInput, Pencil } from 'lucide-react';
+import { FileInput, Pencil, Banknote } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { ShareInvoiceWhatsAppButton } from '@/components/invoices/share-invoice-whatsapp-button';
+import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
-import type { UpdateInvoiceInput } from '@flowbooks/shared';
+import {
+  invoiceAmountPaid,
+  invoiceBalanceDue,
+  isReceiptEligible,
+  paymentMethodLabel,
+  type UpdateInvoiceInput,
+} from '@flowbooks/shared';
+import { formatCurrency } from '@/lib/utils';
 
 export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -26,6 +34,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const queryClient = useQueryClient();
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState('');
+  const [showPayment, setShowPayment] = useState(false);
 
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id, organizationId],
@@ -62,6 +71,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] });
+    await queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] });
   }
 
   async function handleConvert() {
@@ -152,15 +162,31 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
         <div className="flex w-full flex-col items-stretch gap-2 sm:w-auto sm:items-end">
           {invoice && organizationId && (
             <>
-              <Button
-                type="button"
-                size="lg"
-                onClick={scrollToEdit}
-                className="gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]"
-              >
-                <Pencil className="h-4 w-4" />
-                Edit invoice — change prices &amp; items
-              </Button>
+              <div className="flex w-full flex-col gap-2 sm:flex-row">
+                <Button
+                  type="button"
+                  size="lg"
+                  onClick={scrollToEdit}
+                  className="flex-1 gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]"
+                >
+                  <Pencil className="h-4 w-4" />
+                  Edit invoice
+                </Button>
+                {invoice.status !== 'VOID' &&
+                  invoice.status !== 'CANCELLED' &&
+                  invoiceBalanceDue(invoice) > 0.005 && (
+                    <Button
+                      type="button"
+                      size="lg"
+                      variant="outline"
+                      className="flex-1 gap-2 border-amber-500 text-amber-800 hover:bg-amber-600 hover:text-white"
+                      onClick={() => setShowPayment(true)}
+                    >
+                      <Banknote className="h-4 w-4" />
+                      Record payment
+                    </Button>
+                  )}
+              </div>
               {!isNew && (
                 <>
                   <DownloadInvoicePdfButton
@@ -194,15 +220,15 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
               )}
             </>
           )}
-          {invoice?.status === 'PAID' && organizationId && (
-            <button
-              type="button"
-              onClick={openReceipt}
-              className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
-            >
-              Download receipt
-            </button>
-          )}
+              {invoice && isReceiptEligible(invoice) && organizationId && (
+                <button
+                  type="button"
+                  onClick={openReceipt}
+                  className="inline-flex h-9 items-center justify-center rounded-md bg-emerald-600 px-4 text-sm font-medium text-white hover:bg-emerald-700"
+                >
+                  Download receipt
+                </button>
+              )}
           <Link href="/invoices" className="text-sm text-primary hover:underline sm:text-right">
             ← Back to invoices
           </Link>
@@ -233,16 +259,93 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
       )}
 
       {invoice && organizationId && (
-        <div id="edit-invoice" className="scroll-mt-20">
-          <InvoiceForm
-            mode="edit"
-            invoice={invoice}
-            customers={customersData?.data ?? []}
-            products={productsData?.data ?? []}
-            defaultCurrency={businessCurrency}
-            onSubmit={handleUpdate}
-          />
-        </div>
+        <>
+          <Card>
+            <CardContent className="space-y-4 py-5">
+              <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+                <div>
+                  <p className="text-sm font-medium">Payments</p>
+                  <p className="text-sm text-muted-foreground">
+                    Record a partial payment when a customer pays some of the invoice, not all of it.
+                  </p>
+                </div>
+                <div className="text-sm sm:text-right">
+                  <p>
+                    Paid{' '}
+                    <span className="font-medium tabular-nums">
+                      {formatCurrency(invoiceAmountPaid(invoice), invoice.currency)}
+                    </span>
+                  </p>
+                  <p>
+                    Balance due{' '}
+                    <span className="font-medium tabular-nums">
+                      {formatCurrency(invoiceBalanceDue(invoice), invoice.currency)}
+                    </span>
+                  </p>
+                </div>
+              </div>
+              {(invoice.payments ?? []).length > 0 && (
+                <ul className="divide-y rounded-lg border">
+                  {(invoice.payments ?? []).map((payment) => (
+                    <li
+                      key={payment.id}
+                      className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                    >
+                      <div>
+                        <p className="font-medium">
+                          {formatCurrency(Number(payment.amount), invoice.currency)}
+                        </p>
+                        <p className="text-xs text-muted-foreground">
+                          {new Date(payment.paidAt).toLocaleDateString()} ·{' '}
+                          {paymentMethodLabel(payment.method)}
+                          {payment.note ? ` · ${payment.note}` : ''}
+                        </p>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {invoice.status !== 'VOID' &&
+                invoice.status !== 'CANCELLED' &&
+                invoiceBalanceDue(invoice) > 0.005 && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    className="gap-2"
+                    onClick={() => setShowPayment(true)}
+                  >
+                    <Banknote className="h-4 w-4" />
+                    Record payment
+                  </Button>
+                )}
+            </CardContent>
+          </Card>
+          <div id="edit-invoice" className="scroll-mt-20">
+            <InvoiceForm
+              key={`${invoice.id}-${invoice.status}-${invoice.amountPaid ?? 0}`}
+              mode="edit"
+              invoice={invoice}
+              customers={customersData?.data ?? []}
+              products={productsData?.data ?? []}
+              defaultCurrency={businessCurrency}
+              onSubmit={handleUpdate}
+            />
+          </div>
+          {showPayment && (
+            <RecordPaymentDialog
+              invoice={invoice}
+              organizationId={organizationId}
+              onClose={() => setShowPayment(false)}
+              onRecorded={async () => {
+                setShowPayment(false);
+                await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
+                await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
+                await queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] });
+                await queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] });
+              }}
+            />
+          )}
+        </>
       )}
     </div>
   );

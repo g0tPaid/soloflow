@@ -244,6 +244,15 @@ export const createInvoiceSchema = z.object({
   items: z.array(invoiceItemSchema).min(1, 'At least one item is required'),
 });
 
+export const paymentMethodSchema = z.enum(['CASH', 'BANK', 'CARD', 'MOBILE', 'OTHER']);
+
+export const createPaymentSchema = z.object({
+  amount: z.coerce.number().positive('Enter a payment amount').max(99_999_999),
+  paidAt: optionalDateField.optional(),
+  method: paymentMethodSchema.optional(),
+  note: z.string().max(500).optional().nullable(),
+});
+
 export const updateInvoiceSchema = z.object({
   number: z.string().min(1, 'Invoice number is required').max(50).optional(),
   status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
@@ -351,6 +360,7 @@ export type CreateVendorInput = z.infer<typeof createVendorSchema>;
 export type CreateProductInput = z.infer<typeof createProductSchema>;
 export type CreateInvoiceInput = z.infer<typeof createInvoiceSchema>;
 export type UpdateInvoiceInput = z.infer<typeof updateInvoiceSchema>;
+export type CreatePaymentInput = z.infer<typeof createPaymentSchema>;
 export type CreateQuoteInput = z.infer<typeof createQuoteSchema>;
 export type UpdateQuoteInput = z.infer<typeof updateQuoteSchema>;
 export type UpdateExpenseCostsInput = z.infer<typeof updateExpenseCostsSchema>;

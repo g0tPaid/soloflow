@@ -2,9 +2,10 @@ import { Injectable, NotFoundException, BadRequestException } from '@nestjs/comm
 
 import { PrismaService } from '../prisma/prisma.service';
 
-import { CreateInvoiceDto, UpdateInvoiceDto } from './dto/invoice.dto';
+import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 
-import { InvoiceStatus, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
+import { InvoiceStatus, PaymentMethod, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
+import { invoiceBalanceDue, statusAfterPayment, toMoneyNumber } from '@flowbooks/shared';
 
 import { normalizePagination } from '../common/pagination';
 
@@ -39,7 +40,11 @@ export class InvoicesService {
 
         orderBy: { createdAt: 'desc' },
 
-        include: { customer: { select: { id: true, name: true } }, items: true },
+        include: {
+          customer: { select: { id: true, name: true } },
+          items: true,
+          payments: { orderBy: { paidAt: 'asc' } },
+        },
 
       }),
 
@@ -75,7 +80,7 @@ export class InvoicesService {
 
       where: { id, organizationId },
 
-      include: { customer: true, items: { include: { product: true } } },
+      include: { customer: true, items: { include: { product: true } }, payments: { orderBy: { paidAt: 'asc' } } },
 
     });
 
@@ -253,6 +258,21 @@ export class InvoicesService {
       taxRate,
     );
 
+    const alreadyPaid = toMoneyNumber(existing.amountPaid);
+    if (alreadyPaid > total + 0.005) {
+      throw new BadRequestException(
+        'Invoice total cannot be less than the amount already paid. Increase the total, or wait until payments match.',
+      );
+    }
+
+    const nextStatusFromLedger =
+      alreadyPaid > 0.005 ? statusAfterPayment(total, alreadyPaid) : null;
+    const markingPaid =
+      dto.status === InvoiceStatus.PAID && existing.status !== InvoiceStatus.PAID;
+    const markingUnpaid =
+      (dto.status === InvoiceStatus.SENT || dto.status === InvoiceStatus.DRAFT) &&
+      (existing.status === InvoiceStatus.PAID || existing.status === InvoiceStatus.PARTIAL);
+
     const updateData: Prisma.InvoiceUpdateInput = {
       subtotal,
       taxRate,
@@ -260,7 +280,11 @@ export class InvoicesService {
       total,
     };
 
-    if (dto.status) updateData.status = dto.status as InvoiceStatus;
+    if (dto.status && !markingPaid) {
+      updateData.status = dto.status as InvoiceStatus;
+    } else if (!dto.status && nextStatusFromLedger) {
+      updateData.status = nextStatusFromLedger;
+    }
 
     if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
 
@@ -327,34 +351,109 @@ export class InvoicesService {
 
 
 
+    const invoiceInclude = {
+      items: { include: { product: true as const } },
+      customer: true,
+      payments: { orderBy: { paidAt: 'asc' as const } },
+    };
+
+    if (markingPaid) {
+      await this.prisma.invoice.update({
+        where: { id },
+        data: updateData,
+      });
+      const remaining = invoiceBalanceDue({ total, amountPaid: alreadyPaid });
+      if (remaining > 0.005) {
+        return this.recordPayment(organizationId, id, { amount: remaining, method: 'CASH' });
+      }
+      const updated = await this.prisma.invoice.update({
+        where: { id },
+        data: { status: InvoiceStatus.PAID },
+        include: invoiceInclude,
+      });
+      await this.syncSaleStock(organizationId, existing.status, updated);
+      return updated;
+    }
+
+    if (markingUnpaid) {
+      const updated = await this.prisma.$transaction(async (tx) => {
+        await tx.payment.deleteMany({ where: { invoiceId: id, organizationId } });
+        return tx.invoice.update({
+          where: { id },
+          data: { ...updateData, amountPaid: 0, status: dto.status as InvoiceStatus },
+          include: invoiceInclude,
+        });
+      });
+      await this.syncSaleStock(organizationId, existing.status, updated);
+      return updated;
+    }
+
     const updated = await this.prisma.invoice.update({
-
       where: { id },
-
       data: updateData,
-
-      include: { items: { include: { product: true } }, customer: true },
-
+      include: invoiceInclude,
     });
 
-    if (dto.status && dto.status !== existing.status) {
-      await this.inventoryService.syncInvoiceSaleStock(
-        organizationId,
-        {
-          id: updated.id,
-          status: updated.status,
-          customerId: updated.customerId,
-          items: updated.items.map((item) => ({
-            productId: item.productId,
-            quantity: item.quantity,
-          })),
-        },
-        existing.status,
-      );
+    if (updated.status !== existing.status) {
+      await this.syncSaleStock(organizationId, existing.status, updated);
     }
 
     return updated;
+  }
 
+  async recordPayment(organizationId: string, id: string, dto: CreatePaymentDto) {
+    const invoice = await this.findOne(organizationId, id);
+    if (invoice.status === InvoiceStatus.VOID || invoice.status === InvoiceStatus.CANCELLED) {
+      throw new BadRequestException('Cannot record a payment on a void or cancelled invoice');
+    }
+
+    const amount = toMoneyNumber(dto.amount);
+    if (amount <= 0) {
+      throw new BadRequestException('Payment amount must be greater than 0');
+    }
+
+    const remaining = invoiceBalanceDue(invoice);
+    if (remaining <= 0.005) {
+      throw new BadRequestException('This invoice is already paid in full');
+    }
+    if (amount > remaining + 0.01) {
+      throw new BadRequestException(
+        `Payment exceeds the remaining balance of ${remaining.toFixed(2)}`,
+      );
+    }
+
+    const applied = Math.min(amount, remaining);
+    const nextPaid = toMoneyNumber(toMoneyNumber(invoice.amountPaid) + applied);
+    const nextStatus = statusAfterPayment(toMoneyNumber(invoice.total), nextPaid);
+    const previousStatus = invoice.status;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.payment.create({
+        data: {
+          organizationId,
+          invoiceId: id,
+          amount: applied,
+          paidAt: this.parsePaidAt(dto.paidAt),
+          method: (dto.method as PaymentMethod | undefined) || PaymentMethod.CASH,
+          note: dto.note?.trim() || null,
+        },
+      });
+      return tx.invoice.update({
+        where: { id },
+        data: { amountPaid: nextPaid, status: nextStatus },
+        include: {
+          items: { include: { product: true } },
+          customer: true,
+          payments: { orderBy: { paidAt: 'asc' } },
+        },
+      });
+    });
+
+    if (updated.status !== previousStatus) {
+      await this.syncSaleStock(organizationId, previousStatus, updated);
+    }
+
+    return updated;
   }
 
   /**
@@ -514,6 +613,41 @@ export class InvoicesService {
     });
 
     return { quote };
+  }
+
+  private parsePaidAt(value?: string) {
+    if (!value) return new Date();
+    if (/^\d{4}-\d{2}-\d{2}$/.test(value)) {
+      return new Date(`${value}T12:00:00`);
+    }
+    const parsed = new Date(value);
+    if (Number.isNaN(parsed.getTime())) return new Date();
+    return parsed;
+  }
+
+  private async syncSaleStock(
+    organizationId: string,
+    previousStatus: InvoiceStatus,
+    invoice: {
+      id: string;
+      status: InvoiceStatus;
+      customerId: string | null;
+      items: { productId: string | null; quantity: Prisma.Decimal | number }[];
+    },
+  ) {
+    await this.inventoryService.syncInvoiceSaleStock(
+      organizationId,
+      {
+        id: invoice.id,
+        status: invoice.status,
+        customerId: invoice.customerId,
+        items: invoice.items.map((item) => ({
+          productId: item.productId,
+          quantity: item.quantity,
+        })),
+      },
+      previousStatus,
+    );
   }
 
   private calculateTotals(

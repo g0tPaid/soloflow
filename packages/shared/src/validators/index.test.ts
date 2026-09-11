@@ -1,5 +1,5 @@
 import { describe, it, expect } from 'vitest';
-import { createCustomerSchema, loginSchema } from './index';
+import { createCustomerSchema, createPaymentSchema, loginSchema } from './index';
 
 describe('validators', () => {
   describe('loginSchema', () => {
@@ -20,10 +20,20 @@ describe('validators', () => {
     });
   });
 
-  describe('createCustomerSchema', () => {
-    it('validates customer with required fields', () => {
-      const result = createCustomerSchema.safeParse({ name: 'Acme Corp' });
+  describe('createPaymentSchema', () => {
+    it('accepts a positive partial payment', () => {
+      const result = createPaymentSchema.safeParse({
+        amount: 250.5,
+        paidAt: '2026-09-11',
+        method: 'BANK',
+        note: 'first installment',
+      });
       expect(result.success).toBe(true);
+    });
+
+    it('rejects a zero payment', () => {
+      const result = createPaymentSchema.safeParse({ amount: 0 });
+      expect(result.success).toBe(false);
     });
   });
 });

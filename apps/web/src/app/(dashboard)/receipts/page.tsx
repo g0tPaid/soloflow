@@ -10,6 +10,11 @@ import { useOrganizationId } from '@/hooks/use-organization';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import {
+  invoiceAmountPaid,
+  invoiceBalanceDue,
+  isReceiptEligible,
+} from '@flowbooks/shared';
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -26,7 +31,7 @@ export default function ReceiptsPage() {
     enabled: !!session?.accessToken && !!organizationId,
   });
 
-  const paidInvoices = (data?.data ?? []).filter((invoice) => invoice.status === 'PAID');
+  const paidInvoices = (data?.data ?? []).filter((invoice) => isReceiptEligible(invoice));
 
   function openReceipt(invoiceId: string, event?: React.MouseEvent) {
     event?.preventDefault();
@@ -45,7 +50,7 @@ export default function ReceiptsPage() {
       <div>
         <h1 className="text-2xl font-semibold tracking-tight">Receipts</h1>
         <p className="text-muted-foreground">
-          Download payment receipts for invoices marked as paid
+          Download receipts for full or partial payments recorded on invoices
         </p>
       </div>
 
@@ -55,7 +60,7 @@ export default function ReceiptsPage() {
           <div className="text-sm">
             <p className="font-medium text-emerald-900">How to send a receipt</p>
             <p className="mt-1 text-emerald-800/80">
-              1) Open Invoices → <strong>Mark as paid</strong>
+              1) Open Invoices → <strong>Record payment</strong> or <strong>Mark as paid</strong>
               <br />
               2) Tap <strong>+ Receipts</strong> below → Download
               <br />
@@ -96,9 +101,9 @@ export default function ReceiptsPage() {
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <BadgeCheck className="mb-3 h-10 w-10 text-muted-foreground" />
-            <p className="font-medium">No paid invoices yet</p>
+            <p className="font-medium">No receipts yet</p>
             <p className="mt-1 mb-4 text-sm text-muted-foreground">
-              Mark an invoice as <strong>Paid</strong> on the Invoices page, then come back here
+              Record a payment on an invoice, then come back here to download the receipt
             </p>
             <Button asChild>
               <Link href="/invoices">Go to invoices</Link>
@@ -110,7 +115,7 @@ export default function ReceiptsPage() {
       {paidInvoices.length > 0 && (
         <div className="space-y-3">
           {paidInvoices.map((invoice) => (
-            <Card key={invoice.id} className="border-emerald-200 bg-emerald-50/40">
+            <Card key={invoice.id} className={invoice.status === 'PARTIAL' ? 'border-amber-200 bg-amber-50/40' : 'border-emerald-200 bg-emerald-50/40'}>
               <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
                 <div className="space-y-1">
                   <div className="flex flex-wrap items-center gap-2">
@@ -121,7 +126,13 @@ export default function ReceiptsPage() {
                     {invoice.customer?.name ?? 'Unknown customer'} · {formatDate(invoice.issueDate)}
                   </p>
                   <p className="text-lg font-semibold text-emerald-800">
-                    {formatCurrency(Number(invoice.total), invoice.currency)}
+                    {formatCurrency(invoiceAmountPaid(invoice), invoice.currency)}
+                    {invoice.status === 'PARTIAL' || invoiceBalanceDue(invoice) > 0.005 ? (
+                      <span className="ml-2 text-sm font-medium text-amber-800">
+                        of {formatCurrency(Number(invoice.total), invoice.currency)} · balance{' '}
+                        {formatCurrency(invoiceBalanceDue(invoice), invoice.currency)}
+                      </span>
+                    ) : null}
                   </p>
                 </div>
                 <div className="flex w-full flex-col gap-2 sm:w-auto sm:items-end">

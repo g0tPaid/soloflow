@@ -219,6 +219,18 @@ export interface InvoiceItem {
   product?: Product | null;
 }
 
+export type PaymentMethod = 'CASH' | 'BANK' | 'CARD' | 'MOBILE' | 'OTHER';
+
+export interface InvoicePayment {
+  id: string;
+  invoiceId: string;
+  amount: string | number;
+  paidAt: string;
+  method: PaymentMethod;
+  note?: string | null;
+  createdAt: string;
+}
+
 export interface Invoice {
   id: string;
   organizationId: string;
@@ -242,6 +254,8 @@ export interface Invoice {
   shippingCostCny?: string | number;
   discount: string | number;
   total: string | number;
+  /** Sum of recorded payments. Remaining due is total - amountPaid. */
+  amountPaid?: string | number;
   totalCost?: string | number;
   shippingMethod?: 'AIR' | 'SEA' | 'LOCAL' | null;
   shippingTerms?: 'DDP' | 'LCL' | 'LOCAL' | null;
@@ -253,6 +267,7 @@ export interface Invoice {
   customer?: Customer | null;
   vendor?: Vendor | null;
   items?: InvoiceItem[];
+  payments?: InvoicePayment[];
 }
 
 export type QuoteStatus =
@@ -835,6 +850,28 @@ export const api = {
     convert: (token: string, organizationId: string, id: string) =>
       apiFetch<{ quote: Quote }>(`/invoices/${id}/convert`, {
         method: 'POST',
+        token,
+        organizationId,
+      }),
+    recordPayment: (
+      token: string,
+      organizationId: string,
+      id: string,
+      data: {
+        amount: number;
+        paidAt?: string | null;
+        method?: PaymentMethod;
+        note?: string | null;
+      },
+    ) =>
+      apiFetch<Invoice>(`/invoices/${id}/payments`, {
+        method: 'POST',
+        body: JSON.stringify({
+          amount: data.amount,
+          paidAt: data.paidAt || undefined,
+          method: data.method,
+          note: data.note || undefined,
+        }),
         token,
         organizationId,
       }),
