@@ -1,7 +1,7 @@
 From 77130cb9207aff3b109daeef3b5a023c5146d801 Mon Sep 17 00:00:00 2001
 From: Cursor Agent <cursoragent@cursor.com>
 Date: Fri, 11 Sep 2026 10:37:26 +0000
-Subject: [PATCH] Restore the homepage 3PL warehouse section.
+Subject: [PATCH 1/2] Restore the homepage 3PL warehouse section.
 MIME-Version: 1.0
 Content-Type: text/plain; charset=UTF-8
 Content-Transfer-Encoding: 8bit
@@ -279,6 +279,358 @@ index fc2ce17..f66448b 100644
    { title: "Private label", text: "Packaging, branding, and white-label programs that scale." },
    { title: "OEM / ODM", text: "From concept and tooling to mass production — including brand-new inventions." },
    { title: "Product development", text: "Turn a sketch or new idea into a manufacturable SKU under NDA." },
+-- 
+2.43.0
+
+
+From a09b6fa2bc583ce53b795fa4e3e606a9696cd542 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 11 Sep 2026 11:06:16 +0000
+Subject: [PATCH 2/2] Highlight 3PL across nav, hero, homepage, and footer.
+
+Make warehouse fulfillment a featured red-pill nav item, a hero strip, and a dark accent band on the landing page so 3PL is not another muted section.
+---
+ src/app/(marketing)/logistics/page.tsx |   4 +-
+ src/components/layout/site-footer.tsx  |  14 ++-
+ src/components/v2/v2-3pl.tsx           | 166 ++++++++++++++-----------
+ src/components/v2/v2-cta.tsx           |   7 ++
+ src/components/v2/v2-hero.tsx          |  27 +++-
+ src/components/v2/v2-nav.tsx           |  16 ++-
+ 6 files changed, 153 insertions(+), 81 deletions(-)
+
+diff --git a/src/app/(marketing)/logistics/page.tsx b/src/app/(marketing)/logistics/page.tsx
+index e1bf06a..0e7ace9 100644
+--- a/src/app/(marketing)/logistics/page.tsx
++++ b/src/app/(marketing)/logistics/page.tsx
+@@ -19,7 +19,9 @@ export default function LogisticsPage() {
+         description="Full 3PL in Xiamen and Dubai, tied to the sourcing desk. Then sea, air, or express with tracking your ops team can trust."
+       />
+       <Container className="py-16">
+-        <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">{fulfillment.eyebrow}</p>
++        <p className="inline-flex items-center rounded-full bg-accent px-3 py-1 text-xs font-semibold uppercase tracking-[0.24em] text-white">
++          {fulfillment.eyebrow}
++        </p>
+         <h2 className="mt-3 font-display text-2xl font-semibold tracking-tight text-ink sm:text-3xl">
+           {fulfillment.title}
+         </h2>
+diff --git a/src/components/layout/site-footer.tsx b/src/components/layout/site-footer.tsx
+index e05bbea..ae502e5 100644
+--- a/src/components/layout/site-footer.tsx
++++ b/src/components/layout/site-footer.tsx
+@@ -26,8 +26,20 @@ export function SiteFooter() {
+             <ul className="mt-4 space-y-2 text-sm">
+               {services.map((s) => (
+                 <li key={s.href}>
+-                  <Link href={s.href} className="text-paper/80 hover:text-paper dark:text-muted dark:hover:text-ink">
++                  <Link
++                    href={s.href}
++                    className={
++                      s.href === "/logistics"
++                        ? "inline-flex items-center gap-2 font-semibold text-accent hover:opacity-90"
++                        : "text-paper/80 hover:text-paper dark:text-muted dark:hover:text-ink"
++                    }
++                  >
+                     {s.title}
++                    {s.href === "/logistics" ? (
++                      <span className="rounded-full bg-accent px-1.5 py-0.5 text-[10px] font-semibold uppercase tracking-wide text-white">
++                        3PL
++                      </span>
++                    ) : null}
+                   </Link>
+                 </li>
+               ))}
+diff --git a/src/components/v2/v2-3pl.tsx b/src/components/v2/v2-3pl.tsx
+index de7302e..18a04af 100644
+--- a/src/components/v2/v2-3pl.tsx
++++ b/src/components/v2/v2-3pl.tsx
+@@ -2,92 +2,108 @@
+ 
+ import Link from "next/link";
+ import { motion } from "framer-motion";
+-import { ArrowUpRight } from "lucide-react";
++import { ArrowUpRight, Warehouse } from "lucide-react";
+ import { Container } from "@/components/ui/primitives";
+ import { fulfillment, fulfillmentHubs, fulfillmentSteps } from "@/lib/v2-content";
+ 
+ export function V2ThreePl() {
+   return (
+-    <section id="3pl" className="scroll-mt-28 border-t border-line bg-paper-elevated/60 py-14 sm:py-20 lg:py-24">
++    <section id="3pl" className="scroll-mt-28 py-8 sm:py-12">
+       <Container>
+-        <div className="max-w-2xl">
+-          <p className="text-xs font-semibold uppercase tracking-[0.24em] text-accent">
+-            {fulfillment.eyebrow}
+-          </p>
+-          <h2 className="mt-4 font-display text-3xl font-semibold tracking-tight text-ink sm:text-5xl">
+-            {fulfillment.title}
+-          </h2>
+-          <p className="mt-4 max-w-xl text-muted sm:text-lg">{fulfillment.description}</p>
+-        </div>
+-
+-        <div className="mt-8 flex gap-2 overflow-x-auto pb-2">
+-          {fulfillmentSteps.map((step, i) => (
+-            <motion.div
+-              key={step.title}
+-              initial={{ opacity: 0, y: 10 }}
+-              whileInView={{ opacity: 1, y: 0 }}
+-              viewport={{ once: true }}
+-              transition={{ delay: i * 0.04 }}
+-              className="flex shrink-0 items-center gap-2"
+-            >
+-              <span className="rounded-full border border-line bg-paper px-4 py-2 text-sm font-medium text-ink">
+-                {step.title}
++        <div className="relative overflow-hidden rounded-[2rem] border border-accent/40 bg-ink px-5 py-12 text-paper shadow-[0_24px_80px_rgba(214,0,0,0.18)] sm:px-10 sm:py-16 lg:px-14">
++          <div
++            className="pointer-events-none absolute inset-0 opacity-80"
++            style={{
++              background:
++                "radial-gradient(ellipse 55% 70% at 12% 0%, rgba(214,0,0,0.42), transparent 58%), radial-gradient(ellipse 40% 50% at 88% 100%, rgba(214,0,0,0.18), transparent 55%)",
++            }}
++            aria-hidden
++          />
++          <div className="relative">
++            <div className="flex flex-wrap items-center gap-3">
++              <span className="inline-flex items-center gap-2 rounded-full bg-accent px-3.5 py-1.5 text-xs font-semibold uppercase tracking-[0.22em] text-white">
++                <Warehouse className="h-3.5 w-3.5" aria-hidden />
++                {fulfillment.eyebrow}
+               </span>
+-              {i < fulfillmentSteps.length - 1 ? (
+-                <span className="text-muted" aria-hidden>
+-                  →
+-                </span>
+-              ) : null}
+-            </motion.div>
+-          ))}
+-        </div>
++              <span className="text-xs font-medium uppercase tracking-[0.18em] text-paper/55">
++                Own warehouses · not a broker
++              </span>
++            </div>
++            <h2 className="mt-5 max-w-3xl font-display text-3xl font-semibold tracking-tight sm:text-5xl">
++              {fulfillment.title}
++            </h2>
++            <p className="mt-4 max-w-2xl text-paper/70 sm:text-lg">{fulfillment.description}</p>
+ 
+-        <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
+-          {fulfillmentSteps.map((step, i) => (
+-            <motion.div
+-              key={step.title}
+-              initial={{ opacity: 0, y: 18 }}
+-              whileInView={{ opacity: 1, y: 0 }}
+-              viewport={{ once: true }}
+-              transition={{ delay: i * 0.04 }}
+-              className="glass-card rounded-[1.5rem] p-5 sm:p-6"
+-            >
+-              <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-accent">
+-                {String(i + 1).padStart(2, "0")}
+-              </p>
+-              <h3 className="mt-2 font-display text-xl font-semibold text-ink">{step.title}</h3>
+-              <p className="mt-2 text-sm leading-relaxed text-muted">{step.text}</p>
+-            </motion.div>
+-          ))}
+-        </div>
++            <div className="mt-8 flex gap-2 overflow-x-auto pb-2">
++              {fulfillmentSteps.map((step, i) => (
++                <motion.div
++                  key={step.title}
++                  initial={{ opacity: 0, y: 10 }}
++                  whileInView={{ opacity: 1, y: 0 }}
++                  viewport={{ once: true }}
++                  transition={{ delay: i * 0.04 }}
++                  className="flex shrink-0 items-center gap-2"
++                >
++                  <span className="rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-medium text-paper">
++                    {step.title}
++                  </span>
++                  {i < fulfillmentSteps.length - 1 ? (
++                    <span className="text-paper/40" aria-hidden>
++                      →
++                    </span>
++                  ) : null}
++                </motion.div>
++              ))}
++            </div>
++
++            <div className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-5">
++              {fulfillmentSteps.map((step, i) => (
++                <motion.div
++                  key={step.title}
++                  initial={{ opacity: 0, y: 18 }}
++                  whileInView={{ opacity: 1, y: 0 }}
++                  viewport={{ once: true }}
++                  transition={{ delay: i * 0.04 }}
++                  className="rounded-[1.5rem] border border-white/10 bg-white/10 p-5 sm:p-6"
++                >
++                  <p className="font-mono text-[11px] font-semibold tracking-[0.18em] text-accent">
++                    {String(i + 1).padStart(2, "0")}
++                  </p>
++                  <h3 className="mt-2 font-display text-xl font-semibold text-paper">{step.title}</h3>
++                  <p className="mt-2 text-sm leading-relaxed text-paper/65">{step.text}</p>
++                </motion.div>
++              ))}
++            </div>
+ 
+-        <div className="mt-4 grid gap-4 sm:grid-cols-2">
+-          {fulfillmentHubs.map((hub, i) => (
+-            <motion.div
+-              key={hub.city}
+-              initial={{ opacity: 0, y: 18 }}
+-              whileInView={{ opacity: 1, y: 0 }}
+-              viewport={{ once: true }}
+-              transition={{ delay: 0.08 + i * 0.04 }}
+-              className="rounded-[1.5rem] border border-line bg-paper p-5 sm:p-6"
++            <div className="mt-4 grid gap-4 sm:grid-cols-2">
++              {fulfillmentHubs.map((hub, i) => (
++                <motion.div
++                  key={hub.city}
++                  initial={{ opacity: 0, y: 18 }}
++                  whileInView={{ opacity: 1, y: 0 }}
++                  viewport={{ once: true }}
++                  transition={{ delay: 0.08 + i * 0.04 }}
++                  className="rounded-[1.5rem] border border-white/10 bg-paper px-5 py-5 text-ink sm:px-6 sm:py-6"
++                >
++                  <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{hub.role}</p>
++                  <h3 className="mt-2 font-display text-2xl font-semibold">
++                    {hub.city}
++                    <span className="text-muted"> · {hub.country}</span>
++                  </h3>
++                  <p className="mt-2 text-sm leading-relaxed text-muted">{hub.text}</p>
++                </motion.div>
++              ))}
++            </div>
++
++            <Link
++              href="/logistics"
++              className="mt-8 inline-flex items-center gap-2 rounded-full bg-accent px-5 py-2.5 text-sm font-semibold text-white transition hover:opacity-90"
+             >
+-              <p className="text-xs font-semibold uppercase tracking-[0.18em] text-accent">{hub.role}</p>
+-              <h3 className="mt-2 font-display text-2xl font-semibold text-ink">
+-                {hub.city}
+-                <span className="text-muted"> · {hub.country}</span>
+-              </h3>
+-              <p className="mt-2 text-sm leading-relaxed text-muted">{hub.text}</p>
+-            </motion.div>
+-          ))}
++              Freight lanes and customs
++              <ArrowUpRight className="h-4 w-4" aria-hidden />
++            </Link>
++          </div>
+         </div>
+-
+-        <Link
+-          href="/logistics"
+-          className="mt-8 inline-flex items-center gap-2 text-sm font-medium text-ink transition hover:text-accent"
+-        >
+-          Freight lanes and customs
+-          <ArrowUpRight className="h-4 w-4" aria-hidden />
+-        </Link>
+       </Container>
+     </section>
+   );
+diff --git a/src/components/v2/v2-cta.tsx b/src/components/v2/v2-cta.tsx
+index a3c0569..5a16694 100644
+--- a/src/components/v2/v2-cta.tsx
++++ b/src/components/v2/v2-cta.tsx
+@@ -69,6 +69,13 @@ export function V2Cta() {
+                 </Link>
+               </motion.div>
+             </div>
++            <Link
++              href="#3pl"
++              className="mt-6 inline-flex items-center gap-2 rounded-full border border-white/20 bg-white/10 px-4 py-2 text-sm font-semibold text-paper transition hover:bg-white/15"
++            >
++              Own 3PL in Xiamen &amp; Dubai
++              <ArrowUpRight className="h-4 w-4" aria-hidden />
++            </Link>
+           </div>
+         </motion.div>
+       </Container>
+diff --git a/src/components/v2/v2-hero.tsx b/src/components/v2/v2-hero.tsx
+index c4bb817..ea01a70 100644
+--- a/src/components/v2/v2-hero.tsx
++++ b/src/components/v2/v2-hero.tsx
+@@ -4,7 +4,7 @@ import Image from "next/image";
+ import Link from "next/link";
+ import { useEffect, useState } from "react";
+ import { motion, AnimatePresence } from "framer-motion";
+-import { ArrowUpRight, Lightbulb, Search, ShieldCheck } from "lucide-react";
++import { ArrowUpRight, Lightbulb, Search, ShieldCheck, Warehouse } from "lucide-react";
+ import { SourcingLogo } from "@/components/brand/sourcing-logo";
+ import { Container } from "@/components/ui/primitives";
+ import { company } from "@/lib/content";
+@@ -229,6 +229,31 @@ export function V2Hero() {
+             </Link>
+           </motion.div>
+         </motion.div>
++
++        <motion.div
++          initial={{ opacity: 0, y: 12 }}
++          animate={{ opacity: 1, y: 0 }}
++          transition={{ delay: 0.34 }}
++          className="mx-auto mt-4 max-w-2xl"
++        >
++          <Link
++            href="#3pl"
++            className="group flex items-center gap-4 rounded-2xl border border-accent/35 bg-accent-soft px-5 py-4 text-left shadow-[0_12px_32px_rgba(214,0,0,0.1)] transition hover:border-accent/55"
++          >
++            <span className="inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl bg-accent text-white">
++              <Warehouse className="h-5 w-5" aria-hidden />
++            </span>
++            <span className="min-w-0 flex-1">
++              <span className="block text-[11px] font-semibold uppercase tracking-[0.2em] text-accent">
++                3PL · Xiamen &amp; Dubai
++              </span>
++              <span className="mt-0.5 block text-sm font-medium text-ink sm:text-base">
++                Own warehouses — receive, store, pick, pack, ship
++              </span>
++            </span>
++            <ArrowUpRight className="h-5 w-5 shrink-0 text-accent transition group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
++          </Link>
++        </motion.div>
+       </Container>
+     </section>
+   );
+diff --git a/src/components/v2/v2-nav.tsx b/src/components/v2/v2-nav.tsx
+index e5ed2c4..5629761 100644
+--- a/src/components/v2/v2-nav.tsx
++++ b/src/components/v2/v2-nav.tsx
+@@ -11,7 +11,7 @@ const links = [
+   { href: "#discovery", label: "Discover" },
+   { href: "#new-idea", label: "New idea" },
+   { href: "#network", label: "Network" },
+-  { href: "/#3pl", label: "3PL" },
++  { href: "/#3pl", label: "3PL", highlight: true },
+   { href: "#workflow", label: "Workflow" },
+   { href: "#trust", label: "Trust" },
+ ];
+@@ -50,7 +50,12 @@ export function V2Nav() {
+             <Link
+               key={l.href}
+               href={l.href}
+-              className="rounded-full px-3 py-2 text-sm text-muted transition hover:text-ink"
++              className={cn(
++                "rounded-full px-3 py-2 text-sm transition",
++                l.highlight
++                  ? "bg-accent px-3.5 font-semibold text-white shadow-[0_8px_20px_rgba(214,0,0,0.28)] hover:opacity-90"
++                  : "text-muted hover:text-ink",
++              )}
+             >
+               {l.label}
+             </Link>
+@@ -88,7 +93,12 @@ export function V2Nav() {
+                   key={l.href}
+                   href={l.href}
+                   onClick={() => setOpen(false)}
+-                  className="rounded-xl px-3 py-3 text-sm text-ink"
++                  className={cn(
++                    "rounded-xl px-3 py-3 text-sm",
++                    l.highlight
++                      ? "bg-accent font-semibold text-white"
++                      : "text-ink",
++                  )}
+                 >
+                   {l.label}
+                 </Link>
 -- 
 2.43.0
 

@@ -11,7 +11,7 @@ const links = [
   { href: "#discovery", label: "Discover" },
   { href: "#new-idea", label: "New idea" },
   { href: "#network", label: "Network" },
-  { href: "/#3pl", label: "3PL" },
+  { href: "/#3pl", label: "3PL", highlight: true },
   { href: "#workflow", label: "Workflow" },
   { href: "#trust", label: "Trust" },
 ];
@@ -50,7 +50,12 @@ export function V2Nav() {
             <Link
               key={l.href}
               href={l.href}
-              className="rounded-full px-3 py-2 text-sm text-muted transition hover:text-ink"
+              className={cn(
+                "rounded-full px-3 py-2 text-sm transition",
+                l.highlight
+                  ? "bg-accent px-3.5 font-semibold text-white shadow-[0_8px_20px_rgba(214,0,0,0.28)] hover:opacity-90"
+                  : "text-muted hover:text-ink",
+              )}
             >
               {l.label}
             </Link>
@@ -88,7 +93,12 @@ export function V2Nav() {
                   key={l.href}
                   href={l.href}
                   onClick={() => setOpen(false)}
-                  className="rounded-xl px-3 py-3 text-sm text-ink"
+                  className={cn(
+                    "rounded-xl px-3 py-3 text-sm",
+                    l.highlight
+                      ? "bg-accent font-semibold text-white"
+                      : "text-ink",
+                  )}
                 >
                   {l.label}
                 </Link>
