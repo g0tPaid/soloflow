@@ -1,0 +1,49 @@
+<section style="padding: 80px 0;">
+  <div class="pt-container">
+    <p class="pt-eyebrow">{{ section.settings.eyebrow }}</p>
+    <h2 class="pt-serif" style="margin: 12px 0 32px; font-size: 56px;">{{ section.settings.heading }}</h2>
+    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(240px, 1fr)); gap: 24px;">
+      {% for collection in section.settings.collections %}
+        <a href="{{ collection.url }}" style="display: block; border: 1px solid var(--pt-border); background: var(--pt-card); padding: 24px;">
+          {% if collection.featured_image %}
+            {{ collection.featured_image | image_url: width: 800 | image_tag: loading: 'lazy' }}
+          {% endif %}
+          <h3 class="pt-serif" style="font-size: 32px;">{{ collection.title }}</h3>
+          <p style="color: var(--pt-muted); line-height: 1.7;">{{ collection.description | strip_html | truncate: 120 }}</p>
+        </a>
+      {% else %}
+        <p style="color: var(--pt-muted);">Choose featured collections in the theme editor.</p>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Featured collections",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "Collections"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Shop by use"
+    },
+    {
+      "type": "collection_list",
+      "id": "collections",
+      "label": "Collections"
+    }
+  ],
+  "presets": [
+    {
+      "name": "Featured collections"
+    }
+  ]
+}
+{% endschema %}

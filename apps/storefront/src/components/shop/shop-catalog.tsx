@@ -7,13 +7,19 @@ import type { Product } from '@/lib/types';
 import { ProductCard } from '@/components/product/product-card';
 import { cn } from '@/lib/utils';
 
-type SortKey = 'newest' | 'rating' | 'warranty' | 'editors';
+type SortKey = 'newest' | 'rating' | 'warranty' | 'editors' | 'lifespan' | 'repairability';
 
 function warrantyRank(warranty: string) {
   const w = warranty.toLowerCase();
   if (w.includes('lifetime')) return 100;
   const years = parseInt(w, 10);
   return Number.isFinite(years) ? years : 0;
+}
+
+function lifespanYears(lifespan: string) {
+  const match = lifespan.match(/(\d+)/);
+  if (lifespan.toLowerCase().includes('lifetime')) return 100;
+  return match ? Number(match[1]) : 0;
 }
 
 export function ShopCatalog() {
@@ -24,8 +30,15 @@ export function ShopCatalog() {
   const [material, setMaterial] = useState('all');
   const [country, setCountry] = useState('all');
   const [brand, setBrand] = useState('all');
+  const [warranty, setWarranty] = useState('all');
+  const [minLifespan, setMinLifespan] = useState(0);
+  const [minRepairability, setMinRepairability] = useState(0);
   const [minScore, setMinScore] = useState(0);
+  const [minRating, setMinRating] = useState(0);
+  const [maxWeight, setMaxWeight] = useState(5000);
   const [maxPrice, setMaxPrice] = useState(1000);
+  const [lifetimeWarranty, setLifetimeWarranty] = useState(false);
+  const [sparePartsOnly, setSparePartsOnly] = useState(false);
   const [inStockOnly, setInStockOnly] = useState(false);
   const [sort, setSort] = useState<SortKey>('editors');
 
@@ -41,6 +54,10 @@ export function ShopCatalog() {
     () => Array.from(new Set(allProducts.map((p) => p.brand))).sort(),
     [],
   );
+  const warranties = useMemo(
+    () => Array.from(new Set(allProducts.map((p) => p.warranty))).sort(),
+    [],
+  );
 
   const filtered = useMemo(() => {
     let list: Product[] = [...allProducts];
@@ -48,18 +65,51 @@ export function ShopCatalog() {
     if (material !== 'all') list = list.filter((p) => p.material === material);
     if (country !== 'all') list = list.filter((p) => p.countryOfOrigin === country);
     if (brand !== 'all') list = list.filter((p) => p.brand === brand);
+    if (warranty !== 'all') list = list.filter((p) => p.warranty === warranty);
+    if (minLifespan > 0) list = list.filter((p) => lifespanYears(p.expectedLifespan) >= minLifespan);
+    if (minRepairability > 0) {
+      list = list.filter((p) => p.repairabilityScore >= minRepairability);
+    }
     if (minScore > 0) list = list.filter((p) => p.lifetimeScore >= minScore);
+    if (minRating > 0) list = list.filter((p) => p.overallRating >= minRating);
+    list = list.filter((p) => p.weightGrams <= maxWeight);
     list = list.filter((p) => p.price <= maxPrice);
+    if (lifetimeWarranty) {
+      list = list.filter((p) => p.warranty.toLowerCase().includes('lifetime'));
+    }
+    if (sparePartsOnly) list = list.filter((p) => p.sparePartsAvailable);
     if (inStockOnly) list = list.filter((p) => p.inStock);
 
     list.sort((a, b) => {
       if (sort === 'rating') return b.overallRating - a.overallRating;
       if (sort === 'warranty') return warrantyRank(b.warranty) - warrantyRank(a.warranty);
-      if (sort === 'editors') return Number(b.editorPick) - Number(a.editorPick) || b.lifetimeScore - a.lifetimeScore;
+      if (sort === 'lifespan') {
+        return lifespanYears(b.expectedLifespan) - lifespanYears(a.expectedLifespan);
+      }
+      if (sort === 'repairability') return b.repairabilityScore - a.repairabilityScore;
+      if (sort === 'editors') {
+        return Number(b.editorPick) - Number(a.editorPick) || b.lifetimeScore - a.lifetimeScore;
+      }
       return b.id.localeCompare(a.id);
     });
     return list;
-  }, [category, material, country, brand, minScore, maxPrice, inStockOnly, sort]);
+  }, [
+    category,
+    material,
+    country,
+    brand,
+    warranty,
+    minLifespan,
+    minRepairability,
+    minScore,
+    minRating,
+    maxWeight,
+    maxPrice,
+    lifetimeWarranty,
+    sparePartsOnly,
+    inStockOnly,
+    sort,
+  ]);
 
   return (
     <div className="container-pt py-14 md:py-20">
@@ -67,12 +117,12 @@ export function ShopCatalog() {
         <p className="text-[11px] uppercase tracking-[0.22em] text-muted">Shop</p>
         <h1 className="mt-3 font-serif text-5xl md:text-6xl">The collection</h1>
         <p className="mt-4 text-sm leading-relaxed text-muted">
-          Every product is scored for lifetime durability, repairability, and craft. No gimmicks.
+          Filter by lifespan, repairability, origin, warranty, and materials — not just price.
         </p>
       </div>
 
-      <div className="mt-12 grid gap-10 lg:grid-cols-[240px_1fr]">
-        <aside className="space-y-8 lg:sticky lg:top-28 lg:self-start">
+      <div className="mt-12 grid gap-10 lg:grid-cols-[260px_1fr]">
+        <aside className="space-y-7 lg:sticky lg:top-28 lg:self-start">
           <FilterGroup label="Category">
             <Select
               value={category}
@@ -93,13 +143,23 @@ export function ShopCatalog() {
               ]}
             />
           </FilterGroup>
-          <FilterGroup label="Country">
+          <FilterGroup label="Country of manufacture">
             <Select
               value={country}
               onChange={setCountry}
               options={[
                 { value: 'all', label: 'All' },
                 ...countries.map((c) => ({ value: c, label: c })),
+              ]}
+            />
+          </FilterGroup>
+          <FilterGroup label="Warranty">
+            <Select
+              value={warranty}
+              onChange={setWarranty}
+              options={[
+                { value: 'all', label: 'All' },
+                ...warranties.map((w) => ({ value: w, label: w })),
               ]}
             />
           </FilterGroup>
@@ -113,6 +173,30 @@ export function ShopCatalog() {
               ]}
             />
           </FilterGroup>
+          <FilterGroup label={`Expected lifespan · ${minLifespan || 'any'}+ yrs`}>
+            <input
+              type="range"
+              min={0}
+              max={75}
+              step={5}
+              value={minLifespan}
+              onChange={(e) => setMinLifespan(Number(e.target.value))}
+              className="w-full accent-accent"
+              aria-label="Minimum expected lifespan in years"
+            />
+          </FilterGroup>
+          <FilterGroup label={`Repairability · ${minRepairability}+`}>
+            <input
+              type="range"
+              min={0}
+              max={100}
+              step={5}
+              value={minRepairability}
+              onChange={(e) => setMinRepairability(Number(e.target.value))}
+              className="w-full accent-accent"
+              aria-label="Minimum repairability score"
+            />
+          </FilterGroup>
           <FilterGroup label={`Lifetime score · ${minScore}+`}>
             <input
               type="range"
@@ -122,6 +206,31 @@ export function ShopCatalog() {
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
               className="w-full accent-accent"
+              aria-label="Minimum lifetime score"
+            />
+          </FilterGroup>
+          <FilterGroup label={`Editor's rating · ${minRating || 'any'}+`}>
+            <input
+              type="range"
+              min={0}
+              max={5}
+              step={0.5}
+              value={minRating}
+              onChange={(e) => setMinRating(Number(e.target.value))}
+              className="w-full accent-accent"
+              aria-label="Minimum editor rating"
+            />
+          </FilterGroup>
+          <FilterGroup label={`Weight up to ${maxWeight}g`}>
+            <input
+              type="range"
+              min={100}
+              max={5000}
+              step={100}
+              value={maxWeight}
+              onChange={(e) => setMaxWeight(Number(e.target.value))}
+              className="w-full accent-accent"
+              aria-label="Maximum weight in grams"
             />
           </FilterGroup>
           <FilterGroup label={`Price up to $${maxPrice}`}>
@@ -133,17 +242,38 @@ export function ShopCatalog() {
               value={maxPrice}
               onChange={(e) => setMaxPrice(Number(e.target.value))}
               className="w-full accent-accent"
+              aria-label="Maximum price"
             />
           </FilterGroup>
-          <label className="flex items-center gap-3 text-sm">
-            <input
-              type="checkbox"
-              checked={inStockOnly}
-              onChange={(e) => setInStockOnly(e.target.checked)}
-              className="accent-accent"
-            />
-            In stock only
-          </label>
+          <div className="space-y-3">
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={lifetimeWarranty}
+                onChange={(e) => setLifetimeWarranty(e.target.checked)}
+                className="accent-accent"
+              />
+              Lifetime warranty
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={sparePartsOnly}
+                onChange={(e) => setSparePartsOnly(e.target.checked)}
+                className="accent-accent"
+              />
+              Spare parts available
+            </label>
+            <label className="flex items-center gap-3 text-sm">
+              <input
+                type="checkbox"
+                checked={inStockOnly}
+                onChange={(e) => setInStockOnly(e.target.checked)}
+                className="accent-accent"
+              />
+              In stock only
+            </label>
+          </div>
         </aside>
 
         <div>
@@ -159,6 +289,8 @@ export function ShopCatalog() {
                 <option value="editors">Editor&apos;s picks</option>
                 <option value="newest">Newest</option>
                 <option value="rating">Best rated</option>
+                <option value="lifespan">Longest lifespan</option>
+                <option value="repairability">Most repairable</option>
                 <option value="warranty">Longest warranty</option>
               </select>
             </label>

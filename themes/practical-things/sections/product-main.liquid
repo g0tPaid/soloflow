@@ -1,0 +1,247 @@
+{% liquid
+  assign lifespan = product.metafields.practical.lifespan.value | default: product.metafields.practical.lifespan | default: section.settings.lifespan_stub
+  assign repairability = product.metafields.practical.repairability.value | default: product.metafields.practical.repairability | default: section.settings.repairability_stub
+  assign warranty = product.metafields.practical.warranty.value | default: product.metafields.practical.warranty | default: section.settings.warranty_stub
+  assign origin = product.metafields.practical.country.value | default: product.metafields.practical.country | default: section.settings.country_stub
+  assign materials = product.metafields.practical.materials.value | default: product.metafields.practical.materials | default: product.metafields.practical.material.value | default: product.metafields.practical.material | default: section.settings.materials_stub
+  assign rating = product.metafields.practical.rating.value | default: product.metafields.practical.rating | default: section.settings.rating_stub
+  assign spare_parts = product.metafields.practical.spare_parts.value | default: product.metafields.practical.spare_parts | default: section.settings.spare_parts_stub
+  assign weight = product.metafields.practical.weight.value | default: product.metafields.practical.weight | default: section.settings.weight_stub
+  assign story = product.metafields.practical.story.value | default: product.metafields.practical.story | default: product.description | default: section.settings.story_stub
+  assign why_recommend = product.metafields.practical.why_recommend.value | default: product.metafields.practical.why_recommend | default: section.settings.why_recommend_stub
+  assign pros = product.metafields.practical.pros.value | default: product.metafields.practical.pros | default: section.settings.pros_stub
+  assign cons = product.metafields.practical.cons.value | default: product.metafields.practical.cons | default: section.settings.cons_stub
+  assign maintenance = product.metafields.practical.maintenance.value | default: product.metafields.practical.maintenance | default: section.settings.maintenance_stub
+%}
+
+<section style="padding: 64px 0;">
+  <div class="pt-container" style="display: grid; gap: 48px; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));">
+    <div>
+      {% for media in product.media limit: 4 %}
+        <div style="margin-bottom: 16px; background: var(--pt-card);">
+          {{ media | image_url: width: 1200 | image_tag: loading: 'lazy' }}
+        </div>
+      {% else %}
+        <div style="aspect-ratio: 4 / 5; background: var(--pt-card);"></div>
+      {% endfor %}
+    </div>
+    <div>
+      <p class="pt-eyebrow">{{ product.vendor }}</p>
+      <h1 class="pt-serif" style="margin: 12px 0; font-size: clamp(44px, 6vw, 76px); line-height: 1;">{{ product.title }}</h1>
+      <p style="color: var(--pt-muted); line-height: 1.8;">{{ product.description | strip_html | truncate: 220 }}</p>
+      <p style="font-size: 22px;">{{ product.selected_or_first_available_variant.price | money }}</p>
+
+      <div style="display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; margin: 28px 0;">
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Lifespan</p>
+          <p>{{ lifespan }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Repairability</p>
+          <p>{{ repairability }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Warranty</p>
+          <p>{{ warranty }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Origin</p>
+          <p>{{ origin }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Materials</p>
+          <p>{{ materials }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Editor rating</p>
+          <p>{{ rating }} / 5</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Spare parts</p>
+          <p>{{ spare_parts }}</p>
+        </div>
+        <div style="border: 1px solid var(--pt-border); padding: 16px;">
+          <p class="pt-eyebrow">Weight</p>
+          <p>{{ weight }}</p>
+        </div>
+      </div>
+
+      {% form 'product', product %}
+        <input type="hidden" name="id" value="{{ product.selected_or_first_available_variant.id }}">
+        <button class="pt-button" type="submit" {% unless product.available %}disabled{% endunless %}>
+          {% if product.available %}{{ 'products.product.add_to_cart' | t }}{% else %}{{ 'products.product.sold_out' | t }}{% endif %}
+        </button>
+      {% endform %}
+    </div>
+  </div>
+</section>
+
+<section class="pt-rule" style="padding: 72px 0;">
+  <div class="pt-container" style="display: grid; gap: 48px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 40px;">{{ section.settings.story_heading }}</h2>
+      <div style="color: var(--pt-muted); line-height: 1.8;">{{ story }}</div>
+    </div>
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 40px;">{{ section.settings.why_heading }}</h2>
+      <div style="color: var(--pt-muted); line-height: 1.8;">{{ why_recommend }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="pt-rule" style="padding: 72px 0;">
+  <div class="pt-container" style="display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 36px;">{{ section.settings.pros_heading }}</h2>
+      <div style="color: var(--pt-muted); line-height: 1.8; white-space: pre-line;">{{ pros }}</div>
+    </div>
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 36px;">{{ section.settings.cons_heading }}</h2>
+      <div style="color: var(--pt-muted); line-height: 1.8; white-space: pre-line;">{{ cons }}</div>
+    </div>
+  </div>
+</section>
+
+<section class="pt-rule" style="padding: 72px 0;">
+  <div class="pt-container" style="display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 36px;">{{ section.settings.maintenance_heading }}</h2>
+      <div style="color: var(--pt-muted); line-height: 1.8; white-space: pre-line;">{{ maintenance }}</div>
+    </div>
+    <div>
+      <h2 class="pt-serif" style="margin: 0 0 16px; font-size: 36px;">{{ section.settings.spare_parts_heading }}</h2>
+      <p style="color: var(--pt-muted); line-height: 1.8;">{{ spare_parts }}</p>
+      <p style="color: var(--pt-muted); line-height: 1.8; margin-top: 12px;">
+        {{ section.settings.spare_parts_note }}
+      </p>
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Product main",
+  "settings": [
+    {
+      "type": "text",
+      "id": "lifespan_stub",
+      "label": "Fallback lifespan",
+      "default": "25+ years"
+    },
+    {
+      "type": "text",
+      "id": "repairability_stub",
+      "label": "Fallback repairability",
+      "default": "Serviceable parts preferred"
+    },
+    {
+      "type": "text",
+      "id": "warranty_stub",
+      "label": "Fallback warranty",
+      "default": "Manufacturer warranty"
+    },
+    {
+      "type": "text",
+      "id": "country_stub",
+      "label": "Fallback country",
+      "default": "See product details"
+    },
+    {
+      "type": "text",
+      "id": "materials_stub",
+      "label": "Fallback materials",
+      "default": "Durable, repair-friendly materials"
+    },
+    {
+      "type": "text",
+      "id": "rating_stub",
+      "label": "Fallback editor rating",
+      "default": "4.5"
+    },
+    {
+      "type": "text",
+      "id": "spare_parts_stub",
+      "label": "Fallback spare parts",
+      "default": "Available"
+    },
+    {
+      "type": "text",
+      "id": "weight_stub",
+      "label": "Fallback weight",
+      "default": "See specifications"
+    },
+    {
+      "type": "text",
+      "id": "story_heading",
+      "label": "Story heading",
+      "default": "The story"
+    },
+    {
+      "type": "textarea",
+      "id": "story_stub",
+      "label": "Fallback story",
+      "default": "Connect product.metafields.practical.story for the full ownership narrative."
+    },
+    {
+      "type": "text",
+      "id": "why_heading",
+      "label": "Why recommend heading",
+      "default": "Why we recommend it"
+    },
+    {
+      "type": "textarea",
+      "id": "why_recommend_stub",
+      "label": "Fallback why recommend",
+      "default": "Connect product.metafields.practical.why_recommend with the editorial case for owning this once."
+    },
+    {
+      "type": "text",
+      "id": "pros_heading",
+      "label": "Pros heading",
+      "default": "Pros"
+    },
+    {
+      "type": "textarea",
+      "id": "pros_stub",
+      "label": "Fallback pros",
+      "default": "Built to last\nRepairable by design\nHonest materials"
+    },
+    {
+      "type": "text",
+      "id": "cons_heading",
+      "label": "Cons heading",
+      "default": "Cons"
+    },
+    {
+      "type": "textarea",
+      "id": "cons_stub",
+      "label": "Fallback cons",
+      "default": "Higher upfront cost\nRequires occasional care"
+    },
+    {
+      "type": "text",
+      "id": "maintenance_heading",
+      "label": "Maintenance heading",
+      "default": "Maintenance"
+    },
+    {
+      "type": "textarea",
+      "id": "maintenance_stub",
+      "label": "Fallback maintenance",
+      "default": "Wipe clean after use.\nStore dry.\nService when wear appears — do not replace prematurely."
+    },
+    {
+      "type": "text",
+      "id": "spare_parts_heading",
+      "label": "Spare parts heading",
+      "default": "Spare parts"
+    },
+    {
+      "type": "textarea",
+      "id": "spare_parts_note",
+      "label": "Spare parts note",
+      "default": "Prefer makers who publish part diagrams and keep consumables in stock for a decade or more."
+    }
+  ]
+}
+{% endschema %}

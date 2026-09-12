@@ -1,0 +1,47 @@
+{% liquid
+  assign lifespan = product.metafields.practical.lifespan.value | default: product.metafields.practical.lifespan | default: '25+ years'
+  assign repairability = product.metafields.practical.repairability.value | default: product.metafields.practical.repairability | default: 'Serviceable'
+  assign warranty = product.metafields.practical.warranty.value | default: product.metafields.practical.warranty | default: 'Manufacturer warranty'
+  assign origin = product.metafields.practical.country.value | default: product.metafields.practical.country | default: product.metafields.practical.origin.value | default: product.metafields.practical.origin | default: 'See details'
+  assign rating = product.metafields.practical.rating.value | default: product.metafields.practical.rating | default: '4.5'
+  assign materials = product.metafields.practical.materials.value | default: product.metafields.practical.materials | default: product.metafields.practical.material.value | default: product.metafields.practical.material | default: 'Durable materials'
+%}
+
+<article>
+  <a href="{{ product.url }}" style="display: block;">
+    <div style="aspect-ratio: 4 / 5; overflow: hidden; background: var(--pt-card);">
+      {% if product.featured_image %}
+        {{ product.featured_image | image_url: width: 900 | image_tag: loading: 'lazy' }}
+      {% endif %}
+    </div>
+    <p class="pt-eyebrow" style="margin-top: 18px;">{{ product.vendor }}</p>
+    <h3 class="pt-serif" style="margin: 8px 0; font-size: 30px; line-height: 1.05;">{{ product.title }}</h3>
+  </a>
+  <dl style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin: 14px 0 0; font-size: 12px; color: var(--pt-muted);">
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Lifespan</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ lifespan }}</dd>
+    </div>
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Repairability</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ repairability }}</dd>
+    </div>
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Warranty</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ warranty }}</dd>
+    </div>
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Origin</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ origin }}</dd>
+    </div>
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Editor</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ rating }} / 5</dd>
+    </div>
+    <div>
+      <dt class="pt-eyebrow" style="letter-spacing: .14em;">Materials</dt>
+      <dd style="margin: 4px 0 0; color: var(--pt-text); font-size: 14px;">{{ materials }}</dd>
+    </div>
+  </dl>
+  <p style="margin-top: 14px; font-weight: 600;">{{ product.price | money }}</p>
+</article>
