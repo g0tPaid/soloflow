@@ -10,6 +10,7 @@ import {
   Users,
   Package,
   Settings,
+  UserPlus,
   LogOut,
   BarChart3,
   Contact,
@@ -69,6 +70,7 @@ const NAV_ACTIONS = [
   { href: '/inventory', label: 'Inventory', icon: Boxes },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Company', icon: Settings },
+  { href: '/settings/team', label: 'Team', icon: UserPlus },
 ] as const;
 
 /** Quick create + list boxes on the mobile home screen. */

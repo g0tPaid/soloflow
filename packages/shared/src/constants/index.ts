@@ -211,6 +211,30 @@ export const ROLES = {
 
 export type Role = (typeof ROLES)[keyof typeof ROLES];
 
+/** Roles an owner/admin can assign when inviting (OWNER is not invitable). */
+export const INVITABLE_ROLES = [
+  ROLES.ADMIN,
+  ROLES.MANAGER,
+  ROLES.ACCOUNTANT,
+  ROLES.SALES,
+  ROLES.EMPLOYEE,
+] as const;
+
+export type InvitableRole = (typeof INVITABLE_ROLES)[number];
+
+export const ROLE_LABELS: Record<Role, string> = {
+  OWNER: 'Owner',
+  ADMIN: 'Admin',
+  MANAGER: 'Manager',
+  ACCOUNTANT: 'Accountant',
+  SALES: 'Sales',
+  EMPLOYEE: 'Employee',
+  CUSTOM: 'Custom',
+};
+
+/** Soft cap for members + pending invites. Override with ORG_MEMBER_SOFT_LIMIT (>= 25). */
+export const DEFAULT_MEMBER_SOFT_LIMIT = 50;
+
 export const PERMISSIONS = {
   // Organization
   ORG_READ: 'org:read',
@@ -358,4 +382,5 @@ export const NAV_MODULES = [
   { key: 'reports', label: 'Reports', href: '/reports', enabled: true },
   { key: 'inventory', label: 'Inventory', href: '/inventory', enabled: true },
   { key: 'settings', label: 'Company Details', href: '/settings', enabled: true },
+  { key: 'team', label: 'Team', href: '/settings/team', enabled: true },
 ] as const;

@@ -6,6 +6,7 @@ const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
 const publicPrefixes = [
   '/login',
   '/register',
+  '/invite',
   '/forgot-password',
   '/reset-password',
   '/privacy',

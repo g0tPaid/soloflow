@@ -12,6 +12,7 @@ import * as bcrypt from 'bcryptjs';
 import { createHash, randomBytes } from 'crypto';
 import { PrismaService } from '../prisma/prisma.service';
 import { MailService } from '../mail/mail.service';
+import { MembersService } from '../organizations/members.service';
 import { RegisterDto, LoginDto, ForgotPasswordDto, ResetPasswordDto } from './dto/auth.dto';
 
 const RESET_TOKEN_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -44,6 +45,7 @@ export class AuthService {
     private jwt: JwtService,
     private mail: MailService,
     private config: ConfigService,
+    private members: MembersService,
   ) {}
 
   private async ensureSuperAdminFlag(userId: string, email: string) {
@@ -105,7 +107,22 @@ export class AuthService {
     });
 
     const token = this.generateToken(user.id, user.email);
-    return { user: refreshed!, token };
+
+    let organizationId: string | undefined;
+    if (dto.inviteToken) {
+      try {
+        const accepted = await this.members.accept(user.id, dto.inviteToken);
+        organizationId = accepted.organizationId;
+      } catch (error) {
+        this.logger.warn(
+          `Register succeeded but invite accept failed for ${email}: ${
+            error instanceof Error ? error.message : String(error)
+          }`,
+        );
+      }
+    }
+
+    return { user: refreshed!, token, organizationId };
   }
 
   async login(dto: LoginDto) {

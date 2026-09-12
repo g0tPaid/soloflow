@@ -29,6 +29,7 @@ model User {
   accounts      Account[]
   sessions      Session[]
   memberships   OrganizationMember[]
+  invitesSent   OrganizationInvite[] @relation("OrganizationInviteInviter")
   auditLogs     AuditLog[]
 
   @@map("users")
@@ -96,6 +97,7 @@ model Organization {
 
   settings          OrganizationSettings?
   members           OrganizationMember[]
+  invites           OrganizationInvite[]
   customRoles       CustomRole[]
   customers         Customer[]
   vendors           Vendor[]
@@ -159,6 +161,28 @@ model OrganizationMember {
   @@index([organizationId])
   @@index([userId])
   @@map("organization_members")
+}
+
+/// Pending team invite. Deleted after accept or when a replacement invite is sent.
+model OrganizationInvite {
+  id             String     @id @default(cuid())
+  organizationId String
+  email          String
+  name           String?
+  role           MemberRole @default(EMPLOYEE)
+  tokenHash      String     @unique
+  expiresAt      DateTime
+  invitedById    String
+  createdAt      DateTime   @default(now())
+  updatedAt      DateTime   @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invitedBy    User         @relation("OrganizationInviteInviter", fields: [invitedById], references: [id], onDelete: Cascade)
+
+  @@unique([organizationId, email])
+  @@index([organizationId])
+  @@index([email])
+  @@map("organization_invites")
 }
 
 model CustomRole {

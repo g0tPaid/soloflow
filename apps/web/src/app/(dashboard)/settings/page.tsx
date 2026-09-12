@@ -7,6 +7,7 @@ import { Building2 } from 'lucide-react';
 import { api, type Organization } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { OrganizationSettingsForm } from '@/components/settings/organization-settings-form';
+import { SettingsNav } from '@/components/settings/settings-nav';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import type { UpdateOrganizationInput } from '@flowbooks/shared';
@@ -32,6 +33,8 @@ export default function SettingsPage() {
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
+      <SettingsNav />
+
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="flex flex-col gap-3 py-4 sm:flex-row sm:items-center sm:justify-between">
           <div className="flex items-start gap-3">

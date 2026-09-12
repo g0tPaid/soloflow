@@ -33,7 +33,7 @@ Core platform scaffolding and essential business modules.
 - [x] Custom field definitions model
 - [ ] Full customer/product/invoice UI pages (list, create, edit)
 - [ ] Organization switcher
-- [ ] Team member invitations
+- [x] Team member invitations
 
 ---
 
@@ -58,7 +58,7 @@ Essential accounting workflows for day-to-day operations.
 - [ ] Multi-currency support
 - [ ] Exchange rate management
 - [ ] Organization settings UI (branding, currency, tax)
-- [ ] Team management UI (invite, roles, permissions)
+- [x] Team management UI (invite, roles, permissions)
 - [ ] Custom roles UI
 - [ ] Audit log viewer
 

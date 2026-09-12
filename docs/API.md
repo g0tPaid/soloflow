@@ -70,7 +70,43 @@ Create a new organization (user becomes OWNER).
 List organizations for current user.
 
 ### GET /organizations/:id
-Get organization details with members.
+Get organization details with members. Caller must be a member.
+
+### GET /organizations/:id/members
+List members and pending invites. Caller must be a member.
+
+### POST /organizations/:id/members
+Invite or add a teammate (Owner/Admin only).
+
+```json
+{
+  "email": "staff@company.com",
+  "name": "Asha Kumar",
+  "role": "EMPLOYEE"
+}
+```
+
+**Behavior:**
+- Existing user → added to the org immediately
+- New user + `RESEND_API_KEY` → pending invite email with `/invite/:token`
+- New user without email configured → user created with a temporary password (returned once)
+
+Roles: `ADMIN`, `MANAGER`, `ACCOUNTANT`, `SALES`, `EMPLOYEE` (not `OWNER`). Soft seat limit default 50 (`ORG_MEMBER_SOFT_LIMIT`, minimum 25).
+
+### PATCH /organizations/:id/members/:memberId
+Change a member role (Owner/Admin).
+
+### DELETE /organizations/:id/members/:memberId
+Remove a member (Owner/Admin). Cannot remove the last owner.
+
+### DELETE /organizations/:id/invites/:inviteId
+Cancel a pending invite.
+
+### GET /invites/:token
+Public preview of a pending invite.
+
+### POST /invites/:token/accept
+Accept invite for the signed-in user (email must match). Grants membership so `GET /organizations` and `x-organization-id` resolve to the same org dashboard data.
 
 ---
 

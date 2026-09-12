@@ -77,7 +77,31 @@ export default function OnboardingPage() {
       router.replace('/admin');
       return;
     }
-    setReady(true);
+
+    let cancelled = false;
+    async function skipIfAlreadyOnATeam() {
+      if (!session?.accessToken) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      try {
+        const orgs = await api.organizations.list(session.accessToken);
+        if (cancelled) return;
+        if (orgs.length > 0) {
+          localStorage.setItem(ORG_STORAGE_KEY, orgs[0].id);
+          router.replace('/dashboard');
+          return;
+        }
+      } catch {
+        // Fall through to the create-org form so existing single-owner onboarding still works.
+      }
+      if (!cancelled) setReady(true);
+    }
+
+    void skipIfAlreadyOnATeam();
+    return () => {
+      cancelled = true;
+    };
   }, [status, session, router]);
 
   useEffect(() => {

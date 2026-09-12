@@ -50,8 +50,10 @@ export default function LoginPage() {
 
     try {
       const orgs = await api.organizations.list(session.accessToken);
-      const destination =
-        orgs.length === 0
+      const inviteCallback = callbackUrl.startsWith('/invite/');
+      const destination = inviteCallback
+        ? callbackUrl
+        : orgs.length === 0
           ? '/onboarding'
           : callbackUrl.startsWith('/login')
             ? '/dashboard'

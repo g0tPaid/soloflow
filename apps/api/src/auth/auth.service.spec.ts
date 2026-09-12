@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
+import { MembersService } from '../organizations/members.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -37,6 +38,10 @@ describe('AuthService', () => {
     }),
   };
 
+  const mockMembers = {
+    accept: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +50,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwt },
         { provide: MailService, useValue: mockMail },
         { provide: ConfigService, useValue: mockConfig },
+        { provide: MembersService, useValue: mockMembers },
       ],
     }).compile();
 
