@@ -88,15 +88,30 @@ Every business entity is scoped to an `organizationId`. The API expects the `x-o
 - **Web:** Auth.js (NextAuth v5) with Credentials + Google provider scaffold
 - **API:** JWT bearer tokens
 - **Roles:** Owner, Admin, Manager, Accountant, Sales, Employee + custom roles
+- **Team:** Owner/Admin invite staff from **Settings → Team**. Each person signs in with their own email and password. Concurrent sessions are supported.
+
+### Invite 5 staff (same organization)
+
+1. Hosted deploy must **not** auto-login a single user. On the API, leave `LOCAL_SINGLE_USER` **false or unset**. On the web, leave `NEXT_PUBLIC_LOCAL_MODE` **false or unset**. Real login at [soloflow.practicalthings.store](https://soloflow.practicalthings.store) requires this.
+2. Sign in as the owner → **Team** (or **Company Details → Team**).
+3. For each staff member, enter email, name, and role, then **Invite**.
+4. If Resend is configured (`RESEND_API_KEY`), they get an email. They open the link, create their own password, and join the same company.
+5. If email is not configured, SoloFlow creates their account and shows a **temporary password**. Share email + password with them securely.
+6. Each person signs in at `https://soloflow.practicalthings.store` with **their** email/password (any computer). They see the same invoices, customers, and dashboard as the owner (`x-organization-id` + membership).
+7. Existing single-owner accounts are unchanged until you invite someone.
+
+Optional: set `RESEND_API_KEY` and `EMAIL_FROM` on the API so invites go out by email. `APP_URL` / `WEB_URL` should be `https://soloflow.practicalthings.store` so invite links are correct.
 
 ## Deployment
 
 | Service | Platform | Config |
 |---------|----------|--------|
-| Web | Vercel | `apps/web/vercel.json` |
+| Web | Railway (or Vercel) | `apps/web/railway.json` |
 | API | Railway | `apps/api/railway.json` |
 | DB | Railway/Neon | `DATABASE_URL` env |
 | Redis | Railway/Upstash | `REDIS_URL` env |
+
+Production multi-user (same org, separate logins): [docs/RAILWAY-MULTIUSER.md](docs/RAILWAY-MULTIUSER.md)
 
 ## Scripts
 
@@ -112,6 +127,8 @@ Every business entity is scoped to an `organizationId`. The API expects the `x-o
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [API Reference](docs/API.md)
+- [Railway multi-user (Ajmal + staff)](docs/RAILWAY-MULTIUSER.md)
+- [Hosting for beginners](docs/HOSTING-BEGINNER.md)
 - [Roadmap](ROADMAP.md)
 
 ## License

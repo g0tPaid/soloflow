@@ -4,6 +4,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { JwtService } from '@nestjs/jwt';
 import { ConfigService } from '@nestjs/config';
 import { MailService } from '../mail/mail.service';
+import { MembersService } from '../organizations/members.service';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -37,6 +38,10 @@ describe('AuthService', () => {
     }),
   };
 
+  const mockMembers = {
+    accept: jest.fn(),
+  };
+
   beforeEach(async () => {
     const module: TestingModule = await Test.createTestingModule({
       providers: [
@@ -45,6 +50,7 @@ describe('AuthService', () => {
         { provide: JwtService, useValue: mockJwt },
         { provide: MailService, useValue: mockMail },
         { provide: ConfigService, useValue: mockConfig },
+        { provide: MembersService, useValue: mockMembers },
       ],
     }).compile();
 
@@ -69,5 +75,17 @@ describe('AuthService', () => {
     await expect(
       service.register({ name: 'Test', email: 'test@example.com', password: 'password123' }),
     ).rejects.toThrow('Email already registered');
+  });
+
+  it('disables local bootstrap in production even if LOCAL_SINGLE_USER is true', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousLocal = process.env.LOCAL_SINGLE_USER;
+    process.env.NODE_ENV = 'production';
+    process.env.LOCAL_SINGLE_USER = 'true';
+
+    await expect(service.bootstrapLocal()).rejects.toThrow('Local bootstrap is disabled');
+
+    process.env.NODE_ENV = previousNodeEnv;
+    process.env.LOCAL_SINGLE_USER = previousLocal;
   });
 });

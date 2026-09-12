@@ -1,4 +1,4 @@
-import { IsEmail, IsString, MinLength } from 'class-validator';
+import { IsEmail, IsOptional, IsString, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 import { ApiProperty } from '@nestjs/swagger';
 
@@ -21,6 +21,12 @@ export class RegisterDto {
   @IsString()
   @MinLength(8)
   password!: string;
+
+  @ApiProperty({ required: false, description: 'Pending team invite token' })
+  @IsOptional()
+  @IsString()
+  @MinLength(20)
+  inviteToken?: string;
 }
 
 export class LoginDto {

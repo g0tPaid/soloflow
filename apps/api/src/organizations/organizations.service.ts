@@ -63,7 +63,12 @@ export class OrganizationsService {
     }));
   }
 
-  async findOne(orgId: string) {
+  async findOne(userId: string, orgId: string) {
+    const membership = await this.prisma.organizationMember.findUnique({
+      where: { organizationId_userId: { organizationId: orgId, userId } },
+    });
+    if (!membership) throw new ForbiddenException('Not a member of this organization');
+
     const org = await this.prisma.organization.findUnique({
       where: { id: orgId },
       include: {
@@ -72,7 +77,7 @@ export class OrganizationsService {
       },
     });
     if (!org) throw new NotFoundException('Organization not found');
-    return org;
+    return { ...org, role: membership.role };
   }
 
   async update(userId: string, orgId: string, dto: UpdateOrganizationDto) {

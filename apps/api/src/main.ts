@@ -12,10 +12,17 @@ async function bootstrap() {
   app.use(urlencoded({ extended: true, limit: '25mb' }));
 
   app.use(helmet());
+  const corsOrigins = (process.env.CORS_ORIGIN ?? '')
+    .split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean);
+
   app.enableCors({
     origin:
       process.env.NODE_ENV === 'production'
-        ? process.env.CORS_ORIGIN?.split(',') || ['http://localhost:3000']
+        ? corsOrigins.length > 0
+          ? corsOrigins
+          : ['https://soloflow.practicalthings.store']
         : true,
     credentials: true,
   });
@@ -45,6 +52,11 @@ async function bootstrap() {
   await app.listen(port, '0.0.0.0');
   console.log(`SoloFlow API running on port ${port}`);
   console.log(`Swagger docs at /api/docs`);
+  if (process.env.NODE_ENV === 'production' && process.env.LOCAL_SINGLE_USER === 'true') {
+    console.warn(
+      'LOCAL_SINGLE_USER=true is ignored in production. Remove it on Railway so staff use email/password.',
+    );
+  }
 }
 
 bootstrap();

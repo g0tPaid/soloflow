@@ -14,6 +14,10 @@ export class MailService {
 
   constructor(private config: ConfigService) {}
 
+  isConfigured() {
+    return Boolean(this.config.get<string>('RESEND_API_KEY')?.trim());
+  }
+
   async send(input: SendMailInput): Promise<{ delivered: boolean; mode: string }> {
     const from =
       this.config.get<string>('EMAIL_FROM')?.trim() ||

@@ -1,5 +1,7 @@
 # SoloFlow hosting for beginners (step by step)
 
+**Already live at https://soloflow.practicalthings.store?** Use **[Railway multi-user](./RAILWAY-MULTIUSER.md)** — exact variables to SET and REMOVE so Ajmal and staff share one company with separate logins. This page is the first-time Railway walkthrough.
+
 This guide assumes you have **never hosted a website before**.  
 Follow the steps in order. Do not skip.
 
@@ -137,13 +139,12 @@ In **`api`** → **Variables** → add these **one by one**:
 ```text
 NODE_ENV=production
 PORT=3001
-LOCAL_SINGLE_USER=true
-LOCAL_USER_EMAIL=owner@local
-LOCAL_USER_NAME=Owner
-LOCAL_USER_PASSWORD=soloflow
+LOCAL_SINGLE_USER=false
 STORAGE_PROVIDER=local
 STORAGE_LOCAL_PATH=./uploads
 ```
+
+**Multi-user hosted (owner + staff):** `LOCAL_SINGLE_USER` must be `false` or unset. If it is `true`, the API exposes a local bootstrap login meant for a single desktop user — not for `soloflow.practicalthings.store`.
 
 Also add (paste your real values):
 
@@ -251,12 +252,14 @@ In **`web`** → Variables:
 
 ```text
 NODE_ENV=production
-NEXT_PUBLIC_LOCAL_MODE=true
+NEXT_PUBLIC_LOCAL_MODE=false
 AUTH_URL=https://YOUR-WEB-URL
 NEXT_PUBLIC_API_URL=https://YOUR-API-URL/api/v1
 DATABASE_URL=...same Postgres URL...
 AUTH_SECRET=...another long random string...
 ```
+
+**Multi-user hosted:** `NEXT_PUBLIC_LOCAL_MODE` must be `false` or unset so each person sees the sign-in screen and uses their own email/password. `true` skips login and is only for local/desktop single-user mode.
 
 Important:
 
@@ -278,8 +281,9 @@ Redeploy **api** if Railway does not auto-redeploy.
 ## STEP 6 — First login test (phone + PC)
 
 1. Open your **WEB_URL** on your computer browser  
-2. You should land in SoloFlow (local mode skips login)  
+2. Register or sign in with the owner email and password (login is required when local mode is off)  
 3. Create a customer, create an invoice, download PDF  
+4. To add staff: **Team** → invite by email. Each person signs in with their own login.  
 
 Then on your **phone**:
 
@@ -381,8 +385,11 @@ Make sure `REDIS_URL` is from the Redis service in the **same** Railway project.
 - [ ] Health URL works in browser  
 - [ ] Web service deployed + public domain  
 - [ ] Web env vars set (`AUTH_URL`, `NEXT_PUBLIC_API_URL`, `AUTH_SECRET`)  
-- [ ] API `CORS_ORIGIN` set to web URL  
+- [ ] `NEXT_PUBLIC_LOCAL_MODE` is `false` or unset (web)  
+- [ ] `LOCAL_SINGLE_USER` is `false` or unset (api); `LOCAL_USER_*` removed  
+- [ ] API `CORS_ORIGIN` + `APP_URL` set to the public web URL  
 - [ ] Test on phone with mobile data  
+- [ ] Owner invites staff from **Team**  
 - [ ] Build Play Store AAB with that HTTPS URL  
 
 ---

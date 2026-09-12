@@ -6,10 +6,12 @@ import type {
   UpdateExpenseCostsInput,
   CreateExpenseInput,
   UpdateOrganizationInput,
+  InviteMemberInput,
+  UpdateMemberRoleInput,
+  Role,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 
 function isHostedAppHost(host: string): boolean {
   return host.includes('railway.app') || host.includes('vercel.app');
@@ -453,6 +455,49 @@ export interface OrganizationBranding {
   showInvoiceLogo?: boolean;
 }
 
+export interface OrgMember {
+  id: string;
+  role: Role;
+  joinedAt?: string;
+  invitedAt?: string | null;
+  user: { id: string; name: string | null; email: string };
+}
+
+export interface PendingInvite {
+  id: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  expiresAt: string;
+  createdAt: string;
+}
+
+export interface TeamList {
+  members: OrgMember[];
+  pendingInvites: PendingInvite[];
+  seatLimit: number;
+  seatCount: number;
+}
+
+export interface InvitePreview {
+  organizationId: string;
+  organizationName: string;
+  email: string;
+  name: string | null;
+  role: Role;
+  expiresAt: string;
+  inviterName: string | null;
+}
+
+export interface InviteResult {
+  status: 'added' | 'invited' | 'created';
+  member?: OrgMember;
+  invite?: PendingInvite;
+  inviteUrl?: string;
+  emailDelivered?: boolean;
+  temporaryPassword?: string;
+}
+
 export interface Organization {
   id: string;
   name: string;
@@ -477,7 +522,12 @@ export interface Organization {
 
 export const api = {
   auth: {
-    register: async (data: { name: string; email: string; password: string }) => {
+    register: async (data: {
+      name: string;
+      email: string;
+      password: string;
+      inviteToken?: string;
+    }) => {
       if (typeof window !== 'undefined') {
         return browserJsonRequest('/api/auth/register', {
           method: 'POST',
@@ -574,6 +624,50 @@ export const api = {
         organizationId,
       });
     },
+    members: (token: string, organizationId: string) =>
+      apiFetch<TeamList>(`/organizations/${organizationId}/members`, {
+        token,
+        organizationId,
+      }),
+    invite: (token: string, organizationId: string, data: InviteMemberInput) =>
+      apiFetch<InviteResult>(`/organizations/${organizationId}/members`, {
+        method: 'POST',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
+    updateMemberRole: (
+      token: string,
+      organizationId: string,
+      memberId: string,
+      data: UpdateMemberRoleInput,
+    ) =>
+      apiFetch<OrgMember>(`/organizations/${organizationId}/members/${memberId}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+        token,
+        organizationId,
+      }),
+    removeMember: (token: string, organizationId: string, memberId: string) =>
+      apiFetch<{ ok: boolean }>(`/organizations/${organizationId}/members/${memberId}`, {
+        method: 'DELETE',
+        token,
+        organizationId,
+      }),
+    cancelInvite: (token: string, organizationId: string, inviteId: string) =>
+      apiFetch<{ ok: boolean }>(`/organizations/${organizationId}/invites/${inviteId}`, {
+        method: 'DELETE',
+        token,
+        organizationId,
+      }),
+  },
+  invites: {
+    preview: (token: string) => apiFetch<InvitePreview>(`/invites/${token}`),
+    accept: (accessToken: string, inviteToken: string) =>
+      apiFetch<{ organizationId: string; organizationName: string; role: string }>(
+        `/invites/${inviteToken}/accept`,
+        { method: 'POST', token: accessToken },
+      ),
   },
   dashboard: {
     metrics: (token: string, organizationId: string) =>

@@ -1,5 +1,5 @@
 import { z } from 'zod';
-import { ROLES } from '../constants';
+import { INVITABLE_ROLES } from '../constants';
 import { CURRENCIES } from '../constants';
 
 const currencyCodes = CURRENCIES.map((c) => c.code) as [string, ...string[]];
@@ -149,15 +149,18 @@ export const updateOrganizationSchema = z.object({
 });
 
 export const inviteMemberSchema = z.object({
-  email: z.string().email(),
-  role: z.enum([
-    ROLES.ADMIN,
-    ROLES.MANAGER,
-    ROLES.ACCOUNTANT,
-    ROLES.SALES,
-    ROLES.EMPLOYEE,
-    ROLES.CUSTOM,
-  ] as [string, ...string[]]),
+  email: z.string().email('Invalid email address'),
+  name: z
+    .string()
+    .trim()
+    .max(100, 'Name is too long')
+    .optional()
+    .or(z.literal('')),
+  role: z.enum(INVITABLE_ROLES),
+});
+
+export const updateMemberRoleSchema = z.object({
+  role: z.enum(INVITABLE_ROLES),
 });
 
 // ─── Customer ────────────────────────────────────────────────────────────────
@@ -353,6 +356,8 @@ export type LoginInput = z.infer<typeof loginSchema>;
 export type RegisterInput = z.infer<typeof registerSchema>;
 export type ForgotPasswordInput = z.infer<typeof forgotPasswordSchema>;
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
+export type InviteMemberInput = z.infer<typeof inviteMemberSchema>;
+export type UpdateMemberRoleInput = z.infer<typeof updateMemberRoleSchema>;
 export type CreateOrganizationInput = z.infer<typeof createOrganizationSchema>;
 export type UpdateOrganizationInput = z.infer<typeof updateOrganizationSchema>;
 export type CreateCustomerInput = z.infer<typeof createCustomerSchema>;

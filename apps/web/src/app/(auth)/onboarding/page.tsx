@@ -23,8 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
 import { cn } from '@/lib/utils';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 
 const textareaClassName = cn(
   'flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
@@ -77,7 +76,31 @@ export default function OnboardingPage() {
       router.replace('/admin');
       return;
     }
-    setReady(true);
+
+    let cancelled = false;
+    async function skipIfAlreadyOnATeam() {
+      if (!session?.accessToken) {
+        if (!cancelled) setReady(true);
+        return;
+      }
+      try {
+        const orgs = await api.organizations.list(session.accessToken);
+        if (cancelled) return;
+        if (orgs.length > 0) {
+          localStorage.setItem(ORG_STORAGE_KEY, orgs[0].id);
+          router.replace('/dashboard');
+          return;
+        }
+      } catch {
+        // Fall through to the create-org form so existing single-owner onboarding still works.
+      }
+      if (!cancelled) setReady(true);
+    }
+
+    void skipIfAlreadyOnATeam();
+    return () => {
+      cancelled = true;
+    };
   }, [status, session, router]);
 
   useEffect(() => {

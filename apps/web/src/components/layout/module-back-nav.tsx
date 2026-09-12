@@ -15,7 +15,8 @@ const MODULE_LABELS: Record<string, string> = {
   '/products': 'Products',
   '/inventory': 'Inventory',
   '/reports': 'Reports',
-  '/settings': 'Company',
+  '/settings/team': 'Team',
+  '/settings': 'Settings',
 };
 
 function moduleLabel(pathname: string): string | null {
