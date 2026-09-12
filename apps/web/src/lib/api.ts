@@ -11,8 +11,7 @@ import type {
   Role,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 
 function isHostedAppHost(host: string): boolean {
   return host.includes('railway.app') || host.includes('vercel.app');

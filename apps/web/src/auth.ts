@@ -2,8 +2,7 @@ import NextAuth from 'next-auth';
 import Credentials from 'next-auth/providers/credentials';
 import Google from 'next-auth/providers/google';
 import { api } from '@/lib/api';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 const googleEnabled =
   !!process.env.AUTH_GOOGLE_ID?.trim() && !!process.env.AUTH_GOOGLE_SECRET?.trim();
 
@@ -113,8 +112,9 @@ export const { handlers, signIn, signOut, auth } = NextAuth({
           };
           token.isSuperAdmin = profile.isSuperAdmin ?? false;
         } catch {
-          delete token.accessToken;
-          token.isSuperAdmin = false;
+          // Transient /auth/me failures must not sign other devices out.
+          // (PR #16 adds refresh tokens later; do not wipe the JWT here.)
+          token.isSuperAdmin = Boolean(token.isSuperAdmin);
         }
       }
 

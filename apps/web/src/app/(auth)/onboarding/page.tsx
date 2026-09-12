@@ -23,8 +23,7 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { ImageUploadField } from '@/components/shared/image-upload-field';
 import { cn } from '@/lib/utils';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 
 const textareaClassName = cn(
   'flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',

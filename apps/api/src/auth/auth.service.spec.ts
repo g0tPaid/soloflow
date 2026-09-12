@@ -76,4 +76,16 @@ describe('AuthService', () => {
       service.register({ name: 'Test', email: 'test@example.com', password: 'password123' }),
     ).rejects.toThrow('Email already registered');
   });
+
+  it('disables local bootstrap in production even if LOCAL_SINGLE_USER is true', async () => {
+    const previousNodeEnv = process.env.NODE_ENV;
+    const previousLocal = process.env.LOCAL_SINGLE_USER;
+    process.env.NODE_ENV = 'production';
+    process.env.LOCAL_SINGLE_USER = 'true';
+
+    await expect(service.bootstrapLocal()).rejects.toThrow('Local bootstrap is disabled');
+
+    process.env.NODE_ENV = previousNodeEnv;
+    process.env.LOCAL_SINGLE_USER = previousLocal;
+  });
 });

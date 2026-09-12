@@ -71,6 +71,8 @@ NEXT_PUBLIC_API_URL=https://YOUR-API-URL/api/v1
 DATABASE_URL=<same-postgres-url>
 ```
 
+See [docs/RAILWAY-MULTIUSER.md](./RAILWAY-MULTIUSER.md) for the exact SET / REMOVE list (`LOCAL_SINGLE_USER` and `NEXT_PUBLIC_LOCAL_MODE` must stay off).
+
 5. Run Prisma migrate on the API service once:
 
 ```bash

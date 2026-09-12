@@ -106,10 +106,12 @@ Optional: set `RESEND_API_KEY` and `EMAIL_FROM` on the API so invites go out by 
 
 | Service | Platform | Config |
 |---------|----------|--------|
-| Web | Vercel | `apps/web/vercel.json` |
+| Web | Railway (or Vercel) | `apps/web/railway.json` |
 | API | Railway | `apps/api/railway.json` |
 | DB | Railway/Neon | `DATABASE_URL` env |
 | Redis | Railway/Upstash | `REDIS_URL` env |
+
+Production multi-user (same org, separate logins): [docs/RAILWAY-MULTIUSER.md](docs/RAILWAY-MULTIUSER.md)
 
 ## Scripts
 
@@ -125,6 +127,8 @@ Optional: set `RESEND_API_KEY` and `EMAIL_FROM` on the API so invites go out by 
 
 - [Architecture](docs/ARCHITECTURE.md)
 - [API Reference](docs/API.md)
+- [Railway multi-user (Ajmal + staff)](docs/RAILWAY-MULTIUSER.md)
+- [Hosting for beginners](docs/HOSTING-BEGINNER.md)
 - [Roadmap](ROADMAP.md)
 
 ## License

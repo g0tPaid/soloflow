@@ -4,8 +4,7 @@ import { useEffect, useRef } from 'react';
 import { usePathname, useRouter } from 'next/navigation';
 import { signIn, useSession } from 'next-auth/react';
 import { api } from '@/lib/api';
-
-const LOCAL_MODE = process.env.NEXT_PUBLIC_LOCAL_MODE === 'true';
+import { LOCAL_MODE } from '@/lib/local-mode';
 
 export function AutoLocalSignIn() {
   const { data: session, status } = useSession();

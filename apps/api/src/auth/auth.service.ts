@@ -264,8 +264,10 @@ export class AuthService {
 
   /** Single-user local mode — creates the owner account automatically. */
   async bootstrapLocal() {
-    if (process.env.LOCAL_SINGLE_USER !== 'true') {
-      throw new ForbiddenException('Local bootstrap is disabled');
+    if (process.env.NODE_ENV === 'production' || process.env.LOCAL_SINGLE_USER !== 'true') {
+      throw new ForbiddenException(
+        'Local bootstrap is disabled. Sign in with your own email and password.',
+      );
     }
 
     const email = normalizeEmail(process.env.LOCAL_USER_EMAIL || 'owner@local');

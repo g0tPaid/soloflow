@@ -1,5 +1,7 @@
 # SoloFlow hosting for beginners (step by step)
 
+**Already live at https://soloflow.practicalthings.store?** Use **[Railway multi-user](./RAILWAY-MULTIUSER.md)** — exact variables to SET and REMOVE so Ajmal and staff share one company with separate logins. This page is the first-time Railway walkthrough.
+
 This guide assumes you have **never hosted a website before**.  
 Follow the steps in order. Do not skip.
 
@@ -383,8 +385,11 @@ Make sure `REDIS_URL` is from the Redis service in the **same** Railway project.
 - [ ] Health URL works in browser  
 - [ ] Web service deployed + public domain  
 - [ ] Web env vars set (`AUTH_URL`, `NEXT_PUBLIC_API_URL`, `AUTH_SECRET`)  
-- [ ] API `CORS_ORIGIN` set to web URL  
+- [ ] `NEXT_PUBLIC_LOCAL_MODE` is `false` or unset (web)  
+- [ ] `LOCAL_SINGLE_USER` is `false` or unset (api); `LOCAL_USER_*` removed  
+- [ ] API `CORS_ORIGIN` + `APP_URL` set to the public web URL  
 - [ ] Test on phone with mobile data  
+- [ ] Owner invites staff from **Team**  
 - [ ] Build Play Store AAB with that HTTPS URL  
 
 ---
