@@ -91,7 +91,10 @@ function SidebarDesktop({ organizationName }: { organizationName?: string }) {
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
         {NAV_MODULES.map((item) => {
           const Icon = iconMap[item.key] || LayoutDashboard;
-          const isActive = pathname.startsWith(item.href);
+          const isActive =
+            item.href === '/settings'
+              ? pathname === '/settings'
+              : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isDisabled = !item.enabled;
 
           if (isDisabled) {
