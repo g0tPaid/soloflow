@@ -220,6 +220,20 @@ const REQUIRED_SCHEMA_STATEMENTS = [
     ALTER TABLE "organization_invites" ADD CONSTRAINT "organization_invites_invitedById_fkey"
       FOREIGN KEY ("invitedById") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN
+    CREATE TYPE "FulfillmentStatus" AS ENUM (
+      'LOCAL_ORDERING_COMPLETED',
+      'QC_COMPLETED',
+      'SHIPPED_TO_CHINA_CENTER',
+      'SHIPPED_INTERNATIONAL',
+      'CUSTOMER_RECEIVED',
+      'ORDER_COMPLETED'
+    );
+  EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "fulfillmentStatus" "FulfillmentStatus"`,
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "localTrackingNumber" TEXT`,
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "internationalTrackingNumber" TEXT`,
+  `CREATE INDEX IF NOT EXISTS "invoices_organizationId_fulfillmentStatus_idx" ON "invoices"("organizationId", "fulfillmentStatus")`,
 ] as const;
 
 @Injectable()

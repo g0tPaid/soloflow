@@ -4,12 +4,16 @@ import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileInput, Pencil, Banknote } from 'lucide-react';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import {
+  FulfillmentControls,
+  FulfillmentStatusBadge,
+} from '@/components/invoices/fulfillment-controls';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { ShareInvoiceWhatsAppButton } from '@/components/invoices/share-invoice-whatsapp-button';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
@@ -20,6 +24,7 @@ import {
   invoiceBalanceDue,
   isReceiptEligible,
   paymentMethodLabel,
+  type FulfillmentStatus,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
@@ -35,6 +40,15 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState('');
   const [showPayment, setShowPayment] = useState(false);
+
+  const fulfillmentMutation = useMutation({
+    mutationFn: (data: UpdateInvoiceInput) =>
+      api.invoices.update(session!.accessToken!, organizationId!, id, data),
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
+      await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
+    },
+  });
 
   const { data: invoice, isLoading, error } = useQuery({
     queryKey: ['invoice', id, organizationId],
@@ -154,8 +168,9 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
             {invoice ? `Invoice ${invoice.number}` : 'Invoice'}
           </h1>
           {invoice && (
-            <div className="mt-1 flex items-center gap-2">
+            <div className="mt-1 flex flex-wrap items-center gap-2">
               <InvoiceStatusBadge status={invoice.status} />
+              <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
             </div>
           )}
         </div>
@@ -260,6 +275,28 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
 
       {invoice && organizationId && (
         <>
+          <Card>
+            <CardContent className="py-5">
+              <FulfillmentControls
+                idPrefix={invoice.id}
+                status={invoice.fulfillmentStatus}
+                localTrackingNumber={invoice.localTrackingNumber}
+                internationalTrackingNumber={invoice.internationalTrackingNumber}
+                saving={fulfillmentMutation.isPending}
+                error={
+                  fulfillmentMutation.isError
+                    ? fulfillmentMutation.error instanceof Error
+                      ? fulfillmentMutation.error.message
+                      : 'Could not update fulfillment'
+                    : undefined
+                }
+                onStatusChange={(fulfillmentStatus: FulfillmentStatus) =>
+                  fulfillmentMutation.mutate({ fulfillmentStatus })
+                }
+                onTrackingSave={(tracking) => fulfillmentMutation.mutate(tracking)}
+              />
+            </CardContent>
+          </Card>
           <Card>
             <CardContent className="space-y-4 py-5">
               <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">

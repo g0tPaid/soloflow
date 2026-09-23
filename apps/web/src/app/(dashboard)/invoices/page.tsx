@@ -14,11 +14,18 @@ import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import {
+  FulfillmentControls,
+  FulfillmentStatusBadge,
+} from '@/components/invoices/fulfillment-controls';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import {
+  FULFILLMENT_STATUSES,
   invoiceAmountPaid,
   invoiceBalanceDue,
   isReceiptEligible,
+  type FulfillmentStatus,
+  type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 
 function formatDate(value?: string | null) {
@@ -82,10 +89,17 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [fulfillmentFilter, setFulfillmentFilter] = useState('ALL');
+  const [fulfillmentSort, setFulfillmentSort] = useState<'newest' | 'fulfillment'>('newest');
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['invoices', organizationId],
-    queryFn: () => api.invoices.list(session!.accessToken!, organizationId!, { limit: 50 }),
+    queryKey: ['invoices', organizationId, fulfillmentFilter, fulfillmentSort],
+    queryFn: () =>
+      api.invoices.list(session!.accessToken!, organizationId!, {
+        limit: 50,
+        fulfillmentStatus: fulfillmentFilter === 'ALL' ? undefined : fulfillmentFilter,
+        sort: fulfillmentSort === 'newest' ? undefined : fulfillmentSort,
+      }),
     enabled: !!session?.accessToken && !!organizationId,
   });
 
@@ -97,7 +111,16 @@ export default function InvoicesPage() {
     },
   });
 
+  const fulfillmentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateInvoiceInput }) =>
+      api.invoices.update(session!.accessToken!, organizationId!, id, data),
+    onSuccess: async () => {
+      await refreshInvoiceQueries();
+    },
+  });
+
   const invoices = data?.data ?? [];
+  const fulfillmentFiltered = fulfillmentFilter !== 'ALL';
 
   async function refreshInvoiceQueries() {
     await Promise.all([
@@ -157,6 +180,40 @@ export default function InvoicesPage() {
         )}
       </div>
 
+      {organizationId && (
+        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
+          <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+            Fulfillment
+            <select
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+              value={fulfillmentFilter}
+              onChange={(event) => setFulfillmentFilter(event.target.value)}
+            >
+              <option value="ALL">All stages</option>
+              <option value="NONE">Not started</option>
+              {FULFILLMENT_STATUSES.map((stage) => (
+                <option key={stage.value} value={stage.value}>
+                  {stage.label}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className="flex flex-col gap-1 text-sm text-muted-foreground">
+            Sort
+            <select
+              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
+              value={fulfillmentSort}
+              onChange={(event) =>
+                setFulfillmentSort(event.target.value as 'newest' | 'fulfillment')
+              }
+            >
+              <option value="newest">Newest</option>
+              <option value="fulfillment">Fulfillment stage</option>
+            </select>
+          </label>
+        </div>
+      )}
+
       {isReady && !organizationId && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12">
@@ -184,7 +241,15 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && (
+      {!isLoading && organizationId && invoices.length === 0 && fulfillmentFiltered && (
+        <Card className="border-dashed">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            No invoices at this fulfillment stage.
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && organizationId && invoices.length === 0 && !fulfillmentFiltered && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -220,11 +285,13 @@ export default function InvoicesPage() {
                       : 'border-border hover:bg-accent/20',
                 )}
               >
-                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="flex flex-col gap-4 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <Link href={`/invoices/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
+                      <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
                       {isPaid ? (
                         <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
                           Paid
@@ -347,6 +414,30 @@ export default function InvoicesPage() {
                       )}
                     </div>
                   </div>
+                  </div>
+                  <FulfillmentControls
+                    idPrefix={invoice.id}
+                    layout="compact"
+                    status={invoice.fulfillmentStatus}
+                    localTrackingNumber={invoice.localTrackingNumber}
+                    internationalTrackingNumber={invoice.internationalTrackingNumber}
+                    saving={
+                      fulfillmentMutation.isPending && fulfillmentMutation.variables?.id === invoice.id
+                    }
+                    error={
+                      fulfillmentMutation.isError && fulfillmentMutation.variables?.id === invoice.id
+                        ? fulfillmentMutation.error instanceof Error
+                          ? fulfillmentMutation.error.message
+                          : 'Could not update fulfillment'
+                        : undefined
+                    }
+                    onStatusChange={(fulfillmentStatus: FulfillmentStatus) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: { fulfillmentStatus } })
+                    }
+                    onTrackingSave={(tracking) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: tracking })
+                    }
+                  />
                 </CardContent>
               </div>
             );

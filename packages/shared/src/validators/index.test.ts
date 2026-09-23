@@ -1,5 +1,11 @@
 import { describe, it, expect } from 'vitest';
-import { createCustomerSchema, createPaymentSchema, inviteMemberSchema, loginSchema } from './index';
+import {
+  createCustomerSchema,
+  createPaymentSchema,
+  inviteMemberSchema,
+  loginSchema,
+  updateInvoiceSchema,
+} from './index';
 
 describe('validators', () => {
   describe('loginSchema', () => {
@@ -33,6 +39,42 @@ describe('validators', () => {
 
     it('rejects a zero payment', () => {
       const result = createPaymentSchema.safeParse({ amount: 0 });
+      expect(result.success).toBe(false);
+    });
+  });
+
+  describe('updateInvoiceSchema fulfillment', () => {
+    it('accepts a fulfillment stage with both tracking numbers', () => {
+      const result = updateInvoiceSchema.safeParse({
+        fulfillmentStatus: 'SHIPPED_INTERNATIONAL',
+        localTrackingNumber: '  SF123456  ',
+        internationalTrackingNumber: 'INT-9988',
+      });
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.data.localTrackingNumber).toBe('SF123456');
+        expect(result.data.internationalTrackingNumber).toBe('INT-9988');
+      }
+    });
+
+    it('rejects an unknown fulfillment stage', () => {
+      const result = updateInvoiceSchema.safeParse({ fulfillmentStatus: 'SHIPPED' });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a tracking number before that ship step', () => {
+      const result = updateInvoiceSchema.safeParse({
+        fulfillmentStatus: 'QC_COMPLETED',
+        localTrackingNumber: 'SF1',
+      });
+      expect(result.success).toBe(false);
+    });
+
+    it('rejects a tracking number longer than 80 characters', () => {
+      const result = updateInvoiceSchema.safeParse({
+        fulfillmentStatus: 'SHIPPED_TO_CHINA_CENTER',
+        localTrackingNumber: 'X'.repeat(81),
+      });
       expect(result.success).toBe(false);
     });
   });

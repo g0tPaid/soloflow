@@ -1,6 +1,7 @@
 import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
+import { FULFILLMENT_STATUS_VALUES } from '@flowbooks/shared';
 
 export class InvoiceItemDto {
   @ApiProperty({ required: false })
@@ -168,6 +169,23 @@ export class UpdateInvoiceDto {
   @IsOptional()
   @IsString()
   shippingToCountry?: string;
+
+  @ApiProperty({ required: false, enum: FULFILLMENT_STATUS_VALUES, nullable: true })
+  @IsOptional()
+  @IsIn(FULFILLMENT_STATUS_VALUES)
+  fulfillmentStatus?: (typeof FULFILLMENT_STATUS_VALUES)[number] | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  localTrackingNumber?: string | null;
+
+  @ApiProperty({ required: false, nullable: true })
+  @IsOptional()
+  @IsString()
+  @MaxLength(80)
+  internationalTrackingNumber?: string | null;
 
   @ApiProperty({ type: [InvoiceItemDto], required: false })
   @IsOptional()

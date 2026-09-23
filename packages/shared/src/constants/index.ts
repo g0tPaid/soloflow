@@ -197,6 +197,32 @@ export const SHIPPING_TERMS = [
 export type ShippingMethod = (typeof SHIPPING_METHODS)[number]['value'];
 export type ShippingTerms = (typeof SHIPPING_TERMS)[number]['value'];
 
+/** Customer-order fulfillment, in the order a merchant advances through them. */
+export const FULFILLMENT_STATUS_VALUES = [
+  'LOCAL_ORDERING_COMPLETED',
+  'QC_COMPLETED',
+  'SHIPPED_TO_CHINA_CENTER',
+  'SHIPPED_INTERNATIONAL',
+  'CUSTOMER_RECEIVED',
+  'ORDER_COMPLETED',
+] as const;
+
+export type FulfillmentStatus = (typeof FULFILLMENT_STATUS_VALUES)[number];
+
+export const FULFILLMENT_STATUSES: { value: FulfillmentStatus; label: string }[] = [
+  { value: 'LOCAL_ORDERING_COMPLETED', label: 'Local ordering completed' },
+  { value: 'QC_COMPLETED', label: 'QC completed' },
+  { value: 'SHIPPED_TO_CHINA_CENTER', label: 'Shipped out to shipping center in China' },
+  { value: 'SHIPPED_INTERNATIONAL', label: 'Went out international' },
+  { value: 'CUSTOMER_RECEIVED', label: 'Customer received' },
+  { value: 'ORDER_COMPLETED', label: 'Order completed' },
+];
+
+/** China / domestic tracking can be saved from this stage onward. */
+export const LOCAL_TRACKING_STATUS: FulfillmentStatus = 'SHIPPED_TO_CHINA_CENTER';
+/** International tracking can be saved from this stage onward. */
+export const INTERNATIONAL_TRACKING_STATUS: FulfillmentStatus = 'SHIPPED_INTERNATIONAL';
+
 export const TENANT_HEADER = 'x-organization-id';
 
 export const ROLES = {
