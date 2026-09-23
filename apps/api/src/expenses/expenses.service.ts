@@ -94,7 +94,7 @@ export class ExpensesService {
       include: {
         customer: true,
         vendor: true,
-        items: { include: { product: true }, orderBy: { id: 'asc' } },
+        items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -183,7 +183,7 @@ export class ExpensesService {
         total,
         totalCost,
         items: {
-          create: lineData.map((row) => ({
+          create: lineData.map((row, index) => ({
             name: row.name,
             description: row.description,
             quantity: row.quantity,
@@ -193,13 +193,14 @@ export class ExpensesService {
             taxRate: row.taxRate,
             amount: row.amount,
             costAmount: row.costAmount,
+            sortOrder: index,
           })),
         },
       },
       include: {
         customer: true,
         vendor: true,
-        items: { include: { product: true }, orderBy: { id: 'asc' } },
+        items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
       },
     });
 
@@ -315,7 +316,7 @@ export class ExpensesService {
         include: {
           customer: true,
           vendor: true,
-          items: { include: { product: true }, orderBy: { id: 'asc' } },
+          items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
         },
       });
 

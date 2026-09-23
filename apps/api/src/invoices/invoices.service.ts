@@ -90,7 +90,7 @@ export class InvoicesService {
 
         include: {
           customer: { select: { id: true, name: true } },
-          items: true,
+          items: { orderBy: { sortOrder: 'asc' } },
           payments: { orderBy: { paidAt: 'asc' } },
         },
 
@@ -128,7 +128,7 @@ export class InvoicesService {
 
       where: { id, organizationId },
 
-      include: { customer: true, items: { include: { product: true } }, payments: { orderBy: { paidAt: 'asc' } } },
+      include: { customer: true, items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, payments: { orderBy: { paidAt: 'asc' } } },
 
     });
 
@@ -226,7 +226,7 @@ export class InvoicesService {
             taxAmount,
             total,
             items: {
-              create: dto.items.map((item) => {
+              create: dto.items.map((item, index) => {
                 const name = item.name?.trim() || null;
                 const description = item.description?.trim() || name || 'Item';
 
@@ -241,11 +241,12 @@ export class InvoicesService {
                   unitPrice: item.unitPrice,
                   taxRate: 0,
                   amount: item.quantity * item.unitPrice,
+                  sortOrder: index,
                 };
               }),
             },
           },
-          include: { items: { include: { product: true } }, customer: true },
+          include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
         });
 
 
@@ -396,7 +397,7 @@ export class InvoicesService {
 
       updateData.items = {
         deleteMany: {},
-        create: dto.items.map((item) => {
+        create: dto.items.map((item, index) => {
           const name = item.name?.trim() || null;
           const description = item.description?.trim() || name || 'Item';
 
@@ -411,6 +412,7 @@ export class InvoicesService {
             unitPrice: item.unitPrice,
             taxRate: 0,
             amount: item.quantity * item.unitPrice,
+            sortOrder: index,
           };
         }),
       };
@@ -419,7 +421,7 @@ export class InvoicesService {
 
 
     const invoiceInclude = {
-      items: { include: { product: true as const } },
+      items: { include: { product: true as const }, orderBy: { sortOrder: 'asc' as const } },
       customer: true,
       payments: { orderBy: { paidAt: 'asc' as const } },
     };
@@ -509,7 +511,7 @@ export class InvoicesService {
         where: { id },
         data: { amountPaid: nextPaid, status: nextStatus },
         include: {
-          items: { include: { product: true } },
+          items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
           customer: true,
           payments: { orderBy: { paidAt: 'asc' } },
         },
@@ -546,7 +548,7 @@ export class InvoicesService {
       ? `${invoice.notes}\n\n${noteSuffix}`
       : noteSuffix;
 
-    const quoteItemCreates = invoice.items.map((item) => ({
+    const quoteItemCreates = invoice.items.map((item, index) => ({
       productId: item.productId,
       name: item.name,
       description: item.description,
@@ -555,6 +557,7 @@ export class InvoicesService {
       unitPrice: item.unitPrice,
       taxRate: item.taxRate,
       amount: item.amount,
+      sortOrder: index,
     }));
 
     const quote = await this.prisma.$transaction(async (tx) => {
@@ -624,7 +627,7 @@ export class InvoicesService {
             total: invoice.total,
             items: { create: quoteItemCreates },
           },
-          include: { items: { include: { product: true } }, customer: true },
+          include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
         });
       } else {
         if (sourceQuotes.length > 1) {
@@ -657,7 +660,7 @@ export class InvoicesService {
             total: invoice.total,
             items: { create: quoteItemCreates },
           },
-          include: { items: { include: { product: true } }, customer: true },
+          include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
         });
 
         await tx.organizationSettings.upsert({

@@ -437,11 +437,14 @@ model InvoiceItem {
   taxRate     Decimal @default(0) @db.Decimal(5, 4)
   amount      Decimal @default(0) @db.Decimal(12, 2)
   costAmount  Decimal @default(0) @db.Decimal(12, 2)
+  /// Position in the invoice editor, PDF, and quote conversion (0 = first).
+  sortOrder   Int     @default(0)
 
   invoice Invoice  @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id])
 
   @@index([invoiceId])
+  @@index([invoiceId, sortOrder])
   @@map("invoice_items")
 }
 
@@ -524,11 +527,14 @@ model QuoteItem {
   unitPrice   Decimal @default(0) @db.Decimal(12, 2)
   taxRate     Decimal @default(0) @db.Decimal(5, 4)
   amount      Decimal @default(0) @db.Decimal(12, 2)
+  /// Position in the quote editor, PDF, and invoice conversion (0 = first).
+  sortOrder   Int     @default(0)
 
   quote   Quote    @relation(fields: [quoteId], references: [id], onDelete: Cascade)
   product Product? @relation(fields: [productId], references: [id])
 
   @@index([quoteId])
+  @@index([quoteId, sortOrder])
   @@map("quote_items")
 }
 

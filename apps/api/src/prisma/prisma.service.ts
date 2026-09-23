@@ -220,6 +220,45 @@ const REQUIRED_SCHEMA_STATEMENTS = [
     ALTER TABLE "organization_invites" ADD CONSTRAINT "organization_invites_invitedById_fkey"
       FOREIGN KEY ("invitedById") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "quote_items" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`,
+  `CREATE INDEX IF NOT EXISTS "invoice_items_invoiceId_sortOrder_idx" ON "invoice_items"("invoiceId", "sortOrder")`,
+  `CREATE INDEX IF NOT EXISTS "quote_items_quoteId_sortOrder_idx" ON "quote_items"("quoteId", "sortOrder")`,
+  // Only documents whose lines are all still 0. A later save (0, 1, 2, …) must not be rewritten on the next boot.
+  `WITH ranked AS (
+    SELECT
+      i."id",
+      ROW_NUMBER() OVER (PARTITION BY i."invoiceId" ORDER BY i."id") - 1 AS "ord"
+    FROM "invoice_items" i
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM "invoice_items" other
+      WHERE other."invoiceId" = i."invoiceId"
+        AND other."sortOrder" <> 0
+    )
+  )
+  UPDATE "invoice_items" AS items
+  SET "sortOrder" = ranked."ord"
+  FROM ranked
+  WHERE items."id" = ranked."id"
+    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
+  `WITH ranked AS (
+    SELECT
+      q."id",
+      ROW_NUMBER() OVER (PARTITION BY q."quoteId" ORDER BY q."id") - 1 AS "ord"
+    FROM "quote_items" q
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM "quote_items" other
+      WHERE other."quoteId" = q."quoteId"
+        AND other."sortOrder" <> 0
+    )
+  )
+  UPDATE "quote_items" AS items
+  SET "sortOrder" = ranked."ord"
+  FROM ranked
+  WHERE items."id" = ranked."id"
+    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
   `DO $$ BEGIN
     CREATE TYPE "FulfillmentStatus" AS ENUM (
       'LOCAL_ORDERING_COMPLETED',
