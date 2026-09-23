@@ -31,6 +31,7 @@ import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ModuleBackLink, MobileModuleBackBar } from '@/components/layout/module-back-nav';
+import { GlobalSearch } from '@/components/layout/global-search';
 import { useSession } from 'next-auth/react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -181,16 +182,15 @@ export function TopBar() {
   const pathname = usePathname();
   const isHome = pathname === '/dashboard';
 
-  if (isHome) {
-    return (
-      <header className="sticky top-0 z-30 min-h-[max(0.75rem,env(safe-area-inset-top))] bg-background lg:ml-60 lg:min-h-14 lg:border-b" />
-    );
-  }
-
   return (
-    <header className="sticky top-0 z-30 flex min-h-14 items-center gap-2 border-b bg-background/95 backdrop-blur px-3 pt-[env(safe-area-inset-top)] lg:px-6 lg:ml-60 lg:pt-0">
-      <div className="lg:hidden">
-        <ModuleBackLink />
+    <header className="sticky top-0 z-50 border-b bg-background/95 backdrop-blur">
+      <div className="flex min-h-14 items-center gap-2 px-3 py-2 pt-[max(0.5rem,env(safe-area-inset-top))] lg:px-6 lg:pt-2">
+        {!isHome ? (
+          <div className="shrink-0 lg:hidden">
+            <ModuleBackLink showLabel={false} />
+          </div>
+        ) : null}
+        <GlobalSearch />
       </div>
     </header>
   );

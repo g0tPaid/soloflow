@@ -134,6 +134,32 @@ export interface PaginatedResult<T> {
   pagination: PaginationMeta;
 }
 
+export interface WorkspaceSearchCustomer {
+  id: string;
+  name: string;
+  email?: string | null;
+  phone?: string | null;
+  subtitle: string;
+  href: string;
+}
+
+export interface WorkspaceSearchInvoice {
+  id: string;
+  number: string;
+  status: string;
+  customerName?: string | null;
+  total: number;
+  currency: string;
+  subtitle: string;
+  href: string;
+}
+
+export interface WorkspaceSearchResponse {
+  query: string;
+  customers: WorkspaceSearchCustomer[];
+  invoices: WorkspaceSearchInvoice[];
+}
+
 export interface Customer {
   id: string;
   name: string;
@@ -673,6 +699,13 @@ export const api = {
         `/invites/${inviteToken}/accept`,
         { method: 'POST', token: accessToken },
       ),
+  },
+  search: {
+    query: (token: string, organizationId: string, q: string) =>
+      apiFetch<WorkspaceSearchResponse>(`/search?q=${encodeURIComponent(q)}`, {
+        token,
+        organizationId,
+      }),
   },
   dashboard: {
     metrics: (token: string, organizationId: string) =>
