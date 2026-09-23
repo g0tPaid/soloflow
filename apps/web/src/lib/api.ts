@@ -101,7 +101,7 @@ export async function apiFetch<T>(endpoint: string, options: FetchOptions = {}):
 
   let res: Response;
   try {
-    res = await fetch(`${resolveApiBaseUrl()}${endpoint}`, { headers, ...rest });
+    res = await fetch(`${resolveApiBaseUrl()}${endpoint}`, { ...rest, headers, cache: 'no-store' });
   } catch (err) {
     const cause = err instanceof Error ? err.message : undefined;
     throw new Error(connectionHelpMessage(cause));
