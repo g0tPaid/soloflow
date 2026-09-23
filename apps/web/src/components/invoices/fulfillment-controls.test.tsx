@@ -36,6 +36,45 @@ describe('FulfillmentControls', () => {
     expect(onStatusChange).toHaveBeenCalledWith('QC_COMPLETED');
   });
 
+  it('turns the active stage off and still selects a different stage', () => {
+    const { onStatusChange } = renderControls('LOCAL_ORDERING_COMPLETED');
+    fireEvent.click(screen.getByRole('button', { name: '1. Local ordering completed' }));
+    expect(onStatusChange).toHaveBeenCalledWith(null);
+    fireEvent.click(
+      screen.getByRole('button', { name: '3. Shipped out to shipping center in China' }),
+    );
+    expect(onStatusChange).toHaveBeenCalledWith('SHIPPED_TO_CHINA_CENTER');
+  });
+
+  it('shows fulfillment history with on and off timestamps', () => {
+    render(
+      <FulfillmentControls
+        idPrefix="inv1"
+        status="QC_COMPLETED"
+        history={[
+          {
+            id: 'b',
+            status: 'QC_COMPLETED',
+            action: 'ON',
+            createdAt: '2026-09-23T12:05:00.000Z',
+          },
+          {
+            id: 'a',
+            status: 'LOCAL_ORDERING_COMPLETED',
+            action: 'OFF',
+            createdAt: '2026-09-23T12:05:00.000Z',
+          },
+        ]}
+        timeZone="UTC"
+        onStatusChange={vi.fn()}
+        onTrackingSave={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText(/Fulfillment history/));
+    expect(screen.getByText(/2\. QC completed turned on/)).toHaveTextContent(/UTC/);
+    expect(screen.getByText(/1\. Local ordering completed turned off/)).toBeInTheDocument();
+  });
+
   it('marks the current stage and keeps tracking locked until shipping starts', () => {
     renderControls('QC_COMPLETED');
     expect(screen.getByRole('button', { name: '2. QC completed' })).toHaveAttribute(

@@ -10,12 +10,20 @@ import {
 describe('invoice list filters', () => {
   it('shows the guide chips in the order from the invoices page', () => {
     expect(INVOICE_LIST_FILTERS.map((filter) => filter.label)).toEqual([
+      'All',
       'Waiting for payment',
       'Paid',
       'Canceled',
       'On the way',
       'Order complete/received',
     ]);
+  });
+
+  it('treats All as no status filter', () => {
+    expect(invoiceListFilterCriteria('all')).toEqual({});
+    expect(invoiceMatchesListFilter({ status: 'PAID', fulfillmentStatus: 'ORDER_COMPLETED' }, 'all')).toBe(true);
+    expect(invoiceMatchesListFilter({ status: 'CANCELLED', fulfillmentStatus: null }, 'all')).toBe(true);
+    expect(invoiceMatchesListFilter({ status: 'SENT' }, 'all')).toBe(true);
   });
 
   it('maps payment chips onto invoice payment status', () => {

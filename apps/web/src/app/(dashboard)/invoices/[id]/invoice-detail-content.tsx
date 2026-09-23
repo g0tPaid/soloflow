@@ -24,7 +24,6 @@ import {
   invoiceBalanceDue,
   isReceiptEligible,
   paymentMethodLabel,
-  type FulfillmentStatus,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
@@ -35,7 +34,8 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();
-  const { organizationId, businessCurrency, isReady } = useOrganizationId();
+  const { organizationId, organization, businessCurrency, isReady } = useOrganizationId();
+  const timeZone = organization?.settings?.timezone;
   const queryClient = useQueryClient();
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState('');
@@ -290,7 +290,9 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                       : 'Could not update fulfillment'
                     : undefined
                 }
-                onStatusChange={(fulfillmentStatus: FulfillmentStatus) =>
+                history={invoice.fulfillmentEvents}
+                timeZone={timeZone}
+                onStatusChange={(fulfillmentStatus) =>
                   fulfillmentMutation.mutate({ fulfillmentStatus })
                 }
                 onTrackingSave={(tracking) => fulfillmentMutation.mutate(tracking)}

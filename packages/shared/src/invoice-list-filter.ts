@@ -5,6 +5,7 @@ import { FULFILLMENT_STATUS_VALUES, type FulfillmentStatus } from './constants';
  * Delivery chips group the six fulfillment stages: still moving vs received/done.
  */
 export const INVOICE_LIST_FILTERS = [
+  { id: 'all', label: 'All' },
   { id: 'waiting_for_payment', label: 'Waiting for payment' },
   { id: 'paid', label: 'Paid' },
   { id: 'canceled', label: 'Canceled' },
@@ -37,6 +38,8 @@ export function invoiceListFilterCriteria(filter: InvoiceListFilter): {
   fulfillmentStatuses?: readonly FulfillmentStatus[];
 } {
   switch (filter) {
+    case 'all':
+      return {};
     case 'waiting_for_payment':
       return { paymentStatuses: WAITING_FOR_PAYMENT_STATUSES };
     case 'paid':
@@ -54,6 +57,7 @@ export function invoiceMatchesListFilter(
   invoice: { status?: string | null; fulfillmentStatus?: string | null },
   filter: InvoiceListFilter,
 ): boolean {
+  if (filter === 'all') return true;
   const criteria = invoiceListFilterCriteria(filter);
   if (criteria.paymentStatuses) return criteria.paymentStatuses.includes(invoice.status ?? '');
   if (criteria.fulfillmentStatuses) {

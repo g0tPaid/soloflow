@@ -103,6 +103,7 @@ model Organization {
   vendors           Vendor[]
   products          Product[]
   invoices          Invoice[]
+  invoiceFulfillmentEvents InvoiceFulfillmentEvent[]
   quotes            Quote[]
   auditLogs         AuditLog[]
   customFieldDefs   CustomFieldDefinition[]
@@ -365,6 +366,11 @@ enum FulfillmentStatus {
   ORDER_COMPLETED
 }
 
+enum FulfillmentHistoryAction {
+  ON
+  OFF
+}
+
 model Invoice {
   id                  String           @id @default(cuid())
   organizationId      String
@@ -410,9 +416,10 @@ model Invoice {
   organization Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   customer     Customer?     @relation(fields: [customerId], references: [id])
   vendor       Vendor?       @relation(fields: [vendorId], references: [id])
-  items        InvoiceItem[]
-  payments     Payment[]
-  sourceQuotes Quote[]       @relation("QuoteConvertedInvoice")
+  items             InvoiceItem[]
+  payments          Payment[]
+  fulfillmentEvents InvoiceFulfillmentEvent[]
+  sourceQuotes      Quote[]       @relation("QuoteConvertedInvoice")
 
   @@unique([organizationId, number])
   @@index([organizationId])
@@ -421,6 +428,24 @@ model Invoice {
   @@index([organizationId, vendorId])
   @@index([organizationId, fulfillmentStatus])
   @@map("invoices")
+}
+
+/// One row each time a fulfillment stage is turned on or off.
+model InvoiceFulfillmentEvent {
+  id             String                   @id @default(cuid())
+  organizationId String
+  invoiceId      String
+  status         FulfillmentStatus
+  action         FulfillmentHistoryAction
+  createdAt      DateTime                 @default(now())
+  updatedAt      DateTime                 @updatedAt
+
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  invoice      Invoice      @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId, createdAt])
+  @@index([organizationId])
+  @@map("invoice_fulfillment_events")
 }
 
 model InvoiceItem {

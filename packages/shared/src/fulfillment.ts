@@ -10,6 +10,39 @@ export function isFulfillmentStatus(value: string): value is FulfillmentStatus {
   return (FULFILLMENT_STATUS_VALUES as readonly string[]).includes(value);
 }
 
+export const FULFILLMENT_HISTORY_ACTIONS = ['ON', 'OFF'] as const;
+export type FulfillmentHistoryAction = (typeof FULFILLMENT_HISTORY_ACTIONS)[number];
+
+export type FulfillmentPress = {
+  status: FulfillmentStatus;
+  action: FulfillmentHistoryAction;
+};
+
+/** Clicking the active stage clears it. Clicking any other stage selects it. */
+export function nextFulfillmentSelection(
+  current: string | null | undefined,
+  clicked: FulfillmentStatus,
+): FulfillmentStatus | null {
+  return current === clicked ? null : clicked;
+}
+
+/**
+ * Log of stage changes. Selecting a different stage turns the previous one off
+ * and the clicked one on. Clicking the active stage only turns it off.
+ */
+export function fulfillmentPressEvents(
+  previous: string | null | undefined,
+  next: string | null | undefined,
+): FulfillmentPress[] {
+  const prev = previous && isFulfillmentStatus(previous) ? previous : null;
+  const nxt = next && isFulfillmentStatus(next) ? next : null;
+  if (prev === nxt) return [];
+  const events: FulfillmentPress[] = [];
+  if (prev) events.push({ status: prev, action: 'OFF' });
+  if (nxt) events.push({ status: nxt, action: 'ON' });
+  return events;
+}
+
 /** -1 when fulfillment has not started. Otherwise the zero-based stage index. */
 export function fulfillmentRank(status: string | null | undefined): number {
   if (!status) return -1;
@@ -34,6 +67,40 @@ export function canEditInternationalTracking(status: string | null | undefined):
 export function normalizeTrackingNumber(value: string | null | undefined): string | null {
   const trimmed = value?.trim() ?? '';
   return trimmed.length > 0 ? trimmed : null;
+}
+
+export function formatFulfillmentHistoryTimestamp(
+  value: string | Date,
+  timeZone?: string | null,
+): string {
+  const date = value instanceof Date ? value : new Date(value);
+  if (Number.isNaN(date.getTime())) return 'Unknown time';
+  const zone = timeZone?.trim() || 'UTC';
+  const formatIn = (zoneName: string) =>
+    new Intl.DateTimeFormat('en-GB', {
+      day: 'numeric',
+      month: 'short',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+      timeZone: zoneName,
+      timeZoneName: 'short',
+    }).format(date);
+  try {
+    return formatIn(zone);
+  } catch {
+    return formatIn('UTC');
+  }
+}
+
+export function formatFulfillmentHistoryLine(
+  event: { status: string; action: FulfillmentHistoryAction; createdAt: string | Date },
+  timeZone?: string | null,
+): string {
+  const index = isFulfillmentStatus(event.status) ? FULFILLMENT_STATUS_VALUES.indexOf(event.status) : -1;
+  const prefix = index >= 0 ? `${index + 1}. ` : '';
+  const verb = event.action === 'ON' ? 'turned on' : 'turned off';
+  return `${prefix}${fulfillmentStatusLabel(event.status)} ${verb} · ${formatFulfillmentHistoryTimestamp(event.createdAt, timeZone)}`;
 }
 
 /**

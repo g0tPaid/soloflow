@@ -7,6 +7,7 @@ import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invo
 import { FulfillmentStatus, InvoiceStatus, PaymentMethod, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
 import {
   FULFILLMENT_STATUS_VALUES,
+  fulfillmentPressEvents,
   fulfillmentTrackingError,
   invoiceBalanceDue,
   invoiceListFilterCriteria,
@@ -17,6 +18,10 @@ import {
 } from '@flowbooks/shared';
 
 import { normalizePagination } from '../common/pagination';
+
+const fulfillmentEventsInclude = {
+  orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
+};
 
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -92,6 +97,7 @@ export class InvoicesService {
           customer: { select: { id: true, name: true } },
           items: { orderBy: { sortOrder: 'asc' } },
           payments: { orderBy: { paidAt: 'asc' } },
+          fulfillmentEvents: fulfillmentEventsInclude,
         },
 
       }),
@@ -128,7 +134,12 @@ export class InvoicesService {
 
       where: { id, organizationId },
 
-      include: { customer: true, items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, payments: { orderBy: { paidAt: 'asc' } } },
+      include: {
+        customer: true,
+        items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
+        payments: { orderBy: { paidAt: 'asc' } },
+        fulfillmentEvents: fulfillmentEventsInclude,
+      },
 
     });
 
@@ -368,6 +379,16 @@ export class InvoicesService {
 
     if (dto.fulfillmentStatus !== undefined) {
       updateData.fulfillmentStatus = dto.fulfillmentStatus;
+      const presses = fulfillmentPressEvents(existing.fulfillmentStatus, dto.fulfillmentStatus);
+      if (presses.length > 0) {
+        updateData.fulfillmentEvents = {
+          create: presses.map((press) => ({
+            organization: { connect: { id: organizationId } },
+            status: press.status,
+            action: press.action,
+          })),
+        };
+      }
     }
     if (dto.localTrackingNumber !== undefined) {
       updateData.localTrackingNumber = normalizeTrackingNumber(dto.localTrackingNumber);
@@ -424,6 +445,7 @@ export class InvoicesService {
       items: { include: { product: true as const }, orderBy: { sortOrder: 'asc' as const } },
       customer: true,
       payments: { orderBy: { paidAt: 'asc' as const } },
+      fulfillmentEvents: fulfillmentEventsInclude,
     };
 
     if (markingPaid) {

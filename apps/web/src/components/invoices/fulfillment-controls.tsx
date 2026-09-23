@@ -1,13 +1,17 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import {
   FULFILLMENT_STATUSES,
   canEditInternationalTracking,
   canEditLocalTracking,
+  formatFulfillmentHistoryLine,
   fulfillmentRank,
   fulfillmentStatusLabel,
+  nextFulfillmentSelection,
   normalizeTrackingNumber,
+  type FulfillmentHistoryAction,
   type FulfillmentStatus,
 } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
@@ -20,18 +24,72 @@ type TrackingSave = {
   internationalTrackingNumber?: string | null;
 };
 
+export type FulfillmentHistoryEntry = {
+  id: string;
+  status: string;
+  action: FulfillmentHistoryAction;
+  createdAt: string;
+};
+
 type Props = {
   idPrefix: string;
   status?: FulfillmentStatus | null;
   localTrackingNumber?: string | null;
   internationalTrackingNumber?: string | null;
+  history?: FulfillmentHistoryEntry[];
+  timeZone?: string | null;
   disabled?: boolean;
   saving?: boolean;
   error?: string;
   layout?: 'full' | 'compact';
-  onStatusChange: (status: FulfillmentStatus) => void;
+  onStatusChange: (status: FulfillmentStatus | null) => void;
   onTrackingSave: (tracking: TrackingSave) => void;
 };
+
+function sortedHistory(history: FulfillmentHistoryEntry[] | undefined) {
+  return [...(history ?? [])].sort((a, b) => {
+    const time = new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
+    if (time !== 0) return time;
+    return b.id.localeCompare(a.id);
+  });
+}
+
+export function FulfillmentHistoryList({
+  history,
+  timeZone,
+  hideWhenEmpty = false,
+  className,
+}: {
+  history?: FulfillmentHistoryEntry[];
+  timeZone?: string | null;
+  hideWhenEmpty?: boolean;
+  className?: string;
+}) {
+  const events = sortedHistory(history);
+  if (hideWhenEmpty && events.length === 0) return null;
+  return (
+    <details className={cn('group rounded-lg border bg-muted/30 px-3 py-2', className)}>
+      <summary className="cursor-pointer list-none text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
+        <span className="inline-flex items-center gap-1">
+          <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition group-open:rotate-90" />
+          Fulfillment history
+          <span className="tabular-nums text-muted-foreground">({events.length})</span>
+        </span>
+      </summary>
+      {events.length === 0 ? (
+        <p className="mt-2 text-sm text-muted-foreground">No stage changes yet.</p>
+      ) : (
+        <ol className="mt-2 space-y-1.5">
+          {events.map((event) => (
+            <li key={event.id} className="text-sm text-muted-foreground">
+              {formatFulfillmentHistoryLine(event, timeZone)}
+            </li>
+          ))}
+        </ol>
+      )}
+    </details>
+  );
+}
 
 export function FulfillmentStatusBadge({ status }: { status?: FulfillmentStatus | null }) {
   const started = Boolean(status);
@@ -58,6 +116,8 @@ export function FulfillmentControls({
   saving = false,
   error,
   layout = 'full',
+  history,
+  timeZone,
   onStatusChange,
   onTrackingSave,
 }: Props) {
@@ -119,9 +179,7 @@ export function FulfillmentControls({
               type="button"
               aria-pressed={isCurrent}
               disabled={disabled || saving}
-              onClick={() => {
-                if (!isCurrent) onStatusChange(stage.value);
-              }}
+              onClick={() => onStatusChange(nextFulfillmentSelection(status, stage.value))}
               className={cn(
                 'inline-flex items-center rounded-lg border px-3 py-2 text-left text-xs font-medium transition sm:text-sm',
                 isCurrent
@@ -181,6 +239,8 @@ export function FulfillmentControls({
       )}
 
       {error && <p className="text-sm text-destructive">{error}</p>}
+
+      <FulfillmentHistoryList history={history} timeZone={timeZone} />
     </div>
   );
 }
