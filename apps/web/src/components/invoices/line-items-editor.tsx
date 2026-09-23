@@ -1,6 +1,6 @@
 'use client';
 
-import { Plus, Trash2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Plus, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -69,6 +69,15 @@ export function LineItemsEditor({
 
   function removeLine(index: number) {
     onChange(items.filter((_, i) => i !== index));
+  }
+
+  function moveLine(index: number, direction: -1 | 1) {
+    const target = index + direction;
+    if (target < 0 || target >= items.length) return;
+    const next = [...items];
+    const [row] = next.splice(index, 1);
+    next.splice(target, 0, row);
+    onChange(next);
   }
 
   function pickProduct(index: number, productId: string) {
@@ -206,7 +215,31 @@ export function LineItemsEditor({
           </div>
 
           {items.length > 1 && (
-            <div className="flex justify-end">
+            <div className="flex items-center justify-between gap-2">
+              <div className="flex gap-1">
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Move item ${index + 1} up`}
+                  disabled={index === 0}
+                  onClick={() => moveLine(index, -1)}
+                >
+                  <ChevronUp className="h-4 w-4" />
+                  Up
+                </Button>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  aria-label={`Move item ${index + 1} down`}
+                  disabled={index === items.length - 1}
+                  onClick={() => moveLine(index, 1)}
+                >
+                  <ChevronDown className="h-4 w-4" />
+                  Down
+                </Button>
+              </div>
               <Button type="button" variant="ghost" size="sm" onClick={() => removeLine(index)}>
                 <Trash2 className="h-4 w-4" />
                 Remove

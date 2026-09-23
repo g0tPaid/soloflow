@@ -509,7 +509,7 @@ export class AdminService {
               members: { take: 1, include: { user: { select: { id: true, name: true, email: true } } } },
             },
           },
-          items: { take: 1, select: { imageUrl: true } },
+          items: { take: 1, orderBy: { sortOrder: 'asc' }, select: { imageUrl: true } },
         },
       }),
       this.prisma.invoice.count({ where }),
