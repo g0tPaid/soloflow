@@ -1,0 +1,118 @@
+<section style="padding: 64px 0 96px;">
+  <div class="pt-container">
+    <p class="pt-eyebrow">{{ section.settings.eyebrow }}</p>
+    <h1 class="pt-serif" style="margin: 12px 0 8px; font-size: clamp(44px, 7vw, 72px);">{{ section.settings.heading }}</h1>
+    <p style="max-width: 560px; color: var(--pt-muted); line-height: 1.7;">{{ section.settings.text }}</p>
+
+    {% if cart.item_count == 0 %}
+      <div style="margin-top: 48px; border-top: 1px solid var(--pt-border); padding-top: 40px;">
+        <p style="color: var(--pt-muted); line-height: 1.7;">{{ section.settings.empty_text }}</p>
+        {% if section.settings.empty_button_label != blank %}
+          <a class="pt-button" href="{{ section.settings.empty_button_url | default: routes.all_products_collection_url }}" style="margin-top: 24px;">
+            {{ section.settings.empty_button_label }}
+          </a>
+        {% endif %}
+      </div>
+    {% else %}
+      <form action="{{ routes.cart_url }}" method="post" style="margin-top: 48px;">
+        <div style="display: grid; gap: 0; border-top: 1px solid var(--pt-border);">
+          {% for item in cart.items %}
+            <div style="display: grid; gap: 20px; grid-template-columns: 96px 1fr auto; align-items: start; padding: 28px 0; border-bottom: 1px solid var(--pt-border);">
+              <a href="{{ item.url }}" style="display: block; aspect-ratio: 1; overflow: hidden; background: var(--pt-card);">
+                {% if item.image %}
+                  {{ item.image | image_url: width: 200 | image_tag: loading: 'lazy' }}
+                {% endif %}
+              </a>
+              <div>
+                <a href="{{ item.url }}">
+                  <h2 class="pt-serif" style="margin: 0; font-size: 28px; line-height: 1.1;">{{ item.product.title }}</h2>
+                </a>
+                {% unless item.product.has_only_default_variant %}
+                  <p style="margin-top: 8px; color: var(--pt-muted); font-size: 14px;">{{ item.variant.title }}</p>
+                {% endunless %}
+                <label style="display: inline-flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 13px; color: var(--pt-muted);">
+                  Qty
+                  <input
+                    type="number"
+                    name="updates[]"
+                    value="{{ item.quantity }}"
+                    min="0"
+                    style="width: 64px; min-height: 40px; padding: 0 10px; border: 1px solid var(--pt-border); background: var(--pt-card); color: var(--pt-text);"
+                  >
+                </label>
+                <p style="margin-top: 12px;">
+                  <a href="{{ item.url_to_remove }}" style="font-size: 13px; color: var(--pt-muted); text-decoration: underline;">Remove</a>
+                </p>
+              </div>
+              <p style="font-weight: 600; white-space: nowrap;">{{ item.final_line_price | money }}</p>
+            </div>
+          {% endfor %}
+        </div>
+
+        <div style="display: flex; flex-wrap: wrap; gap: 16px; justify-content: space-between; align-items: end; margin-top: 32px;">
+          <button class="pt-button pt-button--secondary" type="submit" name="update">{{ section.settings.update_label }}</button>
+          <div style="text-align: right;">
+            <p class="pt-eyebrow">Subtotal</p>
+            <p class="pt-serif" style="margin: 8px 0 20px; font-size: 40px;">{{ cart.total_price | money }}</p>
+            <button class="pt-button" type="submit" name="checkout">{{ section.settings.checkout_label }}</button>
+          </div>
+        </div>
+      </form>
+    {% endif %}
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Cart",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "Cart"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "Review what earns its place"
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Only keep what you intend to own for years."
+    },
+    {
+      "type": "textarea",
+      "id": "empty_text",
+      "label": "Empty cart text",
+      "default": "Your cart is empty. Explore the collection for products built to last."
+    },
+    {
+      "type": "text",
+      "id": "empty_button_label",
+      "label": "Empty cart button",
+      "default": "Explore Collection"
+    },
+    {
+      "type": "url",
+      "id": "empty_button_url",
+      "label": "Empty cart button URL"
+    },
+    {
+      "type": "text",
+      "id": "update_label",
+      "label": "Update button",
+      "default": "Update cart"
+    },
+    {
+      "type": "text",
+      "id": "checkout_label",
+      "label": "Checkout button",
+      "default": "Checkout"
+    }
+  ]
+}
+{% endschema %}

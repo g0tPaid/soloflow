@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "article_story": {
+      "type": "journal",
+      "settings": {
+        "heading": "Article"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["article_story", "newsletter"]
+}

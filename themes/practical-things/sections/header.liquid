@@ -1,0 +1,29 @@
+<header class="pt-rule" style="position: sticky; top: 0; z-index: 20; background: var(--pt-background);">
+  <div class="pt-container" style="display: flex; min-height: 72px; align-items: center; justify-content: space-between; gap: 24px;">
+    <nav style="display: flex; gap: 24px; font-size: 12px; letter-spacing: .16em; text-transform: uppercase;">
+      {% for link in section.settings.menu.links %}
+        <a href="{{ link.url }}">{{ link.title }}</a>
+      {% else %}
+        <a href="/collections/all">Shop</a>
+        <a href="/pages/philosophy">Philosophy</a>
+        <a href="/blogs/journal">Journal</a>
+      {% endfor %}
+    </nav>
+    <a href="{{ routes.root_url }}" class="pt-serif" style="font-size: 28px;">{{ shop.name }}</a>
+    <a href="{{ routes.cart_url }}" aria-label="{{ 'sections.header.cart' | t }}">Cart ({{ cart.item_count }})</a>
+  </div>
+</header>
+
+{% schema %}
+{
+  "name": "Header",
+  "settings": [
+    {
+      "type": "link_list",
+      "id": "menu",
+      "label": "Menu",
+      "default": "main-menu"
+    }
+  ]
+}
+{% endschema %}

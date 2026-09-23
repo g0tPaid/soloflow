@@ -10,9 +10,10 @@ import { SearchDialog } from '@/components/search/search-dialog';
 
 const nav = [
   { href: '/shop', label: 'Shop' },
+  { href: '/philosophy', label: 'Philosophy' },
+  { href: '/guides', label: 'Guides' },
+  { href: '/community', label: 'Community' },
   { href: '/journal', label: 'Journal' },
-  { href: '/about', label: 'About' },
-  { href: '/contact', label: 'Contact' },
 ];
 
 export function SiteHeader() {
@@ -57,7 +58,7 @@ export function SiteHeader() {
             <Menu className="h-5 w-5" />
           </button>
 
-          <nav className="hidden items-center gap-8 md:flex">
+          <nav className="hidden items-center gap-5 lg:gap-8 md:flex">
             {nav.map((item) => (
               <Link
                 key={item.href}

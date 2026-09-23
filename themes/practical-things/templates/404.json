@@ -1,0 +1,16 @@
+{
+  "sections": {
+    "not_found": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "404",
+        "heading": "This page could not be repaired.",
+        "text": "Return to the shop or keep reading about things worth owning."
+      }
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["not_found", "newsletter"]
+}
