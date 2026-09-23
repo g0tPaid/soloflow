@@ -6,7 +6,8 @@ import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileInput, Pencil, Banknote } from 'lucide-react';
-import { api } from '@/lib/api';
+import { api, type Invoice } from '@/lib/api';
+import { applyFulfillmentStatus, fulfillmentStatusPatch } from '@/lib/fulfillment-cache';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
@@ -44,7 +45,21 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const fulfillmentMutation = useMutation({
     mutationFn: (data: UpdateInvoiceInput) =>
       api.invoices.update(session!.accessToken!, organizationId!, id, data),
-    onSuccess: async () => {
+    onMutate: async (data) => {
+      const fulfillmentStatus = fulfillmentStatusPatch(data);
+      if (fulfillmentStatus === undefined || !organizationId) return;
+      const detailKey = ['invoice', id, organizationId] as const;
+      await queryClient.cancelQueries({ queryKey: detailKey });
+      const previous = queryClient.getQueryData<Invoice>(detailKey);
+      queryClient.setQueryData<Invoice>(detailKey, (current) =>
+        current ? applyFulfillmentStatus(current, fulfillmentStatus) : current,
+      );
+      return { previous, detailKey };
+    },
+    onError: (_error, _variables, context) => {
+      if (context?.detailKey) queryClient.setQueryData(context.detailKey, context.previous);
+    },
+    onSettled: async () => {
       await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
       await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
     },

@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
 import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
+import { applyFulfillmentStatusToPage, fulfillmentStatusPatch } from '@/lib/fulfillment-cache';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
@@ -140,7 +141,26 @@ export default function InvoicesPage() {
   const fulfillmentMutation = useMutation({
     mutationFn: ({ id, data }: { id: string; data: UpdateInvoiceInput }) =>
       api.invoices.update(session!.accessToken!, organizationId!, id, data),
-    onSuccess: async () => {
+    onMutate: async ({ id, data }) => {
+      const fulfillmentStatus = fulfillmentStatusPatch(data);
+      if (fulfillmentStatus === undefined || !organizationId) return;
+      await queryClient.cancelQueries({ queryKey: ['invoices', organizationId] });
+      const previous = queryClient.getQueriesData({ queryKey: ['invoices', organizationId] });
+      queryClient.setQueriesData({ queryKey: ['invoices', organizationId] }, (current) =>
+        applyFulfillmentStatusToPage(
+          current as { data: Invoice[] } | undefined,
+          id,
+          fulfillmentStatus,
+        ),
+      );
+      return { previous };
+    },
+    onError: (_error, _variables, context) => {
+      for (const [key, snapshot] of context?.previous ?? []) {
+        queryClient.setQueryData(key, snapshot);
+      }
+    },
+    onSettled: async () => {
       await refreshInvoiceQueries();
     },
   });
