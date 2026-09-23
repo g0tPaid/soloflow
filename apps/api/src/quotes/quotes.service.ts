@@ -16,7 +16,7 @@ export class QuotesService {
         skip,
         take: limitNum,
         orderBy: { createdAt: 'desc' },
-        include: { customer: { select: { id: true, name: true } }, items: true },
+        include: { customer: { select: { id: true, name: true } }, items: { orderBy: { sortOrder: 'asc' } } },
       }),
       this.prisma.quote.count({ where: { organizationId } }),
     ]);
@@ -35,7 +35,7 @@ export class QuotesService {
   async findOne(organizationId: string, id: string) {
     const quote = await this.prisma.quote.findFirst({
       where: { id, organizationId },
-      include: { customer: true, items: { include: { product: true } } },
+      include: { customer: true, items: { include: { product: true }, orderBy: { sortOrder: 'asc' } } },
     });
     if (!quote) throw new NotFoundException('Quote not found');
     return quote;
@@ -118,7 +118,7 @@ export class QuotesService {
             taxAmount,
             total,
             items: {
-              create: dto.items.map((item) => {
+              create: dto.items.map((item, index) => {
                 const name = item.name?.trim() || null;
                 const description = item.description?.trim() || name || 'Item';
                 return {
@@ -132,11 +132,12 @@ export class QuotesService {
                   unitPrice: item.unitPrice,
                   taxRate: 0,
                   amount: item.quantity * item.unitPrice,
+                  sortOrder: index,
                 };
               }),
             },
           },
-          include: { items: { include: { product: true } }, customer: true },
+          include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
         });
 
         await tx.organizationSettings.upsert({
@@ -234,7 +235,7 @@ export class QuotesService {
 
       updateData.items = {
         deleteMany: {},
-        create: dto.items.map((item) => {
+        create: dto.items.map((item, index) => {
           const name = item.name?.trim() || null;
           const description = item.description?.trim() || name || 'Item';
           return {
@@ -248,6 +249,7 @@ export class QuotesService {
             unitPrice: item.unitPrice,
             taxRate: 0,
             amount: item.quantity * item.unitPrice,
+            sortOrder: index,
           };
         }),
       };
@@ -256,7 +258,7 @@ export class QuotesService {
     return this.prisma.quote.update({
       where: { id },
       data: updateData,
-      include: { items: { include: { product: true } }, customer: true },
+      include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
     });
   }
 
@@ -299,7 +301,7 @@ export class QuotesService {
           taxAmount: quote.taxAmount,
           total: quote.total,
           items: {
-            create: quote.items.map((item) => ({
+            create: quote.items.map((item, index) => ({
               productId: item.productId,
               name: item.name,
               description: item.description,
@@ -308,10 +310,11 @@ export class QuotesService {
               unitPrice: item.unitPrice,
               taxRate: item.taxRate,
               amount: item.amount,
+              sortOrder: index,
             })),
           },
         },
-        include: { items: { include: { product: true } }, customer: true },
+        include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
       });
 
       await tx.organizationSettings.upsert({
@@ -332,7 +335,7 @@ export class QuotesService {
           status: QuoteStatus.CONVERTED,
           convertedInvoiceId: invoice.id,
         },
-        include: { items: { include: { product: true } }, customer: true },
+        include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
       });
 
       return { quote: updatedQuote, invoice };
