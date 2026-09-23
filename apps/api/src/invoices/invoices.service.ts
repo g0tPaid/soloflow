@@ -4,8 +4,17 @@ import { PrismaService } from '../prisma/prisma.service';
 
 import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
 
-import { InvoiceStatus, PaymentMethod, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
-import { invoiceBalanceDue, statusAfterPayment, toMoneyNumber } from '@flowbooks/shared';
+import { FulfillmentStatus, InvoiceStatus, PaymentMethod, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
+import {
+  FULFILLMENT_STATUS_VALUES,
+  fulfillmentTrackingError,
+  invoiceBalanceDue,
+  invoiceListFilterCriteria,
+  isInvoiceListFilter,
+  normalizeTrackingNumber,
+  statusAfterPayment,
+  toMoneyNumber,
+} from '@flowbooks/shared';
 
 import { normalizePagination } from '../common/pagination';
 
@@ -24,21 +33,60 @@ export class InvoicesService {
 
 
 
-  async findAll(organizationId: string, page?: number, limit?: number) {
+  async findAll(
+    organizationId: string,
+    page?: number,
+    limit?: number,
+    fulfillmentStatus?: string,
+    sort?: string,
+    listFilter?: string,
+  ) {
 
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
+    const where: Prisma.InvoiceWhereInput = { organizationId };
+
+    if (fulfillmentStatus === 'NONE') {
+      where.fulfillmentStatus = null;
+    } else if (fulfillmentStatus) {
+      if (!(FULFILLMENT_STATUS_VALUES as readonly string[]).includes(fulfillmentStatus)) {
+        throw new BadRequestException('Unknown fulfillment status');
+      }
+      where.fulfillmentStatus = fulfillmentStatus as FulfillmentStatus;
+    }
+
+    if (listFilter) {
+      if (!isInvoiceListFilter(listFilter)) {
+        throw new BadRequestException('Unknown invoice filter');
+      }
+      const criteria = invoiceListFilterCriteria(listFilter);
+      if (criteria.paymentStatuses) {
+        where.status = { in: [...criteria.paymentStatuses] as InvoiceStatus[] };
+      }
+      if (criteria.fulfillmentStatuses) {
+        where.fulfillmentStatus = { in: [...criteria.fulfillmentStatuses] };
+      }
+    }
+
+    if (sort && sort !== 'newest' && sort !== 'fulfillment') {
+      throw new BadRequestException('Unknown invoice sort');
+    }
+
+    const orderBy: Prisma.InvoiceOrderByWithRelationInput[] =
+      sort === 'fulfillment'
+        ? [{ fulfillmentStatus: { sort: 'asc', nulls: 'first' } }, { createdAt: 'desc' }]
+        : [{ createdAt: 'desc' }];
 
     const [data, total] = await Promise.all([
 
       this.prisma.invoice.findMany({
 
-        where: { organizationId },
+        where,
 
         skip,
 
         take: limitNum,
 
-        orderBy: { createdAt: 'desc' },
+        orderBy,
 
         include: {
           customer: { select: { id: true, name: true } },
@@ -48,7 +96,7 @@ export class InvoicesService {
 
       }),
 
-      this.prisma.invoice.count({ where: { organizationId } }),
+      this.prisma.invoice.count({ where }),
 
     ]);
 
@@ -307,6 +355,25 @@ export class InvoicesService {
 
     if (dto.shippingToCountry !== undefined) {
       updateData.shippingToCountry = dto.shippingToCountry?.trim() || null;
+    }
+
+    const nextFulfillmentStatus =
+      dto.fulfillmentStatus !== undefined ? dto.fulfillmentStatus : existing.fulfillmentStatus;
+    const trackingError = fulfillmentTrackingError({
+      status: nextFulfillmentStatus,
+      localTrackingNumber: dto.localTrackingNumber,
+      internationalTrackingNumber: dto.internationalTrackingNumber,
+    });
+    if (trackingError) throw new BadRequestException(trackingError);
+
+    if (dto.fulfillmentStatus !== undefined) {
+      updateData.fulfillmentStatus = dto.fulfillmentStatus;
+    }
+    if (dto.localTrackingNumber !== undefined) {
+      updateData.localTrackingNumber = normalizeTrackingNumber(dto.localTrackingNumber);
+    }
+    if (dto.internationalTrackingNumber !== undefined) {
+      updateData.internationalTrackingNumber = normalizeTrackingNumber(dto.internationalTrackingNumber);
     }
 
     if (dto.number !== undefined) {

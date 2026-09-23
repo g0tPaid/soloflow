@@ -18,8 +18,11 @@ export class InvoicesController {
     @Headers(TENANT_HEADER) orgId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('fulfillmentStatus') fulfillmentStatus?: string,
+    @Query('sort') sort?: string,
+    @Query('listFilter') listFilter?: string,
   ) {
-    return this.invoicesService.findAll(orgId, page, limit);
+    return this.invoicesService.findAll(orgId, page, limit, fulfillmentStatus, sort, listFilter);
   }
 
   @Get('next-number')

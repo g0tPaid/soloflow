@@ -356,6 +356,15 @@ enum PaymentMethod {
   OTHER
 }
 
+enum FulfillmentStatus {
+  LOCAL_ORDERING_COMPLETED
+  QC_COMPLETED
+  SHIPPED_TO_CHINA_CENTER
+  SHIPPED_INTERNATIONAL
+  CUSTOMER_RECEIVED
+  ORDER_COMPLETED
+}
+
 model Invoice {
   id                  String           @id @default(cuid())
   organizationId      String
@@ -387,6 +396,12 @@ model Invoice {
   shippingTerms       ShippingTerms?
   shippingFromCountry String?
   shippingToCountry   String?
+  /// Merchant fulfillment for this customer order. Null means not started.
+  fulfillmentStatus           FulfillmentStatus?
+  /// Domestic / China tracking number, once shipped to the China shipping center.
+  localTrackingNumber         String?
+  /// International tracking number, once the order has gone out internationally.
+  internationalTrackingNumber String?
   notes               String?
   customFields        Json             @default("{}")
   createdAt           DateTime         @default(now())
@@ -404,6 +419,7 @@ model Invoice {
   @@index([organizationId, status])
   @@index([organizationId, customerId])
   @@index([organizationId, vendorId])
+  @@index([organizationId, fulfillmentStatus])
   @@map("invoices")
 }
 

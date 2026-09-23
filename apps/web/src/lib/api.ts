@@ -9,6 +9,7 @@ import type {
   InviteMemberInput,
   UpdateMemberRoleInput,
   Role,
+  FulfillmentStatus,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 import { LOCAL_MODE } from '@/lib/local-mode';
@@ -263,6 +264,10 @@ export interface Invoice {
   shippingTerms?: 'DDP' | 'LCL' | 'LOCAL' | null;
   shippingFromCountry?: string | null;
   shippingToCountry?: string | null;
+  /** Null until the merchant marks the first fulfillment stage. */
+  fulfillmentStatus?: FulfillmentStatus | null;
+  localTrackingNumber?: string | null;
+  internationalTrackingNumber?: string | null;
   notes?: string | null;
   createdAt: string;
   updatedAt: string;
@@ -894,7 +899,17 @@ export const api = {
       ),
   },
   invoices: {
-    list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
+    list: (
+      token: string,
+      organizationId: string,
+      params?: {
+        page?: number;
+        limit?: number;
+        fulfillmentStatus?: string;
+        sort?: string;
+        listFilter?: string;
+      },
+    ) =>
       apiFetch<PaginatedResult<Invoice>>(
         `/invoices${buildQuery(params)}`,
         { token, organizationId },

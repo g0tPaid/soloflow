@@ -1,6 +1,7 @@
 import { z } from 'zod';
-import { INVITABLE_ROLES } from '../constants';
+import { FULFILLMENT_STATUS_VALUES, INVITABLE_ROLES } from '../constants';
 import { CURRENCIES } from '../constants';
+import { fulfillmentTrackingError } from '../fulfillment';
 
 const currencyCodes = CURRENCIES.map((c) => c.code) as [string, ...string[]];
 
@@ -256,20 +257,42 @@ export const createPaymentSchema = z.object({
   note: z.string().max(500).optional().nullable(),
 });
 
-export const updateInvoiceSchema = z.object({
-  number: z.string().min(1, 'Invoice number is required').max(50).optional(),
-  status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
-  dueDate: optionalDateField.optional(),
-  notes: z.string().optional().nullable(),
-  discount: z.number().min(0).optional(),
-  shipping: z.number().min(0).optional(),
-  taxRate: z.number().min(0).max(100).optional(),
-  shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
-  shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
-  shippingFromCountry: z.string().optional().nullable(),
-  shippingToCountry: z.string().optional().nullable(),
-  items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
-});
+const trackingNumberField = z.string().trim().max(80, 'Tracking number is too long').nullable().optional();
+
+export const fulfillmentStatusSchema = z.enum(FULFILLMENT_STATUS_VALUES);
+
+export const updateInvoiceSchema = z
+  .object({
+    number: z.string().min(1, 'Invoice number is required').max(50).optional(),
+    status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
+    dueDate: optionalDateField.optional(),
+    notes: z.string().optional().nullable(),
+    discount: z.number().min(0).optional(),
+    shipping: z.number().min(0).optional(),
+    taxRate: z.number().min(0).max(100).optional(),
+    shippingMethod: z.enum(['AIR', 'SEA', 'LOCAL']).optional().nullable(),
+    shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
+    shippingFromCountry: z.string().optional().nullable(),
+    shippingToCountry: z.string().optional().nullable(),
+    fulfillmentStatus: fulfillmentStatusSchema.nullable().optional(),
+    localTrackingNumber: trackingNumberField,
+    internationalTrackingNumber: trackingNumberField,
+    items: z.array(invoiceItemSchema).min(1, 'At least one item is required').optional(),
+  })
+  .superRefine((value, ctx) => {
+    if (value.fulfillmentStatus === undefined) return;
+    const message = fulfillmentTrackingError({
+      status: value.fulfillmentStatus,
+      localTrackingNumber: value.localTrackingNumber,
+      internationalTrackingNumber: value.internationalTrackingNumber,
+    });
+    if (!message) return;
+    ctx.addIssue({
+      code: z.ZodIssueCode.custom,
+      message,
+      path: ['fulfillmentStatus'],
+    });
+  });
 
 // ─── Quotes ──────────────────────────────────────────────────────────────────
 

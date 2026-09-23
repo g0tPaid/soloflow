@@ -14,11 +14,20 @@ import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
+import {
+  FulfillmentControls,
+  FulfillmentStatusBadge,
+} from '@/components/invoices/fulfillment-controls';
+import { InvoiceListFilterBar } from '@/components/invoices/invoice-list-filter-bar';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import {
   invoiceAmountPaid,
   invoiceBalanceDue,
+  invoiceListFilterEmptyLabel,
   isReceiptEligible,
+  type FulfillmentStatus,
+  type InvoiceListFilter,
+  type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 
 function formatDate(value?: string | null) {
@@ -82,16 +91,29 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
+  const [listFilter, setListFilter] = useState<InvoiceListFilter | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['invoices', organizationId],
-    queryFn: () => api.invoices.list(session!.accessToken!, organizationId!, { limit: 50 }),
+    queryKey: ['invoices', organizationId, listFilter],
+    queryFn: () =>
+      api.invoices.list(session!.accessToken!, organizationId!, {
+        limit: 50,
+        listFilter: listFilter ?? undefined,
+      }),
     enabled: !!session?.accessToken && !!organizationId,
   });
 
   const statusMutation = useMutation({
     mutationFn: ({ id, status }: { id: string; status: InvoiceStatus }) =>
       api.invoices.update(session!.accessToken!, organizationId!, id, { status }),
+    onSuccess: async () => {
+      await refreshInvoiceQueries();
+    },
+  });
+
+  const fulfillmentMutation = useMutation({
+    mutationFn: ({ id, data }: { id: string; data: UpdateInvoiceInput }) =>
+      api.invoices.update(session!.accessToken!, organizationId!, id, data),
     onSuccess: async () => {
       await refreshInvoiceQueries();
     },
@@ -142,19 +164,22 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
-          <p className="text-sm text-muted-foreground">Create and manage invoices</p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
+            <p className="text-sm text-muted-foreground">Create and manage invoices</p>
+          </div>
+          {organizationId && (
+            <Button asChild>
+              <Link href="/invoices/new">
+                <Plus className="h-4 w-4" />
+                New invoice
+              </Link>
+            </Button>
+          )}
         </div>
-        {organizationId && (
-          <Button asChild>
-            <Link href="/invoices/new">
-              <Plus className="h-4 w-4" />
-              New invoice
-            </Link>
-          </Button>
-        )}
+        {organizationId && <InvoiceListFilterBar value={listFilter} onChange={setListFilter} />}
       </div>
 
       {isReady && !organizationId && (
@@ -184,7 +209,15 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && (
+      {!isLoading && organizationId && invoices.length === 0 && listFilter && (
+        <Card className="border-dashed">
+          <CardContent className="py-10 text-center text-sm text-muted-foreground">
+            {invoiceListFilterEmptyLabel(listFilter)}
+          </CardContent>
+        </Card>
+      )}
+
+      {!isLoading && organizationId && invoices.length === 0 && !listFilter && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
@@ -220,11 +253,13 @@ export default function InvoicesPage() {
                       : 'border-border hover:bg-accent/20',
                 )}
               >
-                <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className="flex flex-col gap-4 p-4">
+                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                   <Link href={`/invoices/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
+                      <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
                       {isPaid ? (
                         <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
                           Paid
@@ -347,6 +382,30 @@ export default function InvoicesPage() {
                       )}
                     </div>
                   </div>
+                  </div>
+                  <FulfillmentControls
+                    idPrefix={invoice.id}
+                    layout="compact"
+                    status={invoice.fulfillmentStatus}
+                    localTrackingNumber={invoice.localTrackingNumber}
+                    internationalTrackingNumber={invoice.internationalTrackingNumber}
+                    saving={
+                      fulfillmentMutation.isPending && fulfillmentMutation.variables?.id === invoice.id
+                    }
+                    error={
+                      fulfillmentMutation.isError && fulfillmentMutation.variables?.id === invoice.id
+                        ? fulfillmentMutation.error instanceof Error
+                          ? fulfillmentMutation.error.message
+                          : 'Could not update fulfillment'
+                        : undefined
+                    }
+                    onStatusChange={(fulfillmentStatus: FulfillmentStatus) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: { fulfillmentStatus } })
+                    }
+                    onTrackingSave={(tracking) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: tracking })
+                    }
+                  />
                 </CardContent>
               </div>
             );
