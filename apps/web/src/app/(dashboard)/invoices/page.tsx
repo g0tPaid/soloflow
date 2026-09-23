@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
@@ -16,16 +16,22 @@ import { Card, CardContent } from '@/components/ui/card';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import {
   FulfillmentControls,
+  FulfillmentHistoryList,
   FulfillmentStatusBadge,
 } from '@/components/invoices/fulfillment-controls';
 import { InvoiceListFilterBar } from '@/components/invoices/invoice-list-filter-bar';
+import {
+  InvoiceViewToggle,
+  readInvoiceListView,
+  writeInvoiceListView,
+  type InvoiceListView,
+} from '@/components/invoices/invoice-view-toggle';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import {
   invoiceAmountPaid,
   invoiceBalanceDue,
   invoiceListFilterEmptyLabel,
   isReceiptEligible,
-  type FulfillmentStatus,
   type InvoiceListFilter,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
@@ -33,6 +39,15 @@ import {
 function formatDate(value?: string | null) {
   if (!value) return '—';
   return new Date(value).toLocaleDateString();
+}
+
+function invoicePayState(invoice: Invoice) {
+  const paidAmount = invoiceAmountPaid(invoice);
+  const balanceDue = invoiceBalanceDue(invoice);
+  const isPaid = invoice.status === 'PAID' || balanceDue <= 0.005;
+  const isPartial = !isPaid && paidAmount > 0.005;
+  const canRecordPayment = !isPaid && invoice.status !== 'VOID' && invoice.status !== 'CANCELLED';
+  return { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment };
 }
 
 function InvoiceListDownloadButton({
@@ -87,11 +102,22 @@ function InvoiceListDownloadButton({
 export default function InvoicesPage() {
   const router = useRouter();
   const { data: session } = useSession();
-  const { organizationId, isReady } = useOrganizationId();
+  const { organizationId, organization, isReady } = useOrganizationId();
+  const timeZone = organization?.settings?.timezone;
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [listFilter, setListFilter] = useState<InvoiceListFilter | null>(null);
+  const [invoiceView, setInvoiceView] = useState<InvoiceListView>('card');
+
+  useEffect(() => {
+    setInvoiceView(readInvoiceListView(window.localStorage));
+  }, []);
+
+  function changeInvoiceView(next: InvoiceListView) {
+    setInvoiceView(next);
+    writeInvoiceListView(window.localStorage, next);
+  }
 
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', organizationId, listFilter],
@@ -179,7 +205,12 @@ export default function InvoicesPage() {
             </Button>
           )}
         </div>
-        {organizationId && <InvoiceListFilterBar value={listFilter} onChange={setListFilter} />}
+        {organizationId && (
+          <div className="flex flex-col gap-3 lg:flex-row lg:items-center lg:justify-between">
+            <InvoiceListFilterBar value={listFilter} onChange={setListFilter} />
+            <InvoiceViewToggle value={invoiceView} onChange={changeInvoiceView} />
+          </div>
+        )}
       </div>
 
       {isReady && !organizationId && (
@@ -232,15 +263,121 @@ export default function InvoicesPage() {
         </Card>
       )}
 
-      {invoices.length > 0 && (
+      {invoices.length > 0 && invoiceView === 'list' && (
+        <div className="overflow-x-auto rounded-xl border bg-card">
+          <table className="w-full min-w-[880px] text-sm">
+            <thead className="border-b bg-muted/40 text-left text-xs text-muted-foreground">
+              <tr>
+                <th className="px-4 py-3 font-medium">Invoice</th>
+                <th className="px-3 py-3 font-medium">Customer</th>
+                <th className="px-3 py-3 text-right font-medium">Total</th>
+                <th className="px-3 py-3 text-right font-medium">Paid</th>
+                <th className="px-3 py-3 text-right font-medium">Balance</th>
+                <th className="px-3 py-3 font-medium">Payment</th>
+                <th className="px-3 py-3 font-medium">Fulfillment</th>
+                <th className="px-3 py-3 font-medium">Due</th>
+                <th className="px-4 py-3 text-right font-medium">Actions</th>
+              </tr>
+            </thead>
+            <tbody>
+              {invoices.map((invoice) => {
+                const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
+                  invoicePayState(invoice);
+                return (
+                  <tr
+                    key={invoice.id}
+                    className={cn(
+                      'border-b last:border-b-0 align-top',
+                      isPaid
+                        ? 'bg-emerald-50/70 dark:bg-emerald-950/40'
+                        : isPartial
+                          ? 'bg-amber-50/60 dark:bg-amber-950/30'
+                          : undefined,
+                    )}
+                  >
+                    <td className="px-4 py-3">
+                      <Link href={`/invoices/${invoice.id}`} className="font-medium text-foreground hover:underline">
+                        {invoice.number}
+                      </Link>
+                    </td>
+                    <td className="px-3 py-3 text-muted-foreground">
+                      {invoice.customer?.name ?? 'Unknown customer'}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {formatCurrency(Number(invoice.total), invoice.currency)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {formatCurrency(paidAmount, invoice.currency)}
+                    </td>
+                    <td className="px-3 py-3 text-right tabular-nums">
+                      {formatCurrency(balanceDue, invoice.currency)}
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="flex flex-wrap items-center gap-1">
+                        <InvoiceStatusBadge status={invoice.status} />
+                        {isPaid ? (
+                          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                            Paid
+                          </span>
+                        ) : isPartial ? (
+                          <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-medium text-white">
+                            Partial
+                          </span>
+                        ) : (
+                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+                            Unpaid
+                          </span>
+                        )}
+                      </div>
+                    </td>
+                    <td className="px-3 py-3">
+                      <div className="space-y-2">
+                        <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
+                        <FulfillmentHistoryList
+                          history={invoice.fulfillmentEvents}
+                          timeZone={timeZone}
+                          hideWhenEmpty
+                        />
+                      </div>
+                    </td>
+                    <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
+                      {formatDate(invoice.dueDate)}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex flex-wrap justify-end gap-2">
+                        <Button asChild size="sm" className="gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c]">
+                          <Link href={`/invoices/${invoice.id}#edit-line-items`}>
+                            <Pencil className="h-3.5 w-3.5" />
+                            Edit
+                          </Link>
+                        </Button>
+                        {canRecordPayment && (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            className="gap-1.5 border-amber-500 text-amber-800 hover:bg-amber-600 hover:text-white"
+                            onClick={() => setPaymentInvoice(invoice)}
+                          >
+                            <Banknote className="h-3.5 w-3.5" />
+                            Record payment
+                          </Button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        </div>
+      )}
+
+      {invoices.length > 0 && invoiceView === 'card' && (
         <div className="space-y-3">
           {invoices.map((invoice) => {
-            const paidAmount = invoiceAmountPaid(invoice);
-            const balanceDue = invoiceBalanceDue(invoice);
-            const isPaid = invoice.status === 'PAID' || balanceDue <= 0.005;
-            const isPartial = !isPaid && paidAmount > 0.005;
-            const canRecordPayment =
-              !isPaid && invoice.status !== 'VOID' && invoice.status !== 'CANCELLED';
+            const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
+              invoicePayState(invoice);
             return (
               <div
                 key={invoice.id}
@@ -399,7 +536,9 @@ export default function InvoicesPage() {
                           : 'Could not update fulfillment'
                         : undefined
                     }
-                    onStatusChange={(fulfillmentStatus: FulfillmentStatus) =>
+                    history={invoice.fulfillmentEvents}
+                    timeZone={timeZone}
+                    onStatusChange={(fulfillmentStatus) =>
                       fulfillmentMutation.mutate({ id: invoice.id, data: { fulfillmentStatus } })
                     }
                     onTrackingSave={(tracking) =>

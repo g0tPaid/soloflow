@@ -4,6 +4,10 @@ import { INVOICE_LIST_FILTERS, type InvoiceListFilter } from '@flowbooks/shared'
 import { cn } from '@/lib/utils';
 
 const chipClass: Record<InvoiceListFilter, { idle: string; selected: string }> = {
+  all: {
+    idle: 'border-border text-foreground hover:bg-muted',
+    selected: 'border-foreground bg-foreground text-background',
+  },
   waiting_for_payment: {
     idle: 'border-amber-300 text-amber-800 hover:bg-amber-50',
     selected: 'border-amber-500 bg-amber-100 text-amber-950',
@@ -31,18 +35,29 @@ type Props = {
   onChange: (value: InvoiceListFilter | null) => void;
 };
 
+function isChipSelected(filterId: InvoiceListFilter, value: InvoiceListFilter | null) {
+  if (filterId === 'all') return value == null || value === 'all';
+  return value === filterId;
+}
+
 export function InvoiceListFilterBar({ value, onChange }: Props) {
   return (
     <div className="flex flex-wrap gap-2" role="group" aria-label="Invoice status guide">
       {INVOICE_LIST_FILTERS.map((filter) => {
-        const selected = value === filter.id;
+        const selected = isChipSelected(filter.id, value);
         const tone = chipClass[filter.id];
         return (
           <button
             key={filter.id}
             type="button"
             aria-pressed={selected}
-            onClick={() => onChange(selected ? null : filter.id)}
+            onClick={() => {
+              if (filter.id === 'all') {
+                onChange(null);
+                return;
+              }
+              onChange(value === filter.id ? null : filter.id);
+            }}
             className={cn(
               'rounded-md border bg-background px-3 py-1.5 text-sm font-medium transition',
               selected ? tone.selected : tone.idle,

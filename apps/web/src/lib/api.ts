@@ -10,6 +10,7 @@ import type {
   UpdateMemberRoleInput,
   Role,
   FulfillmentStatus,
+  FulfillmentHistoryAction,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 import { LOCAL_MODE } from '@/lib/local-mode';
@@ -260,6 +261,13 @@ export interface InvoicePayment {
   createdAt: string;
 }
 
+export interface InvoiceFulfillmentEvent {
+  id: string;
+  status: FulfillmentStatus;
+  action: FulfillmentHistoryAction;
+  createdAt: string;
+}
+
 export interface Invoice {
   id: string;
   organizationId: string;
@@ -294,6 +302,7 @@ export interface Invoice {
   fulfillmentStatus?: FulfillmentStatus | null;
   localTrackingNumber?: string | null;
   internationalTrackingNumber?: string | null;
+  fulfillmentEvents?: InvoiceFulfillmentEvent[];
   notes?: string | null;
   createdAt: string;
   updatedAt: string;

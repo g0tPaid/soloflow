@@ -5,6 +5,7 @@ import { InvoiceListFilterBar } from '@/components/invoices/invoice-list-filter-
 describe('InvoiceListFilterBar', () => {
   it('renders the status guide under the invoices header', () => {
     render(<InvoiceListFilterBar value={null} onChange={() => undefined} />);
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Waiting for payment' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Paid' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Canceled' })).toBeInTheDocument();
@@ -21,6 +22,15 @@ describe('InvoiceListFilterBar', () => {
     rerender(<InvoiceListFilterBar value="on_the_way" onChange={onChange} />);
     expect(screen.getByRole('button', { name: 'On the way' })).toHaveAttribute('aria-pressed', 'true');
     fireEvent.click(screen.getByRole('button', { name: 'On the way' }));
+    expect(onChange).toHaveBeenCalledWith(null);
+  });
+
+  it('clears the status filter when All is selected', () => {
+    const onChange = vi.fn();
+    render(<InvoiceListFilterBar value="paid" onChange={onChange} />);
+    expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('button', { name: 'Paid' })).toHaveAttribute('aria-pressed', 'true');
+    fireEvent.click(screen.getByRole('button', { name: 'All' }));
     expect(onChange).toHaveBeenCalledWith(null);
   });
 });

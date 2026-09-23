@@ -57,6 +57,11 @@ describe('validators', () => {
       }
     });
 
+    it('accepts clearing the fulfillment stage', () => {
+      const result = updateInvoiceSchema.safeParse({ fulfillmentStatus: null });
+      expect(result.success).toBe(true);
+    });
+
     it('rejects an unknown fulfillment stage', () => {
       const result = updateInvoiceSchema.safeParse({ fulfillmentStatus: 'SHIPPED' });
       expect(result.success).toBe(false);
