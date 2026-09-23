@@ -18,13 +18,15 @@ import {
   FulfillmentControls,
   FulfillmentStatusBadge,
 } from '@/components/invoices/fulfillment-controls';
+import { InvoiceListFilterBar } from '@/components/invoices/invoice-list-filter-bar';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import {
-  FULFILLMENT_STATUSES,
   invoiceAmountPaid,
   invoiceBalanceDue,
+  invoiceListFilterEmptyLabel,
   isReceiptEligible,
   type FulfillmentStatus,
+  type InvoiceListFilter,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 
@@ -89,16 +91,14 @@ export default function InvoicesPage() {
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
-  const [fulfillmentFilter, setFulfillmentFilter] = useState('ALL');
-  const [fulfillmentSort, setFulfillmentSort] = useState<'newest' | 'fulfillment'>('newest');
+  const [listFilter, setListFilter] = useState<InvoiceListFilter | null>(null);
 
   const { data, isLoading, error } = useQuery({
-    queryKey: ['invoices', organizationId, fulfillmentFilter, fulfillmentSort],
+    queryKey: ['invoices', organizationId, listFilter],
     queryFn: () =>
       api.invoices.list(session!.accessToken!, organizationId!, {
         limit: 50,
-        fulfillmentStatus: fulfillmentFilter === 'ALL' ? undefined : fulfillmentFilter,
-        sort: fulfillmentSort === 'newest' ? undefined : fulfillmentSort,
+        listFilter: listFilter ?? undefined,
       }),
     enabled: !!session?.accessToken && !!organizationId,
   });
@@ -120,7 +120,6 @@ export default function InvoicesPage() {
   });
 
   const invoices = data?.data ?? [];
-  const fulfillmentFiltered = fulfillmentFilter !== 'ALL';
 
   async function refreshInvoiceQueries() {
     await Promise.all([
@@ -165,54 +164,23 @@ export default function InvoicesPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-        <div>
-          <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
-          <p className="text-sm text-muted-foreground">Create and manage invoices</p>
+      <div className="space-y-3">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div>
+            <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
+            <p className="text-sm text-muted-foreground">Create and manage invoices</p>
+          </div>
+          {organizationId && (
+            <Button asChild>
+              <Link href="/invoices/new">
+                <Plus className="h-4 w-4" />
+                New invoice
+              </Link>
+            </Button>
+          )}
         </div>
-        {organizationId && (
-          <Button asChild>
-            <Link href="/invoices/new">
-              <Plus className="h-4 w-4" />
-              New invoice
-            </Link>
-          </Button>
-        )}
+        {organizationId && <InvoiceListFilterBar value={listFilter} onChange={setListFilter} />}
       </div>
-
-      {organizationId && (
-        <div className="flex flex-col gap-2 sm:flex-row sm:items-end">
-          <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-            Fulfillment
-            <select
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
-              value={fulfillmentFilter}
-              onChange={(event) => setFulfillmentFilter(event.target.value)}
-            >
-              <option value="ALL">All stages</option>
-              <option value="NONE">Not started</option>
-              {FULFILLMENT_STATUSES.map((stage) => (
-                <option key={stage.value} value={stage.value}>
-                  {stage.label}
-                </option>
-              ))}
-            </select>
-          </label>
-          <label className="flex flex-col gap-1 text-sm text-muted-foreground">
-            Sort
-            <select
-              className="h-9 rounded-md border border-input bg-transparent px-3 text-sm text-foreground"
-              value={fulfillmentSort}
-              onChange={(event) =>
-                setFulfillmentSort(event.target.value as 'newest' | 'fulfillment')
-              }
-            >
-              <option value="newest">Newest</option>
-              <option value="fulfillment">Fulfillment stage</option>
-            </select>
-          </label>
-        </div>
-      )}
 
       {isReady && !organizationId && (
         <Card className="border-dashed">
@@ -241,15 +209,15 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && fulfillmentFiltered && (
+      {!isLoading && organizationId && invoices.length === 0 && listFilter && (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
-            No invoices at this fulfillment stage.
+            {invoiceListFilterEmptyLabel(listFilter)}
           </CardContent>
         </Card>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && !fulfillmentFiltered && (
+      {!isLoading && organizationId && invoices.length === 0 && !listFilter && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />

@@ -902,7 +902,13 @@ export const api = {
     list: (
       token: string,
       organizationId: string,
-      params?: { page?: number; limit?: number; fulfillmentStatus?: string; sort?: string },
+      params?: {
+        page?: number;
+        limit?: number;
+        fulfillmentStatus?: string;
+        sort?: string;
+        listFilter?: string;
+      },
     ) =>
       apiFetch<PaginatedResult<Invoice>>(
         `/invoices${buildQuery(params)}`,

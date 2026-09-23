@@ -20,8 +20,9 @@ export class InvoicesController {
     @Query('limit') limit?: number,
     @Query('fulfillmentStatus') fulfillmentStatus?: string,
     @Query('sort') sort?: string,
+    @Query('listFilter') listFilter?: string,
   ) {
-    return this.invoicesService.findAll(orgId, page, limit, fulfillmentStatus, sort);
+    return this.invoicesService.findAll(orgId, page, limit, fulfillmentStatus, sort, listFilter);
   }
 
   @Get('next-number')

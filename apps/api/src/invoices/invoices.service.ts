@@ -9,6 +9,8 @@ import {
   FULFILLMENT_STATUS_VALUES,
   fulfillmentTrackingError,
   invoiceBalanceDue,
+  invoiceListFilterCriteria,
+  isInvoiceListFilter,
   normalizeTrackingNumber,
   statusAfterPayment,
   toMoneyNumber,
@@ -37,6 +39,7 @@ export class InvoicesService {
     limit?: number,
     fulfillmentStatus?: string,
     sort?: string,
+    listFilter?: string,
   ) {
 
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
@@ -49,6 +52,19 @@ export class InvoicesService {
         throw new BadRequestException('Unknown fulfillment status');
       }
       where.fulfillmentStatus = fulfillmentStatus as FulfillmentStatus;
+    }
+
+    if (listFilter) {
+      if (!isInvoiceListFilter(listFilter)) {
+        throw new BadRequestException('Unknown invoice filter');
+      }
+      const criteria = invoiceListFilterCriteria(listFilter);
+      if (criteria.paymentStatuses) {
+        where.status = { in: [...criteria.paymentStatuses] as InvoiceStatus[] };
+      }
+      if (criteria.fulfillmentStatuses) {
+        where.fulfillmentStatus = { in: [...criteria.fulfillmentStatuses] };
+      }
     }
 
     if (sort && sort !== 'newest' && sort !== 'fulfillment') {
