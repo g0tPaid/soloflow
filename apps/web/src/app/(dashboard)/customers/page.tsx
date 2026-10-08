@@ -131,7 +131,7 @@ export default function CustomersPage() {
                   <p className="mt-0.5 text-sm text-primary">Add TRN Number →</p>
                 )}
               </div>
-              <span className="text-sm text-muted-foreground">Edit →</span>
+              <span className="text-sm text-muted-foreground">View →</span>
             </Link>
           ))}
         </div>

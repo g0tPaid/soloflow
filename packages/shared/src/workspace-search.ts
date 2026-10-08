@@ -55,6 +55,10 @@ export function invoiceMatchesWorkspaceSearch(
   );
 }
 
+/**
+ * Customer results open the read-only customer card (`/customers/:id`).
+ * The editor stays at `/customers/:id/edit`. Invoice results open the invoice.
+ */
 export function workspaceSearchHref(kind: WorkspaceSearchKind, id: string): string {
   return kind === 'customer' ? `/customers/${id}` : `/invoices/${id}`;
 }

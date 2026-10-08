@@ -21,8 +21,17 @@ export class InvoicesController {
     @Query('fulfillmentStatus') fulfillmentStatus?: string,
     @Query('sort') sort?: string,
     @Query('listFilter') listFilter?: string,
+    @Query('customerId') customerId?: string,
   ) {
-    return this.invoicesService.findAll(orgId, page, limit, fulfillmentStatus, sort, listFilter);
+    return this.invoicesService.findAll(
+      orgId,
+      page,
+      limit,
+      fulfillmentStatus,
+      sort,
+      listFilter,
+      customerId,
+    );
   }
 
   @Get('next-number')
@@ -44,6 +53,18 @@ export class InvoicesController {
   @ApiOperation({ summary: 'Move invoice into a draft quote (removes the invoice)' })
   convert(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.invoicesService.convertToQuote(orgId, id);
+  }
+
+  @Post(':id/cancel')
+  @ApiOperation({ summary: 'Mark an invoice order as cancelled' })
+  cancelOrder(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.invoicesService.cancelOrder(orgId, id);
+  }
+
+  @Post(':id/reopen')
+  @ApiOperation({ summary: 'Reopen a cancelled invoice order' })
+  reopenOrder(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.invoicesService.reopenOrder(orgId, id);
   }
 
   @Post(':id/payments')

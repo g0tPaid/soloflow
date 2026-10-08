@@ -47,12 +47,58 @@ function formatDate(value?: string | null) {
 }
 
 function invoicePayState(invoice: Invoice) {
+  const closed = invoice.status === 'CANCELLED' || invoice.status === 'VOID';
   const paidAmount = invoiceAmountPaid(invoice);
   const balanceDue = invoiceBalanceDue(invoice);
-  const isPaid = invoice.status === 'PAID' || balanceDue <= 0.005;
-  const isPartial = !isPaid && paidAmount > 0.005;
-  const canRecordPayment = !isPaid && invoice.status !== 'VOID' && invoice.status !== 'CANCELLED';
-  return { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment };
+  const isPaid = !closed && (invoice.status === 'PAID' || balanceDue <= 0.005);
+  const isPartial = !closed && !isPaid && paidAmount > 0.005;
+  const canRecordPayment = !closed && !isPaid;
+  return { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment, closed };
+}
+
+function invoiceSurfaceClass(invoice: Invoice, layout: 'card' | 'row') {
+  if (invoice.status === 'CANCELLED') {
+    return layout === 'card'
+      ? 'border-rose-300 bg-rose-50/80 dark:border-rose-800 dark:bg-rose-950/40'
+      : 'bg-rose-50/80 dark:bg-rose-950/40';
+  }
+  const { isPaid, isPartial } = invoicePayState(invoice);
+  if (layout === 'row') {
+    return isPaid
+      ? 'bg-emerald-50/70 dark:bg-emerald-950/40'
+      : isPartial
+        ? 'bg-amber-50/60 dark:bg-amber-950/30'
+        : undefined;
+  }
+  return isPaid
+    ? 'border-emerald-400 bg-emerald-50/70 dark:border-emerald-700 dark:bg-emerald-950/40'
+    : isPartial
+      ? 'border-amber-300 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-950/30'
+      : 'border-border hover:bg-accent/20';
+}
+
+function PaymentStatePill({ invoice }: { invoice: Invoice }) {
+  const { isPaid, isPartial, closed } = invoicePayState(invoice);
+  if (closed) return null;
+  if (isPaid) {
+    return (
+      <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
+        Paid
+      </span>
+    );
+  }
+  if (isPartial) {
+    return (
+      <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-medium text-white">
+        Partial
+      </span>
+    );
+  }
+  return (
+    <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
+      Unpaid
+    </span>
+  );
 }
 
 function InvoiceListDownloadButton({
@@ -312,20 +358,12 @@ export default function InvoicesPage() {
             </thead>
             <tbody>
               {invoices.map((invoice) => {
-                const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
-                  invoicePayState(invoice);
+                const { paidAmount, balanceDue, canRecordPayment } = invoicePayState(invoice);
                 const unsynced = invoice.syncState === 'pending' || invoice.syncState === 'error';
                 return (
                   <tr
                     key={invoice.id}
-                    className={cn(
-                      'border-b last:border-b-0 align-top',
-                      isPaid
-                        ? 'bg-emerald-50/70 dark:bg-emerald-950/40'
-                        : isPartial
-                          ? 'bg-amber-50/60 dark:bg-amber-950/30'
-                          : undefined,
-                    )}
+                    className={cn('border-b last:border-b-0 align-top', invoiceSurfaceClass(invoice, 'row'))}
                   >
                     <td className="px-4 py-3">
                       <Link href={`/invoices/${invoice.id}`} className="font-medium text-foreground hover:underline">
@@ -353,19 +391,7 @@ export default function InvoicesPage() {
                           onRetry={() => void requestSync()}
                           retrying={syncing}
                         />
-                        {isPaid ? (
-                          <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                            Paid
-                          </span>
-                        ) : isPartial ? (
-                          <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                            Partial
-                          </span>
-                        ) : (
-                          <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                            Unpaid
-                          </span>
-                        )}
+                        <PaymentStatePill invoice={invoice} />
                       </div>
                     </td>
                     <td className="px-3 py-3">
@@ -416,20 +442,12 @@ export default function InvoicesPage() {
       {invoices.length > 0 && invoiceView === 'card' && (
         <div className="space-y-3">
           {invoices.map((invoice) => {
-            const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
-              invoicePayState(invoice);
+            const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } = invoicePayState(invoice);
             const unsynced = invoice.syncState === 'pending' || invoice.syncState === 'error';
             return (
               <div
                 key={invoice.id}
-                className={cn(
-                  'rounded-xl border bg-card transition-colors',
-                  isPaid
-                    ? 'border-emerald-400 bg-emerald-50/70 dark:border-emerald-700 dark:bg-emerald-950/40'
-                    : isPartial
-                      ? 'border-amber-300 bg-amber-50/60 dark:border-amber-700 dark:bg-amber-950/30'
-                      : 'border-border hover:bg-accent/20',
-                )}
+                className={cn('rounded-xl border bg-card transition-colors', invoiceSurfaceClass(invoice, 'card'))}
               >
                 <CardContent className="flex flex-col gap-4 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
@@ -444,19 +462,7 @@ export default function InvoicesPage() {
                         retrying={syncing}
                       />
                       <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
-                      {isPaid ? (
-                        <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                          Paid
-                        </span>
-                      ) : isPartial ? (
-                        <span className="rounded-full bg-amber-600 px-2 py-0.5 text-[11px] font-medium text-white">
-                          Partial
-                        </span>
-                      ) : (
-                        <span className="rounded-full bg-amber-100 px-2 py-0.5 text-[11px] font-medium text-amber-800">
-                          Unpaid
-                        </span>
-                      )}
+                      <PaymentStatePill invoice={invoice} />
                     </div>
                     <p className="text-sm text-muted-foreground">
                       {invoice.customer?.name ?? 'Unknown customer'}

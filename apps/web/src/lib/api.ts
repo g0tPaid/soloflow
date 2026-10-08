@@ -306,6 +306,8 @@ export interface Invoice {
   notes?: string | null;
   /** Present when the invoice was created with an offline idempotency key. */
   clientRequestId?: string | null;
+  /** Includes statusBeforeCancel while an order is cancelled. */
+  customFields?: Record<string, unknown> | null;
   createdAt: string;
   updatedAt: string;
   customer?: Customer | null;
@@ -952,6 +954,7 @@ export const api = {
         fulfillmentStatus?: string;
         sort?: string;
         listFilter?: string;
+        customerId?: string;
       },
     ) =>
       apiFetch<PaginatedResult<Invoice>>(
@@ -1003,6 +1006,18 @@ export const api = {
       }),
     convert: (token: string, organizationId: string, id: string) =>
       apiFetch<{ quote: Quote }>(`/invoices/${id}/convert`, {
+        method: 'POST',
+        token,
+        organizationId,
+      }),
+    cancelOrder: (token: string, organizationId: string, id: string) =>
+      apiFetch<Invoice>(`/invoices/${id}/cancel`, {
+        method: 'POST',
+        token,
+        organizationId,
+      }),
+    reopenOrder: (token: string, organizationId: string, id: string) =>
+      apiFetch<Invoice>(`/invoices/${id}/reopen`, {
         method: 'POST',
         token,
         organizationId,

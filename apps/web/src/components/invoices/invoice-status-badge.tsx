@@ -8,9 +8,14 @@ const statusStyles: Record<InvoiceStatus, string> = {
   PARTIAL: 'bg-amber-100 text-amber-700 dark:bg-amber-950 dark:text-amber-300',
   PAID: 'bg-emerald-100 text-emerald-700 dark:bg-emerald-950 dark:text-emerald-300',
   OVERDUE: 'bg-destructive/10 text-destructive',
-  CANCELLED: 'bg-muted text-muted-foreground line-through',
+  CANCELLED: 'bg-rose-600 text-white dark:bg-rose-500',
   VOID: 'bg-muted text-muted-foreground line-through',
 };
+
+export function invoiceStatusLabel(status: InvoiceStatus): string {
+  if (status === 'CANCELLED') return 'Cancelled';
+  return status.toLowerCase().replace(/_/g, ' ');
+}
 
 export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
   return (
@@ -20,7 +25,7 @@ export function InvoiceStatusBadge({ status }: { status: InvoiceStatus }) {
         statusStyles[status],
       )}
     >
-      {status.toLowerCase().replace('_', ' ')}
+      {invoiceStatusLabel(status)}
     </span>
   );
 }
