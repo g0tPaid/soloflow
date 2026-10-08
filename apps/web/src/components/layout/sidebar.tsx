@@ -32,6 +32,7 @@ import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ModuleBackLink, MobileModuleBackBar } from '@/components/layout/module-back-nav';
 import { GlobalSearch } from '@/components/layout/global-search';
+import { ConnectivityIndicator } from '@/components/offline/connectivity-indicator';
 import { useSession } from 'next-auth/react';
 
 const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
@@ -191,6 +192,7 @@ export function TopBar() {
           </div>
         ) : null}
         <GlobalSearch />
+        <ConnectivityIndicator />
       </div>
     </header>
   );

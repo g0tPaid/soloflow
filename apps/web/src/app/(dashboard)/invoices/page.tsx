@@ -7,6 +7,10 @@ import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
 import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
+import { loadInvoiceList } from '@/lib/offline/invoice-list';
+import { offlineQueryOptions } from '@/lib/offline/network';
+import { PendingSyncBadge } from '@/components/invoices/pending-sync-badge';
+import { useSyncStatus } from '@/components/offline/sync-provider';
 import { applyFulfillmentStatusToPage, fulfillmentStatusPatch } from '@/lib/fulfillment-cache';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -110,6 +114,7 @@ export default function InvoicesPage() {
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [listFilter, setListFilter] = useState<InvoiceListFilter | null>(null);
   const [invoiceView, setInvoiceView] = useState<InvoiceListView>('card');
+  const { requestSync, syncing } = useSyncStatus();
 
   useEffect(() => {
     setInvoiceView(readInvoiceListView(window.localStorage));
@@ -123,11 +128,17 @@ export default function InvoicesPage() {
   const { data, isLoading, error } = useQuery({
     queryKey: ['invoices', organizationId, listFilter],
     queryFn: () =>
-      api.invoices.list(session!.accessToken!, organizationId!, {
-        limit: 50,
-        listFilter: listFilter ?? undefined,
+      loadInvoiceList({
+        token: session!.accessToken!,
+        organizationId: organizationId!,
+        params: {
+          limit: 50,
+          listFilter: listFilter ?? undefined,
+        },
       }),
     enabled: !!session?.accessToken && !!organizationId,
+    staleTime: 0,
+    ...offlineQueryOptions,
   });
 
   const statusMutation = useMutation({
@@ -303,6 +314,7 @@ export default function InvoicesPage() {
               {invoices.map((invoice) => {
                 const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
                   invoicePayState(invoice);
+                const unsynced = invoice.syncState === 'pending' || invoice.syncState === 'error';
                 return (
                   <tr
                     key={invoice.id}
@@ -335,6 +347,12 @@ export default function InvoicesPage() {
                     <td className="px-3 py-3">
                       <div className="flex flex-wrap items-center gap-1">
                         <InvoiceStatusBadge status={invoice.status} />
+                        <PendingSyncBadge
+                          state={invoice.syncState}
+                          error={invoice.syncError}
+                          onRetry={() => void requestSync()}
+                          retrying={syncing}
+                        />
                         {isPaid ? (
                           <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
                             Paid
@@ -364,6 +382,7 @@ export default function InvoicesPage() {
                       {formatDate(invoice.dueDate)}
                     </td>
                     <td className="px-4 py-3">
+                      {!unsynced && (
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button asChild size="sm" className="gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c]">
                           <Link href={`/invoices/${invoice.id}#edit-line-items`}>
@@ -384,6 +403,7 @@ export default function InvoicesPage() {
                           </Button>
                         )}
                       </div>
+                      )}
                     </td>
                   </tr>
                 );
@@ -398,6 +418,7 @@ export default function InvoicesPage() {
           {invoices.map((invoice) => {
             const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } =
               invoicePayState(invoice);
+            const unsynced = invoice.syncState === 'pending' || invoice.syncState === 'error';
             return (
               <div
                 key={invoice.id}
@@ -416,6 +437,12 @@ export default function InvoicesPage() {
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
+                      <PendingSyncBadge
+                        state={invoice.syncState}
+                        error={invoice.syncError}
+                        onRetry={() => void requestSync()}
+                        retrying={syncing}
+                      />
                       <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
                       {isPaid ? (
                         <span className="rounded-full bg-emerald-600 px-2 py-0.5 text-[11px] font-medium text-white">
@@ -454,6 +481,7 @@ export default function InvoicesPage() {
                     <p className="hidden text-xs text-muted-foreground sm:block">
                       Due {formatDate(invoice.dueDate)}
                     </p>
+                    {!unsynced && (
                     <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
                       <Button
                         asChild
@@ -538,8 +566,10 @@ export default function InvoicesPage() {
                         </Button>
                       )}
                     </div>
+                    )}
                   </div>
                   </div>
+                  {!unsynced && (
                   <FulfillmentControls
                     idPrefix={invoice.id}
                     layout="compact"
@@ -565,6 +595,7 @@ export default function InvoicesPage() {
                       fulfillmentMutation.mutate({ id: invoice.id, data: tracking })
                     }
                   />
+                  )}
                 </CardContent>
               </div>
             );

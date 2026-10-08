@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { api, type Organization } from '@/lib/api';
 import { DEFAULT_CURRENCY } from '@flowbooks/shared';
+import { isLikelyOfflineError } from '@/lib/offline/network';
+import { getOfflineStore } from '@/lib/offline/store';
 
 export const ORG_STORAGE_KEY = 'soloflow_org_id';
 export const LEGACY_ORG_STORAGE_KEY = 'flowbooks_org_id';
@@ -55,12 +57,17 @@ export function useOrganizationId() {
         setOrganizationId(active.id);
         setOrganization(active as Organization);
         setError(null);
+        void getOfflineStore().writeOrganization(active as Organization).catch(() => undefined);
       } catch (err) {
-        if (!cancelled) {
-          setOrganizationId(stored);
-          setOrganization(null);
-          setError(err instanceof Error ? err.message : 'Failed to load organization');
-        }
+        if (cancelled) return;
+        setOrganizationId(stored);
+        const cached =
+          stored && isLikelyOfflineError(err)
+            ? await getOfflineStore().readOrganization(stored).catch(() => null)
+            : null;
+        if (cancelled) return;
+        setOrganization(cached);
+        setError(cached ? null : err instanceof Error ? err.message : 'Failed to load organization');
       } finally {
         if (!cancelled) setIsReady(true);
       }

@@ -378,6 +378,8 @@ model Invoice {
   customerId          String?
   vendorId            String?
   number              String
+  /// Client-generated idempotency key for offline create. Null on older invoices.
+  clientRequestId     String?
   status              InvoiceStatus    @default(DRAFT)
   issueDate           DateTime         @default(now())
   dueDate             DateTime?
@@ -422,6 +424,7 @@ model Invoice {
   sourceQuotes      Quote[]       @relation("QuoteConvertedInvoice")
 
   @@unique([organizationId, number])
+  @@unique([organizationId, clientRequestId])
   @@index([organizationId])
   @@index([organizationId, status])
   @@index([organizationId, customerId])

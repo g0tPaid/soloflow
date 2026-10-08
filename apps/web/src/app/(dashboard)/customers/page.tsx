@@ -4,7 +4,8 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
-import { api } from '@/lib/api';
+import { loadCustomers } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -18,8 +19,9 @@ export default function CustomersPage() {
 
   const { data, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(token!, organizationId!, { limit: 100 }),
+    queryFn: () => loadCustomers({ token: token!, organizationId: organizationId! }),
     enabled: canFetch,
+    ...offlineQueryOptions,
   });
 
   const customers = data?.data ?? [];

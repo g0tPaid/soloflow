@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { FULFILLMENT_STATUS_VALUES } from '@flowbooks/shared';
@@ -105,6 +105,18 @@ export class CreateInvoiceDto {
   @IsString()
   @MinLength(1)
   number?: string;
+
+  @ApiProperty({
+    required: false,
+    description:
+      'Client-generated idempotency key. Repeating a create with the same key returns the original invoice.',
+  })
+  @IsOptional()
+  @IsString()
+  @MinLength(8)
+  @MaxLength(80)
+  @Matches(/^[A-Za-z0-9_-]+$/)
+  clientRequestId?: string;
 
   @ApiProperty({ type: [InvoiceItemDto] })
   @IsArray()

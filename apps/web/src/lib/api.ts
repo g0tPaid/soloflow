@@ -304,6 +304,8 @@ export interface Invoice {
   internationalTrackingNumber?: string | null;
   fulfillmentEvents?: InvoiceFulfillmentEvent[];
   notes?: string | null;
+  /** Present when the invoice was created with an offline idempotency key. */
+  clientRequestId?: string | null;
   createdAt: string;
   updatedAt: string;
   customer?: Customer | null;
@@ -971,6 +973,7 @@ export const api = {
         body: JSON.stringify({
           customerId: data.customerId,
           number: data.number?.trim() || undefined,
+          clientRequestId: data.clientRequestId || undefined,
           issueDate: data.issueDate,
           dueDate,
           currency: data.currency,

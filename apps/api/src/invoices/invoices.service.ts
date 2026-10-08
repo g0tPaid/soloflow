@@ -12,6 +12,7 @@ import {
   invoiceBalanceDue,
   invoiceListFilterCriteria,
   isInvoiceListFilter,
+  isProvisionalInvoiceNumber,
   normalizeTrackingNumber,
   statusAfterPayment,
   toMoneyNumber,
@@ -175,9 +176,19 @@ export class InvoicesService {
     return trimmed;
   }
 
-
+  private findByClientRequestId(organizationId: string, clientRequestId: string) {
+    return this.prisma.invoice.findFirst({
+      where: { organizationId, clientRequestId },
+      include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
+    });
+  }
 
   async create(organizationId: string, dto: CreateInvoiceDto) {
+    const clientRequestId = dto.clientRequestId?.trim() || null;
+    if (clientRequestId) {
+      const replay = await this.findByClientRequestId(organizationId, clientRequestId);
+      if (replay) return replay;
+    }
 
     const settings = await this.prisma.organizationSettings.findUnique({
 
@@ -185,11 +196,11 @@ export class InvoicesService {
 
     });
 
-
-
-    const number = dto.number?.trim()
-      ? await this.assertUniqueNumber(organizationId, dto.number)
-      : `${settings?.invoicePrefix || 'INV'}-${String(settings?.invoiceNextNum || 1).padStart(5, '0')}`;
+    const requestedNumber = dto.number?.trim();
+    const number =
+      requestedNumber && !isProvisionalInvoiceNumber(requestedNumber)
+        ? await this.assertUniqueNumber(organizationId, requestedNumber)
+        : `${settings?.invoicePrefix || 'INV'}-${String(settings?.invoiceNextNum || 1).padStart(5, '0')}`;
 
 
 
@@ -222,6 +233,7 @@ export class InvoicesService {
           data: {
             organizationId,
             customerId: dto.customerId,
+            clientRequestId,
             number,
             issueDate: dto.issueDate ? new Date(dto.issueDate) : new Date(),
             dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
@@ -278,7 +290,14 @@ export class InvoicesService {
       return invoice;
       });
     } catch (error) {
+      if (clientRequestId) {
+        const replay = await this.findByClientRequestId(organizationId, clientRequestId);
+        if (replay) return replay;
+      }
       const message = error instanceof Error ? error.message : String(error);
+      if (clientRequestId && isUniqueTarget(error, 'clientRequestId')) {
+        throw new BadRequestException('Invoice sync is already in progress. Retry in a moment.');
+      }
       throw new BadRequestException(
         message.includes('Unique constraint')
           ? 'Invoice number already exists. Use a different number.'
@@ -757,6 +776,15 @@ export class InvoicesService {
     const total = Math.max(0, net + taxAmount);
     return { subtotal, shipping, taxRate, taxAmount, total };
   }
+}
+
+function isUniqueTarget(error: unknown, field: string): boolean {
+  if (!error || typeof error !== 'object') return false;
+  if ((error as { code?: string }).code !== 'P2002') return false;
+  const target = (error as { meta?: { target?: unknown } }).meta?.target;
+  if (Array.isArray(target)) return target.some((item) => String(item).includes(field));
+  if (typeof target === 'string') return target.includes(field);
+  return false;
 }
 
 
