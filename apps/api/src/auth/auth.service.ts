@@ -141,25 +141,19 @@ export class AuthService {
       throw new UnauthorizedException('Invalid credentials');
     }
 
-    // Normalize stored email so future exact lookups stay consistent
-    if (user.email !== email) {
-      await this.prisma.user.update({
-        where: { id: user.id },
-        data: { email },
-      });
-    }
-
-    await this.ensureSuperAdminFlag(user.id, email);
-    await this.touchActive(user.id);
-
-    const refreshed = await this.prisma.user.findUnique({
+    const refreshed = await this.prisma.user.update({
       where: { id: user.id },
+      data: {
+        lastActiveAt: new Date(),
+        ...(user.email !== email ? { email } : {}),
+        ...(superAdminEmails().has(email) ? { isSuperAdmin: true } : {}),
+      },
       select: { id: true, email: true, name: true, isSuperAdmin: true },
     });
 
     const token = this.generateToken(user.id, email);
     return {
-      user: refreshed!,
+      user: refreshed,
       token,
     };
   }

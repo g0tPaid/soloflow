@@ -43,12 +43,12 @@ async function proxyRequest(request: NextRequest, path: string[]) {
 
   try {
     const upstream = await fetch(target, init);
-    const body = await upstream.arrayBuffer();
-    return new NextResponse(body, {
+    const headers = new Headers(upstream.headers);
+    headers.delete('content-length');
+    headers.delete('content-encoding');
+    return new NextResponse(upstream.body, {
       status: upstream.status,
-      headers: {
-        'content-type': upstream.headers.get('content-type') ?? 'application/json',
-      },
+      headers,
     });
   } catch {
     return NextResponse.json(

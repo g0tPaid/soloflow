@@ -16,7 +16,7 @@ export class QuotesService {
         skip,
         take: limitNum,
         orderBy: { createdAt: 'desc' },
-        include: { customer: { select: { id: true, name: true } }, items: { orderBy: { sortOrder: 'asc' } } },
+        include: { customer: { select: { id: true, name: true } } },
       }),
       this.prisma.quote.count({ where: { organizationId } }),
     ]);

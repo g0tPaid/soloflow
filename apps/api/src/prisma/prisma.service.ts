@@ -180,21 +180,6 @@ const REQUIRED_SCHEMA_STATEMENTS = [
     ALTER TABLE "payments" ADD CONSTRAINT "payments_invoiceId_fkey"
       FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
-  `UPDATE "invoices" SET "amountPaid" = "total" WHERE "status" = 'PAID' AND "amountPaid" = 0`,
-  `INSERT INTO "payments" ("id", "organizationId", "invoiceId", "amount", "paidAt", "method", "createdAt", "updatedAt")
-   SELECT
-     'c' || substr(md5(i."id" || ':paid-backfill'), 1, 24),
-     i."organizationId",
-     i."id",
-     i."total",
-     COALESCE(i."updatedAt", i."issueDate", i."createdAt"),
-     'CASH',
-     NOW(),
-     NOW()
-   FROM "invoices" i
-   WHERE i."status" = 'PAID'
-     AND i."total" > 0
-     AND NOT EXISTS (SELECT 1 FROM "payments" p WHERE p."invoiceId" = i."id")`,
   `CREATE TABLE IF NOT EXISTS "organization_invites" (
     "id" TEXT NOT NULL,
     "organizationId" TEXT NOT NULL,
@@ -224,41 +209,6 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `ALTER TABLE "quote_items" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`,
   `CREATE INDEX IF NOT EXISTS "invoice_items_invoiceId_sortOrder_idx" ON "invoice_items"("invoiceId", "sortOrder")`,
   `CREATE INDEX IF NOT EXISTS "quote_items_quoteId_sortOrder_idx" ON "quote_items"("quoteId", "sortOrder")`,
-  // Only documents whose lines are all still 0. A later save (0, 1, 2, …) must not be rewritten on the next boot.
-  `WITH ranked AS (
-    SELECT
-      i."id",
-      ROW_NUMBER() OVER (PARTITION BY i."invoiceId" ORDER BY i."id") - 1 AS "ord"
-    FROM "invoice_items" i
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM "invoice_items" other
-      WHERE other."invoiceId" = i."invoiceId"
-        AND other."sortOrder" <> 0
-    )
-  )
-  UPDATE "invoice_items" AS items
-  SET "sortOrder" = ranked."ord"
-  FROM ranked
-  WHERE items."id" = ranked."id"
-    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
-  `WITH ranked AS (
-    SELECT
-      q."id",
-      ROW_NUMBER() OVER (PARTITION BY q."quoteId" ORDER BY q."id") - 1 AS "ord"
-    FROM "quote_items" q
-    WHERE NOT EXISTS (
-      SELECT 1
-      FROM "quote_items" other
-      WHERE other."quoteId" = q."quoteId"
-        AND other."sortOrder" <> 0
-    )
-  )
-  UPDATE "quote_items" AS items
-  SET "sortOrder" = ranked."ord"
-  FROM ranked
-  WHERE items."id" = ranked."id"
-    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
   `DO $$ BEGIN
     CREATE TYPE "FulfillmentStatus" AS ENUM (
       'LOCAL_ORDERING_COMPLETED',
@@ -294,6 +244,67 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `DO $$ BEGIN
     ALTER TABLE "invoice_fulfillment_events" ADD CONSTRAINT "invoice_fulfillment_events_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `CREATE TABLE IF NOT EXISTS "_boot_schema_ensure" (
+    "id" TEXT NOT NULL,
+    "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "_boot_schema_ensure_pkey" PRIMARY KEY ("id")
+  )`,
+] as const;
+
+const DATA_BACKFILL_MARKER_ID = 'data-backfill-v1';
+
+/** Row rewrites. Skipped after the first successful run (see `_boot_schema_ensure`). */
+const DATA_BACKFILL_STATEMENTS = [
+  `UPDATE "invoices" SET "amountPaid" = "total" WHERE "status" = 'PAID' AND "amountPaid" = 0`,
+  `INSERT INTO "payments" ("id", "organizationId", "invoiceId", "amount", "paidAt", "method", "createdAt", "updatedAt")
+   SELECT
+     'c' || substr(md5(i."id" || ':paid-backfill'), 1, 24),
+     i."organizationId",
+     i."id",
+     i."total",
+     COALESCE(i."updatedAt", i."issueDate", i."createdAt"),
+     'CASH',
+     NOW(),
+     NOW()
+   FROM "invoices" i
+   WHERE i."status" = 'PAID'
+     AND i."total" > 0
+     AND NOT EXISTS (SELECT 1 FROM "payments" p WHERE p."invoiceId" = i."id")`,
+  // Only documents whose lines are all still 0. A later save (0, 1, 2, …) must not be rewritten on the next boot.
+  `WITH ranked AS (
+    SELECT
+      i."id",
+      ROW_NUMBER() OVER (PARTITION BY i."invoiceId" ORDER BY i."id") - 1 AS "ord"
+    FROM "invoice_items" i
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM "invoice_items" other
+      WHERE other."invoiceId" = i."invoiceId"
+        AND other."sortOrder" <> 0
+    )
+  )
+  UPDATE "invoice_items" AS items
+  SET "sortOrder" = ranked."ord"
+  FROM ranked
+  WHERE items."id" = ranked."id"
+    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
+  `WITH ranked AS (
+    SELECT
+      q."id",
+      ROW_NUMBER() OVER (PARTITION BY q."quoteId" ORDER BY q."id") - 1 AS "ord"
+    FROM "quote_items" q
+    WHERE NOT EXISTS (
+      SELECT 1
+      FROM "quote_items" other
+      WHERE other."quoteId" = q."quoteId"
+        AND other."sortOrder" <> 0
+    )
+  )
+  UPDATE "quote_items" AS items
+  SET "sortOrder" = ranked."ord"
+  FROM ranked
+  WHERE items."id" = ranked."id"
+    AND items."sortOrder" IS DISTINCT FROM ranked."ord"`,
 ] as const;
 
 @Injectable()
@@ -318,6 +329,45 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
         // Fresh DBs may not have tables yet; migrate deploy / db push creates them.
         this.logger.warn(`Schema ensure skipped: ${message}`);
       }
+    }
+
+    await this.runDataBackfill();
+  }
+
+  private async runDataBackfill() {
+    if (process.env.SOLOFLOW_SKIP_BOOT_DATA_BACKFILL === 'true') {
+      this.logger.log('Skipping boot data backfill (SOLOFLOW_SKIP_BOOT_DATA_BACKFILL=true)');
+      return;
+    }
+
+    try {
+      const existing = await this.$queryRawUnsafe<Array<{ id: string }>>(
+        `SELECT "id" FROM "_boot_schema_ensure" WHERE "id" = '${DATA_BACKFILL_MARKER_ID}' LIMIT 1`,
+      );
+      if (existing.length > 0) return;
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Boot data backfill skipped; marker lookup failed: ${message}`);
+      return;
+    }
+
+    for (const sql of DATA_BACKFILL_STATEMENTS) {
+      try {
+        await this.$executeRawUnsafe(sql);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        this.logger.warn(`Boot data backfill skipped: ${message}`);
+        return;
+      }
+    }
+
+    try {
+      await this.$executeRawUnsafe(
+        `INSERT INTO "_boot_schema_ensure" ("id", "completedAt") VALUES ('${DATA_BACKFILL_MARKER_ID}', CURRENT_TIMESTAMP) ON CONFLICT ("id") DO NOTHING`,
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.logger.warn(`Boot data backfill marker insert failed: ${message}`);
     }
   }
 }
