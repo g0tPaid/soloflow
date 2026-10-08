@@ -5,30 +5,37 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
+import { loadCustomers, loadProducts } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
+import { createInvoiceWithOfflineFallback } from '@/lib/offline/create-invoice';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CreateInvoiceInput } from '@flowbooks/shared';
 
 export default function NewInvoicePage() {
   const { data: session } = useSession();
   const { organizationId, businessCurrency, isReady } = useOrganizationId();
+  const online = useOnlineStatus();
 
   const { data: customersData, isLoading: customersLoading } = useQuery({
     queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadCustomers({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   const { data: productsData, isLoading: productsLoading } = useQuery({
     queryKey: ['products', organizationId],
-    queryFn: () => api.products.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadProducts({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   const { data: nextNumberData } = useQuery({
     queryKey: ['invoice-next-number', organizationId],
     queryFn: () => api.invoices.nextNumber(session!.accessToken!, organizationId!),
-    enabled: !!session?.accessToken && !!organizationId,
+    enabled: !!session?.accessToken && !!organizationId && online,
   });
 
   const customers = customersData?.data ?? [];
@@ -36,7 +43,13 @@ export default function NewInvoicePage() {
   const isLoading = customersLoading || productsLoading;
 
   async function handleCreate(data: CreateInvoiceInput) {
-    return api.invoices.create(session!.accessToken!, organizationId!, data);
+    const customer = customers.find((entry) => entry.id === data.customerId) ?? null;
+    return createInvoiceWithOfflineFallback({
+      token: session!.accessToken!,
+      organizationId: organizationId!,
+      data,
+      customer,
+    });
   }
 
   return (

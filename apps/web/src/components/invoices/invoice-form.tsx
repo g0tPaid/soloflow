@@ -8,10 +8,13 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import {
   createInvoiceSchema,
   updateInvoiceSchema,
+  isProvisionalInvoiceNumber,
+  PROVISIONAL_INVOICE_NUMBER,
   type CreateInvoiceInput,
   type UpdateInvoiceInput,
   CURRENCIES,
 } from '@flowbooks/shared';
+import { useOnlineStatus } from '@/hooks/use-online-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -76,7 +79,7 @@ interface CreateInvoiceFormProps {
   products: Product[];
   defaultCurrency?: string;
   suggestedNumber?: string;
-  onSubmit: (data: CreateInvoiceInput) => Promise<{ id: string }>;
+  onSubmit: (data: CreateInvoiceInput) => Promise<{ id: string; offlinePending?: boolean }>;
 }
 
 interface EditInvoiceFormProps {
@@ -109,6 +112,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
     isEdit ? Number(invoice!.taxRate ?? 0) : 0,
   );
   const currencyTouched = useRef(isEdit);
+  const online = useOnlineStatus();
 
   const createForm = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -153,14 +157,19 @@ export function InvoiceForm(props: InvoiceFormProps) {
   const editShipping = isEdit ? Number(editForm.watch('shipping') ?? 0) : shipping;
   const editTaxRate = isEdit ? Number(editForm.watch('taxRate') ?? 0) : taxRate;
 
+  const suggestedNumber = props.mode === 'create' ? props.suggestedNumber : undefined;
+
   useEffect(() => {
     if (props.mode !== 'create') return;
-    const suggested = props.suggestedNumber;
-    if (!suggested) return;
-    if (!createForm.getValues('number')) {
-      createForm.setValue('number', suggested);
+    if (!online) {
+      createForm.setValue('number', PROVISIONAL_INVOICE_NUMBER);
+      return;
     }
-  }, [props, createForm]);
+    const current = createForm.getValues('number');
+    if ((!current || isProvisionalInvoiceNumber(current)) && suggestedNumber) {
+      createForm.setValue('number', suggestedNumber);
+    }
+  }, [props.mode, online, suggestedNumber, createForm]);
 
   async function handleCreateSubmit(data: CreateInvoiceFormValues) {
     if (props.mode !== 'create') return;
@@ -188,6 +197,10 @@ export function InvoiceForm(props: InvoiceFormProps) {
         dueDate: data.dueDate || null,
         notes: data.notes || null,
       });
+      if (created.offlinePending) {
+        router.push('/invoices');
+        return;
+      }
       router.push(`/invoices/${created.id}?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create invoice');
@@ -384,12 +397,17 @@ export function InvoiceForm(props: InvoiceFormProps) {
             <Input
               id="number"
               placeholder="e.g. INV-00001"
+              disabled={!online}
               {...createForm.register('number')}
             />
             {createForm.formState.errors.number && (
               <p className="text-sm text-destructive">{createForm.formState.errors.number.message}</p>
             )}
-            <p className="text-xs text-muted-foreground">You can change this to any number you like</p>
+            <p className="text-xs text-muted-foreground">
+              {online
+                ? 'You can change this to any number you like'
+                : 'You are offline. This invoice is saved on this phone and shows as Pending sync. SoloFlow assigns the real number when it syncs.'}
+            </p>
           </div>
           <div className="space-y-2">
             <Label htmlFor="customerId">Customer *</Label>

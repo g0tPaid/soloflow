@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { type CreateProductInput } from '@flowbooks/shared';
 import { api } from '@/lib/api';
+import { loadProducts } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { ProductForm } from '@/components/products/product-form';
 import { Card, CardContent } from '@/components/ui/card';
@@ -22,8 +24,9 @@ export default function ProductsPage() {
 
   const { data, isLoading } = useQuery({
     queryKey: ['products', organizationId],
-    queryFn: () => api.products.list(token!, organizationId!, { limit: 100 }),
+    queryFn: () => loadProducts({ token: token!, organizationId: organizationId! }),
     enabled: canFetch,
+    ...offlineQueryOptions,
   });
 
   const mutation = useMutation({

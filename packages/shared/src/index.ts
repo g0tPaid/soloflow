@@ -1,4 +1,5 @@
 export * from './constants';
+export * from './offline-invoice';
 export * from './fulfillment';
 export * from './invoice-list-filter';
 export * from './validators';

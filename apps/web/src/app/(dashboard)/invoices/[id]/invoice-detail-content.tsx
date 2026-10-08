@@ -6,7 +6,11 @@ import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { FileInput, Pencil, Banknote } from 'lucide-react';
-import { api, type Invoice } from '@/lib/api';
+import { api } from '@/lib/api';
+import { loadCustomers, loadProducts } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
+import { loadInvoiceScreen, type InvoiceScreenData } from '@/lib/offline/load-invoice';
+import { PendingInvoiceDetail } from '@/components/invoices/pending-invoice-detail';
 import { applyFulfillmentStatus, fulfillmentStatusPatch } from '@/lib/fulfillment-cache';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
@@ -50,9 +54,11 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
       if (fulfillmentStatus === undefined || !organizationId) return;
       const detailKey = ['invoice', id, organizationId] as const;
       await queryClient.cancelQueries({ queryKey: detailKey });
-      const previous = queryClient.getQueryData<Invoice>(detailKey);
-      queryClient.setQueryData<Invoice>(detailKey, (current) =>
-        current ? applyFulfillmentStatus(current, fulfillmentStatus) : current,
+      const previous = queryClient.getQueryData<InvoiceScreenData>(detailKey);
+      queryClient.setQueryData<InvoiceScreenData>(detailKey, (current) =>
+        current
+          ? { ...current, invoice: applyFulfillmentStatus(current.invoice, fulfillmentStatus) }
+          : current,
       );
       return { previous, detailKey };
     },
@@ -65,23 +71,38 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     },
   });
 
-  const { data: invoice, isLoading, error } = useQuery({
+  const { data: screen, isLoading, error } = useQuery({
     queryKey: ['invoice', id, organizationId],
-    queryFn: () => api.invoices.get(session!.accessToken!, organizationId!, id),
+    queryFn: () =>
+      loadInvoiceScreen({
+        token: session!.accessToken!,
+        organizationId: organizationId!,
+        invoiceId: id,
+      }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
+  const invoice = screen?.invoice;
 
   const { data: customersData } = useQuery({
     queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadCustomers({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   const { data: productsData } = useQuery({
     queryKey: ['products', organizationId],
-    queryFn: () => api.products.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadProducts({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
+
+  useEffect(() => {
+    if (screen?.aliasId && screen.aliasId !== id) {
+      router.replace(`/invoices/${screen.aliasId}${isNew ? '?new=1' : ''}`);
+    }
+  }, [screen?.aliasId, id, router, isNew]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -145,6 +166,12 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
     const el =
       document.getElementById('edit-line-items') ?? document.getElementById('edit-invoice');
     if (el) el.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
+
+  if (invoice && (screen?.syncState === 'pending' || screen?.syncState === 'error')) {
+    return (
+      <PendingInvoiceDetail invoice={invoice} syncState={screen.syncState} syncError={screen.syncError} />
+    );
   }
 
   return (

@@ -245,6 +245,11 @@ export const createInvoiceSchema = z.object({
   shippingTerms: z.enum(['DDP', 'LCL', 'LOCAL']).optional().nullable(),
   shippingFromCountry: z.string().optional().nullable(),
   shippingToCountry: z.string().optional().nullable(),
+  /** Device-generated idempotency key. Replays return the original invoice. */
+  clientRequestId: z
+    .string()
+    .regex(/^[A-Za-z0-9_-]{8,80}$/, 'Invalid client request id')
+    .optional(),
   items: z.array(invoiceItemSchema).min(1, 'At least one item is required'),
 });
 
