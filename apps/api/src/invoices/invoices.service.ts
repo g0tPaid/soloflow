@@ -95,9 +95,10 @@ export class InvoicesService {
 
         include: {
           customer: { select: { id: true, name: true } },
-          items: { orderBy: { sortOrder: 'asc' } },
-          payments: { orderBy: { paidAt: 'asc' } },
-          fulfillmentEvents: fulfillmentEventsInclude,
+          fulfillmentEvents: {
+            select: { id: true, status: true, action: true, createdAt: true },
+            ...fulfillmentEventsInclude,
+          },
         },
 
       }),
