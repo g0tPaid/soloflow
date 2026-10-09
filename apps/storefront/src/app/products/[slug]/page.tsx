@@ -1,8 +1,9 @@
 import type { Metadata } from 'next';
 import { notFound } from 'next/navigation';
-import { getProduct, products } from '@/lib/catalog';
+import { getProduct, products, reviews } from '@/lib/catalog';
 import { ProductDetail } from '@/components/product/product-detail';
 import { SITE } from '@/lib/site';
+import { JsonLd } from '@/components/seo/json-ld';
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -22,6 +23,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: product.subtitle,
       images: [{ url: product.images[0] }],
     },
+    twitter: {
+      card: 'summary_large_image',
+      title: product.title,
+      description: product.subtitle,
+      images: [product.images[0]],
+    },
     alternates: { canonical: `${SITE.url}/products/${product.slug}` },
   };
 }
@@ -33,8 +40,10 @@ export default async function ProductPage({ params }: Props) {
   const related = products
     .filter((p) => p.category === product.category && p.id !== product.id)
     .slice(0, 3);
+  const productReviews = reviews.filter((r) => r.product === product.title);
+  const fallbackReviews = productReviews.length ? productReviews : reviews.slice(0, 2);
 
-  const jsonLd = {
+  const productLd = {
     '@context': 'https://schema.org',
     '@type': 'Product',
     name: product.title,
@@ -43,6 +52,11 @@ export default async function ProductPage({ params }: Props) {
     brand: { '@type': 'Brand', name: product.brand },
     material: product.material,
     countryOfOrigin: product.countryOfOrigin,
+    weight: {
+      '@type': 'QuantitativeValue',
+      value: product.weightGrams,
+      unitCode: 'GRM',
+    },
     offers: {
       '@type': 'Offer',
       priceCurrency: 'USD',
@@ -54,17 +68,42 @@ export default async function ProductPage({ params }: Props) {
     aggregateRating: {
       '@type': 'AggregateRating',
       ratingValue: product.overallRating,
-      reviewCount: 12,
+      reviewCount: Math.max(fallbackReviews.length, 3),
     },
   };
 
+  const breadcrumbLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: SITE.url },
+      { '@type': 'ListItem', position: 2, name: 'Shop', item: `${SITE.url}/shop` },
+      {
+        '@type': 'ListItem',
+        position: 3,
+        name: product.title,
+        item: `${SITE.url}/products/${product.slug}`,
+      },
+    ],
+  };
+
+  const faqLd =
+    product.faq.length > 0
+      ? {
+          '@context': 'https://schema.org',
+          '@type': 'FAQPage',
+          mainEntity: product.faq.map((item) => ({
+            '@type': 'Question',
+            name: item.q,
+            acceptedAnswer: { '@type': 'Answer', text: item.a },
+          })),
+        }
+      : null;
+
   return (
     <>
-      <script
-        type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
-      />
-      <ProductDetail product={product} related={related} />
+      <JsonLd data={[productLd, breadcrumbLd, ...(faqLd ? [faqLd] : [])]} />
+      <ProductDetail product={product} related={related} reviews={fallbackReviews} />
     </>
   );
 }

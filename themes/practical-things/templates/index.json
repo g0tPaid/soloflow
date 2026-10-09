@@ -1,0 +1,41 @@
+{
+  "sections": {
+    "hero": {
+      "type": "hero",
+      "settings": {
+        "eyebrow": "Practical Things",
+        "heading": "Stop Buying Things Twice.",
+        "text": "The world's most trusted collection of products built to last.",
+        "button_label": "Explore Collection",
+        "secondary_button_label": "Learn Our Philosophy"
+      }
+    },
+    "principles": {
+      "type": "principles"
+    },
+    "featured_collections": {
+      "type": "featured-collections"
+    },
+    "featured_products": {
+      "type": "featured-products"
+    },
+    "why_exists": {
+      "type": "why-exists"
+    },
+    "journal": {
+      "type": "journal"
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": [
+    "hero",
+    "principles",
+    "featured_collections",
+    "featured_products",
+    "why_exists",
+    "journal",
+    "newsletter"
+  ]
+}

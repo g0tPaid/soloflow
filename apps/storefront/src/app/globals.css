@@ -1,17 +1,17 @@
 @import 'tailwindcss';
 
 :root {
-  --background: #fafaf7;
-  --foreground: #1b1b1b;
-  --accent: #2e6f40;
-  --muted: #6b6b6b;
-  --border: #ececec;
-  --error: #c0392b;
-  --success: #2d8c57;
-  --button: #1b1b1b;
-  --button-hover: #1f4d2c;
+  --background: #fafaf8;
+  --foreground: #111111;
+  --accent: #245c4a;
+  --muted: #666666;
+  --border: #e8e8e8;
+  --error: #b42318;
+  --success: #245c4a;
+  --button: #111111;
+  --button-hover: #245c4a;
   --card: #ffffff;
-  --ring: #2e6f40;
+  --ring: #245c4a;
 }
 
 @theme inline {
@@ -46,7 +46,7 @@ body {
 }
 
 ::selection {
-  background: color-mix(in srgb, var(--accent) 22%, white);
+  background: color-mix(in srgb, var(--accent) 18%, white);
   color: var(--foreground);
 }
 
@@ -70,33 +70,33 @@ img {
 }
 
 .container-pt {
-  width: min(1280px, calc(100% - 2rem));
+  width: min(1200px, calc(100% - 2rem));
   margin-inline: auto;
 }
 
 @media (min-width: 768px) {
   .container-pt {
-    width: min(1280px, calc(100% - 4rem));
+    width: min(1200px, calc(100% - 4rem));
   }
 }
 
 .prose-pt {
-  max-width: 68ch;
-  line-height: 1.75;
+  max-width: 42rem;
   color: var(--muted);
+  line-height: 1.75;
 }
 
 .prose-pt p + p {
-  margin-top: 1.25rem;
+  margin-top: 1rem;
 }
 
-.score-track {
-  height: 2px;
+.focus-ring:focus-visible {
+  outline: 2px solid var(--ring);
+  outline-offset: 3px;
+}
+
+.pt-rule {
+  height: 1px;
   background: var(--border);
-  overflow: hidden;
-}
-
-.score-fill {
-  height: 100%;
-  background: var(--accent);
+  border: 0;
 }

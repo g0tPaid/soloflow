@@ -1,0 +1,80 @@
+<section class="pt-rule" style="background: var(--pt-card); padding: 72px 0;">
+  <div class="pt-container" style="display: grid; gap: 40px; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));">
+    <div>
+      <p class="pt-eyebrow">{{ section.settings.eyebrow }}</p>
+      <h2 class="pt-serif" style="margin: 12px 0; font-size: 48px;">{{ section.settings.heading }}</h2>
+      <p style="color: var(--pt-muted); line-height: 1.8;">{{ section.settings.text }}</p>
+    </div>
+    <div style="display: grid; gap: 12px;">
+      {% for block in section.blocks %}
+        <div {{ block.shopify_attributes }} style="border: 1px solid var(--pt-border); background: var(--pt-background); padding: 20px;">
+          <p class="pt-eyebrow">{{ block.settings.label }}</p>
+          <p class="pt-serif" style="margin: 8px 0 0; font-size: 36px;">{{ block.settings.value }}</p>
+          <p style="color: var(--pt-muted); line-height: 1.7;">{{ block.settings.note }}</p>
+        </div>
+      {% endfor %}
+    </div>
+  </div>
+</section>
+
+{% schema %}
+{
+  "name": "Product ownership cost",
+  "settings": [
+    {
+      "type": "text",
+      "id": "eyebrow",
+      "label": "Eyebrow",
+      "default": "Long-term cost"
+    },
+    {
+      "type": "text",
+      "id": "heading",
+      "label": "Heading",
+      "default": "The best value is measured over years."
+    },
+    {
+      "type": "textarea",
+      "id": "text",
+      "label": "Text",
+      "default": "Use metafields or block settings to compare cheap replacement cycles against durable ownership."
+    }
+  ],
+  "blocks": [
+    {
+      "type": "metric",
+      "name": "Metric",
+      "settings": [
+        {
+          "type": "text",
+          "id": "label",
+          "label": "Label",
+          "default": "Premium ownership"
+        },
+        {
+          "type": "text",
+          "id": "value",
+          "label": "Value",
+          "default": "$175"
+        },
+        {
+          "type": "textarea",
+          "id": "note",
+          "label": "Note",
+          "default": "Estimated care and purchase cost over the useful life."
+        }
+      ]
+    }
+  ],
+  "default": {
+    "blocks": [
+      {
+        "type": "metric"
+      },
+      {
+        "type": "metric"
+      }
+    ]
+  }
+}
+{% endschema %}

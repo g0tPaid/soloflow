@@ -14,10 +14,12 @@ const columns = [
   {
     title: 'Company',
     links: [
+      { href: '/philosophy', label: 'Philosophy' },
+      { href: '/guides', label: 'Guides' },
+      { href: '/community', label: 'Community' },
       { href: '/about', label: 'About' },
       { href: '/journal', label: 'Journal' },
       { href: '/contact', label: 'Contact' },
-      { href: '/account', label: 'Account' },
     ],
   },
   {

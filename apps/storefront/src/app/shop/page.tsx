@@ -4,7 +4,8 @@ import { ShopCatalog } from '@/components/shop/shop-catalog';
 
 export const metadata: Metadata = {
   title: 'Shop',
-  description: 'Browse Buy It For Life products — kitchen, tools, travel, office, home, and outdoor.',
+  description:
+    'Browse Buy It For Life products across kitchen, tools, travel, office, outdoors, home, and more.',
 };
 
 export default function ShopPage() {
