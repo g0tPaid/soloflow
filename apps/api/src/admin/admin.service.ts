@@ -8,6 +8,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus } from '@flowbooks/database';
+import { OUTSTANDING_INVOICE_STATUSES } from '@flowbooks/shared';
 import { normalizePagination } from '../common/pagination';
 
 function startOfDay(date: Date) {
@@ -129,7 +130,7 @@ export class AdminService {
       this.prisma.invoice.aggregate({ _sum: { totalCost: true } }),
       this.prisma.invoice.aggregate({
         where: {
-          status: { in: [InvoiceStatus.SENT, InvoiceStatus.VIEWED, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE] },
+          status: { in: [...OUTSTANDING_INVOICE_STATUSES] as InvoiceStatus[] },
         },
         _sum: { total: true },
       }),
@@ -287,7 +288,7 @@ export class AdminService {
         this.prisma.invoice.aggregate({
           where: {
             organizationId: { in: orgIds },
-            status: { in: [InvoiceStatus.SENT, InvoiceStatus.VIEWED, InvoiceStatus.PARTIAL, InvoiceStatus.OVERDUE] },
+            status: { in: [...OUTSTANDING_INVOICE_STATUSES] as InvoiceStatus[] },
           },
           _sum: { total: true },
         }),

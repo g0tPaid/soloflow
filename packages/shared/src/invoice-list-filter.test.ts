@@ -13,7 +13,7 @@ describe('invoice list filters', () => {
       'All',
       'Waiting for payment',
       'Paid',
-      'Canceled',
+      'Cancelled',
       'On the way',
       'Order complete/received',
     ]);
@@ -38,6 +38,9 @@ describe('invoice list filters', () => {
     expect(invoiceMatchesListFilter({ status: 'CANCELLED' }, 'canceled')).toBe(true);
     expect(invoiceMatchesListFilter({ status: 'VOID' }, 'canceled')).toBe(true);
     expect(invoiceMatchesListFilter({ status: 'PAID' }, 'canceled')).toBe(false);
+    expect(invoiceMatchesListFilter({ status: 'CANCELLED' }, 'waiting_for_payment')).toBe(false);
+    expect(invoiceMatchesListFilter({ status: 'VOID' }, 'waiting_for_payment')).toBe(false);
+    expect(invoiceMatchesListFilter({ status: 'DRAFT' }, 'waiting_for_payment')).toBe(true);
   });
 
   it('groups fulfillment stages into on the way and received', () => {
@@ -61,5 +64,23 @@ describe('invoice list filters', () => {
 
     expect(invoiceMatchesListFilter({ fulfillmentStatus: null }, 'on_the_way')).toBe(false);
     expect(invoiceMatchesListFilter({ fulfillmentStatus: null }, 'order_complete')).toBe(false);
+    expect(
+      invoiceMatchesListFilter(
+        { status: 'CANCELLED', fulfillmentStatus: 'SHIPPED_INTERNATIONAL' },
+        'on_the_way',
+      ),
+    ).toBe(false);
+    expect(
+      invoiceMatchesListFilter(
+        { status: 'VOID', fulfillmentStatus: 'ORDER_COMPLETED' },
+        'order_complete',
+      ),
+    ).toBe(false);
+    expect(
+      invoiceMatchesListFilter(
+        { status: 'SENT', fulfillmentStatus: 'SHIPPED_INTERNATIONAL' },
+        'on_the_way',
+      ),
+    ).toBe(true);
   });
 });

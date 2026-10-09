@@ -41,6 +41,7 @@ describe('workspace search', () => {
 
   it('builds detail links and compact subtitles', () => {
     expect(workspaceSearchHref('customer', 'cus_1')).toBe('/customers/cus_1');
+    expect(workspaceSearchHref('customer', 'cus_1').endsWith('/edit')).toBe(false);
     expect(workspaceSearchHref('invoice', 'inv_1')).toBe('/invoices/inv_1');
     expect(workspaceSearchSubtitle({ kind: 'customer', email: 'a@b.co', phone: '1' })).toBe('a@b.co');
     expect(workspaceSearchSubtitle({ kind: 'customer', phone: '555' })).toBe('555');

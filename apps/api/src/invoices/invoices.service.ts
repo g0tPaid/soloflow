@@ -14,6 +14,8 @@ import {
   isInvoiceListFilter,
   isProvisionalInvoiceNumber,
   normalizeTrackingNumber,
+  readStatusBeforeCancel,
+  statusAfterOrderReopen,
   statusAfterPayment,
   toMoneyNumber,
 } from '@flowbooks/shared';
@@ -23,6 +25,16 @@ import { normalizePagination } from '../common/pagination';
 const fulfillmentEventsInclude = {
   orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
 };
+
+const invoiceDetailInclude = {
+  items: { include: { product: true as const }, orderBy: { sortOrder: 'asc' as const } },
+  customer: true,
+  payments: { orderBy: { paidAt: 'asc' as const } },
+  fulfillmentEvents: fulfillmentEventsInclude,
+};
+
+const ORDER_CANCELLED_ACTION = 'invoice.order_cancelled';
+const ORDER_REOPENED_ACTION = 'invoice.order_reopened';
 
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -46,6 +58,7 @@ export class InvoicesService {
     fulfillmentStatus?: string,
     sort?: string,
     listFilter?: string,
+    customerId?: string,
   ) {
 
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
@@ -67,11 +80,16 @@ export class InvoicesService {
       const criteria = invoiceListFilterCriteria(listFilter);
       if (criteria.paymentStatuses) {
         where.status = { in: [...criteria.paymentStatuses] as InvoiceStatus[] };
+      } else if (criteria.excludePaymentStatuses?.length) {
+        where.status = { notIn: [...criteria.excludePaymentStatuses] as InvoiceStatus[] };
       }
       if (criteria.fulfillmentStatuses) {
         where.fulfillmentStatus = { in: [...criteria.fulfillmentStatuses] };
       }
     }
+
+    const customer = customerId?.trim();
+    if (customer) where.customerId = customer;
 
     if (sort && sort !== 'newest' && sort !== 'fulfillment') {
       throw new BadRequestException('Unknown invoice sort');
@@ -461,13 +479,6 @@ export class InvoicesService {
 
 
 
-    const invoiceInclude = {
-      items: { include: { product: true as const }, orderBy: { sortOrder: 'asc' as const } },
-      customer: true,
-      payments: { orderBy: { paidAt: 'asc' as const } },
-      fulfillmentEvents: fulfillmentEventsInclude,
-    };
-
     if (markingPaid) {
       await this.prisma.invoice.update({
         where: { id },
@@ -480,7 +491,7 @@ export class InvoicesService {
       const updated = await this.prisma.invoice.update({
         where: { id },
         data: { status: InvoiceStatus.PAID },
-        include: invoiceInclude,
+        include: invoiceDetailInclude,
       });
       await this.syncSaleStock(organizationId, existing.status, updated);
       return updated;
@@ -492,7 +503,7 @@ export class InvoicesService {
         return tx.invoice.update({
           where: { id },
           data: { ...updateData, amountPaid: 0, status: dto.status as InvoiceStatus },
-          include: invoiceInclude,
+          include: invoiceDetailInclude,
         });
       });
       await this.syncSaleStock(organizationId, existing.status, updated);
@@ -502,13 +513,88 @@ export class InvoicesService {
     const updated = await this.prisma.invoice.update({
       where: { id },
       data: updateData,
-      include: invoiceInclude,
+      include: invoiceDetailInclude,
     });
 
     if (updated.status !== existing.status) {
       await this.syncSaleStock(organizationId, existing.status, updated);
     }
 
+    return updated;
+  }
+
+  async cancelOrder(organizationId: string, id: string) {
+    const existing = await this.findOne(organizationId, id);
+    if (existing.status === InvoiceStatus.VOID) {
+      throw new BadRequestException('A void invoice cannot be cancelled this way');
+    }
+    if (existing.status === InvoiceStatus.CANCELLED) return existing;
+
+    const customFields = {
+      ...customFieldsObject(existing.customFields),
+      statusBeforeCancel: existing.status,
+    };
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.update({
+        where: { id },
+        data: { status: InvoiceStatus.CANCELLED, customFields },
+        include: invoiceDetailInclude,
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId,
+          action: ORDER_CANCELLED_ACTION,
+          entityType: 'invoice',
+          entityId: id,
+          metadata: { previousStatus: existing.status },
+        },
+      });
+      return invoice;
+    });
+    await this.syncSaleStock(organizationId, existing.status, updated);
+    return updated;
+  }
+
+  async reopenOrder(organizationId: string, id: string) {
+    const existing = await this.findOne(organizationId, id);
+    if (existing.status !== InvoiceStatus.CANCELLED) {
+      throw new BadRequestException('Only a cancelled order can be reopened');
+    }
+
+    const lastCancel = await this.prisma.auditLog.findFirst({
+      where: {
+        organizationId,
+        entityType: 'invoice',
+        entityId: id,
+        action: ORDER_CANCELLED_ACTION,
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+    const previousStatus =
+      readStatusBeforeCancel(existing.customFields) ??
+      previousStatusFromAudit(lastCancel?.metadata);
+    const restored = statusAfterOrderReopen(existing, previousStatus) as InvoiceStatus;
+    const customFields = customFieldsObject(existing.customFields);
+    delete customFields.statusBeforeCancel;
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      const invoice = await tx.invoice.update({
+        where: { id },
+        data: { status: restored, customFields },
+        include: invoiceDetailInclude,
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId,
+          action: ORDER_REOPENED_ACTION,
+          entityType: 'invoice',
+          entityId: id,
+          metadata: { restoredStatus: restored, previousStatus: previousStatus ?? null },
+        },
+      });
+      return invoice;
+    });
+    await this.syncSaleStock(organizationId, existing.status, updated);
     return updated;
   }
 
@@ -776,6 +862,17 @@ export class InvoicesService {
     const total = Math.max(0, net + taxAmount);
     return { subtotal, shipping, taxRate, taxAmount, total };
   }
+}
+
+function customFieldsObject(value: Prisma.JsonValue | null | undefined): Record<string, Prisma.InputJsonValue> {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return {};
+  return { ...(value as Record<string, Prisma.InputJsonValue>) };
+}
+
+function previousStatusFromAudit(metadata: Prisma.JsonValue | null | undefined): string | null {
+  if (!metadata || typeof metadata !== 'object' || Array.isArray(metadata)) return null;
+  const value = (metadata as { previousStatus?: unknown }).previousStatus;
+  return typeof value === 'string' && value.trim() ? value : null;
 }
 
 function isUniqueTarget(error: unknown, field: string): boolean {

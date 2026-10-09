@@ -114,4 +114,19 @@ describe('GlobalSearch', () => {
     fireEvent.click(screen.getByRole('option', { name: 'INV-1042, Acme Corp · sent' }));
     expect(push).toHaveBeenCalledWith('/invoices/i1');
   });
+
+  it('opens a customer result on the view card, not the editor', async () => {
+    renderSearch();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search customers or invoices' }), {
+      target: { value: 'acme' },
+    });
+
+    const customer = await screen.findByRole('option', { name: 'Acme Corp, billing@acme.com' });
+    expect(customer).toHaveAttribute('href', '/customers/c1');
+    expect(customer.getAttribute('href')).not.toMatch(/\/edit$/);
+
+    fireEvent.click(customer);
+    expect(push).toHaveBeenCalledWith('/customers/c1');
+    expect(push).not.toHaveBeenCalledWith('/customers/c1/edit');
+  });
 });

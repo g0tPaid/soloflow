@@ -19,6 +19,7 @@ import {
   FulfillmentControls,
   FulfillmentStatusBadge,
 } from '@/components/invoices/fulfillment-controls';
+import { CancelOrderButton } from '@/components/invoices/cancel-order-button';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { ShareInvoiceWhatsAppButton } from '@/components/invoices/share-invoice-whatsapp-button';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
@@ -272,6 +273,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                   {converting ? 'Converting…' : 'Convert to quote'}
                 </Button>
               )}
+              <CancelOrderButton invoice={invoice} organizationId={organizationId} />
               {convertError && (
                 <p className="text-sm text-destructive sm:text-right">{convertError}</p>
               )}

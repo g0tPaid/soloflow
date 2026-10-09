@@ -8,7 +8,7 @@ export const INVOICE_LIST_FILTERS = [
   { id: 'all', label: 'All' },
   { id: 'waiting_for_payment', label: 'Waiting for payment' },
   { id: 'paid', label: 'Paid' },
-  { id: 'canceled', label: 'Canceled' },
+  { id: 'canceled', label: 'Cancelled' },
   { id: 'on_the_way', label: 'On the way' },
   { id: 'order_complete', label: 'Order complete/received' },
 ] as const;
@@ -36,6 +36,8 @@ export function isInvoiceListFilter(value: string): value is InvoiceListFilter {
 export function invoiceListFilterCriteria(filter: InvoiceListFilter): {
   paymentStatuses?: readonly string[];
   fulfillmentStatuses?: readonly FulfillmentStatus[];
+  /** Drop cancelled and void orders from active delivery chips. */
+  excludePaymentStatuses?: readonly string[];
 } {
   switch (filter) {
     case 'all':
@@ -47,9 +49,15 @@ export function invoiceListFilterCriteria(filter: InvoiceListFilter): {
     case 'canceled':
       return { paymentStatuses: CANCELED_STATUSES };
     case 'on_the_way':
-      return { fulfillmentStatuses: ON_THE_WAY_STATUSES };
+      return {
+        fulfillmentStatuses: ON_THE_WAY_STATUSES,
+        excludePaymentStatuses: CANCELED_STATUSES,
+      };
     case 'order_complete':
-      return { fulfillmentStatuses: ORDER_COMPLETE_STATUSES };
+      return {
+        fulfillmentStatuses: ORDER_COMPLETE_STATUSES,
+        excludePaymentStatuses: CANCELED_STATUSES,
+      };
   }
 }
 
@@ -59,6 +67,7 @@ export function invoiceMatchesListFilter(
 ): boolean {
   if (filter === 'all') return true;
   const criteria = invoiceListFilterCriteria(filter);
+  if (criteria.excludePaymentStatuses?.includes(invoice.status ?? '')) return false;
   if (criteria.paymentStatuses) return criteria.paymentStatuses.includes(invoice.status ?? '');
   if (criteria.fulfillmentStatuses) {
     return criteria.fulfillmentStatuses.includes((invoice.fulfillmentStatus ?? '') as FulfillmentStatus);

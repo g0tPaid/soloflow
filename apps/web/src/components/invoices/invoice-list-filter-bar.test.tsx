@@ -8,7 +8,7 @@ describe('InvoiceListFilterBar', () => {
     expect(screen.getByRole('button', { name: 'All' })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.getByRole('button', { name: 'Waiting for payment' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Paid' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Canceled' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Cancelled' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'On the way' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Order complete/received' })).toBeInTheDocument();
   });

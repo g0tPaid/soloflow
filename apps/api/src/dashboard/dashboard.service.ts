@@ -1,7 +1,7 @@
 import { Injectable } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { InvoiceStatus } from '@flowbooks/database';
-import { fromUsd, parseFxRates, roundMoney, toUsd } from '@flowbooks/shared';
+import { fromUsd, OUTSTANDING_INVOICE_STATUSES, parseFxRates, roundMoney, toUsd } from '@flowbooks/shared';
 
 @Injectable()
 export class DashboardService {
@@ -51,14 +51,7 @@ export class DashboardService {
           where: {
             organizationId,
             customerId: { not: null },
-            status: {
-              in: [
-                InvoiceStatus.SENT,
-                InvoiceStatus.VIEWED,
-                InvoiceStatus.PARTIAL,
-                InvoiceStatus.OVERDUE,
-              ],
-            },
+            status: { in: [...OUTSTANDING_INVOICE_STATUSES] as InvoiceStatus[] },
           },
           _sum: { total: true, amountPaid: true },
         }),
