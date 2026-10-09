@@ -244,6 +244,31 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `DO $$ BEGIN
     ALTER TABLE "invoice_fulfillment_events" ADD CONSTRAINT "invoice_fulfillment_events_invoiceId_fkey" FOREIGN KEY ("invoiceId") REFERENCES "invoices"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "clientRequestId" TEXT`,
+  `CREATE UNIQUE INDEX IF NOT EXISTS "invoices_organizationId_clientRequestId_key" ON "invoices"("organizationId", "clientRequestId") WHERE "clientRequestId" IS NOT NULL`,
+  `CREATE TABLE IF NOT EXISTS "audit_logs" (
+    "id" TEXT NOT NULL,
+    "organizationId" TEXT NOT NULL,
+    "userId" TEXT,
+    "action" TEXT NOT NULL,
+    "entityType" TEXT NOT NULL,
+    "entityId" TEXT,
+    "metadata" JSONB NOT NULL DEFAULT '{}',
+    "ipAddress" TEXT,
+    "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    CONSTRAINT "audit_logs_pkey" PRIMARY KEY ("id")
+  )`,
+  `CREATE INDEX IF NOT EXISTS "audit_logs_organizationId_idx" ON "audit_logs"("organizationId")`,
+  `CREATE INDEX IF NOT EXISTS "audit_logs_organizationId_entityType_idx" ON "audit_logs"("organizationId", "entityType")`,
+  `CREATE INDEX IF NOT EXISTS "audit_logs_organizationId_createdAt_idx" ON "audit_logs"("organizationId", "createdAt")`,
+  `DO $$ BEGIN
+    ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_organizationId_fkey"
+      FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `DO $$ BEGIN
+    ALTER TABLE "audit_logs" ADD CONSTRAINT "audit_logs_userId_fkey"
+      FOREIGN KEY ("userId") REFERENCES "users"("id") ON DELETE SET NULL ON UPDATE CASCADE;
+  EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
   `CREATE TABLE IF NOT EXISTS "_boot_schema_ensure" (
     "id" TEXT NOT NULL,
     "completedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
@@ -320,7 +345,8 @@ export class PrismaService extends PrismaClient implements OnModuleInit, OnModul
     await this.$disconnect();
   }
 
-  private async ensureRequiredSchema() {
+  /** Idempotent column/table repair. Invoice reads call this again after a query failure. */
+  async ensureRequiredSchema() {
     for (const sql of REQUIRED_SCHEMA_STATEMENTS) {
       try {
         await this.$executeRawUnsafe(sql);

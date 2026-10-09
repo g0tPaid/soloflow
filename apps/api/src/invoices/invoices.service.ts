@@ -33,6 +33,68 @@ const invoiceDetailInclude = {
   fulfillmentEvents: fulfillmentEventsInclude,
 };
 
+/** List columns only. clientRequestId is omitted so a missing production column cannot 500 the page. */
+const invoiceListSelect = {
+  id: true,
+  organizationId: true,
+  customerId: true,
+  vendorId: true,
+  number: true,
+  status: true,
+  issueDate: true,
+  dueDate: true,
+  currency: true,
+  subtotal: true,
+  taxAmount: true,
+  taxRate: true,
+  inputTaxRate: true,
+  inputTaxAmount: true,
+  shipping: true,
+  shippingCost: true,
+  shippingCostCny: true,
+  discount: true,
+  total: true,
+  amountPaid: true,
+  totalCost: true,
+  shippingMethod: true,
+  shippingTerms: true,
+  shippingFromCountry: true,
+  shippingToCountry: true,
+  fulfillmentStatus: true,
+  localTrackingNumber: true,
+  internationalTrackingNumber: true,
+  notes: true,
+  customFields: true,
+  createdAt: true,
+  updatedAt: true,
+  customer: { select: { id: true, name: true } },
+} satisfies Prisma.InvoiceSelect;
+
+const invoiceListSelectWithEvents = {
+  ...invoiceListSelect,
+  fulfillmentEvents: {
+    select: { id: true, status: true, action: true, createdAt: true },
+    ...fulfillmentEventsInclude,
+  },
+} satisfies Prisma.InvoiceSelect;
+
+function invoiceReadInclude(ordered: boolean): Prisma.InvoiceInclude {
+  if (!ordered) {
+    return {
+      customer: true,
+      items: true,
+      payments: true,
+      fulfillmentEvents: true,
+    };
+  }
+  return {
+    customer: true,
+    items: { orderBy: { sortOrder: 'asc' } },
+    payments: { orderBy: { paidAt: 'asc' } },
+    fulfillmentEvents: fulfillmentEventsInclude,
+  };
+}
+
 const ORDER_CANCELLED_ACTION = 'invoice.order_cancelled';
 const ORDER_REOPENED_ACTION = 'invoice.order_reopened';
 
@@ -101,29 +163,8 @@ export class InvoicesService {
         : [{ createdAt: 'desc' }];
 
     const [data, total] = await Promise.all([
-
-      this.prisma.invoice.findMany({
-
-        where,
-
-        skip,
-
-        take: limitNum,
-
-        orderBy,
-
-        include: {
-          customer: { select: { id: true, name: true } },
-          fulfillmentEvents: {
-            select: { id: true, status: true, action: true, createdAt: true },
-            ...fulfillmentEventsInclude,
-          },
-        },
-
-      }),
-
+      this.loadInvoiceList(where, skip, limitNum, orderBy),
       this.prisma.invoice.count({ where }),
-
     ]);
 
     return {
@@ -149,24 +190,84 @@ export class InvoicesService {
 
 
   async findOne(organizationId: string, id: string) {
-
-    const invoice = await this.prisma.invoice.findFirst({
-
-      where: { id, organizationId },
-
-      include: {
-        customer: true,
-        items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
-        payments: { orderBy: { paidAt: 'asc' } },
-        fulfillmentEvents: fulfillmentEventsInclude,
-      },
-
-    });
-
+    const invoice = await this.readInvoice(organizationId, id);
     if (!invoice) throw new NotFoundException('Invoice not found');
+    return this.attachProducts(invoice);
+  }
 
-    return invoice;
+  private loadInvoiceList(
+    where: Prisma.InvoiceWhereInput,
+    skip: number,
+    take: number,
+    orderBy: Prisma.InvoiceOrderByWithRelationInput[],
+  ) {
+    const query = (withEvents: boolean) =>
+      this.prisma.invoice.findMany({
+        where,
+        skip,
+        take,
+        orderBy,
+        select: withEvents ? invoiceListSelectWithEvents : invoiceListSelect,
+      });
 
+    return this.withSchemaRepair(
+      () => query(true),
+      () => query(false),
+    );
+  }
+
+  private readInvoice(organizationId: string, id: string) {
+    const where = { id, organizationId };
+    const query = (ordered: boolean) =>
+      this.prisma.invoice.findFirst({
+        where,
+        include: invoiceReadInclude(ordered),
+      });
+
+    return this.withSchemaRepair(
+      () => query(true),
+      () => query(false),
+    );
+  }
+
+  /**
+   * Run the primary query, repair schema and retry, then use the fallback query.
+   * List fallback drops fulfillmentEvents. Detail fallback drops orderBy.
+   */
+  private async withSchemaRepair<T>(primary: () => Promise<T>, fallback: () => Promise<T>): Promise<T> {
+    try {
+      return await primary();
+    } catch {
+      await this.tryRepairSchema();
+      try {
+        return await primary();
+      } catch {
+        return fallback();
+      }
+    }
+  }
+
+  private async tryRepairSchema() {
+    if (typeof this.prisma.ensureRequiredSchema !== 'function') return;
+    await this.prisma.ensureRequiredSchema();
+  }
+
+  private async attachProducts<T extends { items: Array<{ productId: string | null }> }>(invoice: T) {
+    const productIds = [
+      ...new Set(invoice.items.map((item) => item.productId).filter((id): id is string => !!id)),
+    ];
+    const products =
+      productIds.length > 0
+        ? await this.prisma.product.findMany({ where: { id: { in: productIds } } })
+        : [];
+    const byId = new Map(products.map((product) => [product.id, product]));
+    return {
+      ...invoice,
+      items: invoice.items.map((item) => ({
+        ...item,
+        product: item.productId ? (byId.get(item.productId) ?? null) : null,
+      })),
+    };
   }
 
   async getNextNumber(organizationId: string) {
