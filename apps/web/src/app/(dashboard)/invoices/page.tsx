@@ -317,7 +317,7 @@ export default function InvoicesPage() {
         </div>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && listFilter && (
+      {!isLoading && !error && organizationId && invoices.length === 0 && listFilter && (
         <Card className="border-dashed">
           <CardContent className="py-10 text-center text-sm text-muted-foreground">
             {invoiceListFilterEmptyLabel(listFilter)}
@@ -325,7 +325,7 @@ export default function InvoicesPage() {
         </Card>
       )}
 
-      {!isLoading && organizationId && invoices.length === 0 && !listFilter && (
+      {!isLoading && !error && organizationId && invoices.length === 0 && !listFilter && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <FileText className="mb-3 h-10 w-10 text-muted-foreground" />
