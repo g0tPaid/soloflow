@@ -2,12 +2,11 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { Heart, Eye } from 'lucide-react';
+import { Heart } from 'lucide-react';
 import { motion } from 'framer-motion';
 import type { Product } from '@/lib/types';
 import { formatPrice, cn } from '@/lib/utils';
-import { useCart, useWishlist } from '@/lib/store';
-import { Button } from '@/components/ui/button';
+import { useWishlist } from '@/lib/store';
 import { ProductBadges } from '@/components/ui/badge';
 
 export function ProductCard({
@@ -17,7 +16,6 @@ export function ProductCard({
   product: Product;
   priority?: boolean;
 }) {
-  const addItem = useCart((s) => s.addItem);
   const { toggle, has } = useWishlist();
   const wished = has(product.id);
 
@@ -29,7 +27,7 @@ export function ProductCard({
       transition={{ duration: 0.45, ease: [0.22, 1, 0.36, 1] }}
       className="group flex h-full flex-col"
     >
-      <div className="relative aspect-[4/5] overflow-hidden bg-border/40">
+      <div className="relative aspect-[4/5] overflow-hidden rounded-2xl bg-border/30">
         <Link href={`/products/${product.slug}`} className="absolute inset-0">
           <Image
             src={product.images[0]}
@@ -47,46 +45,50 @@ export function ProductCard({
           type="button"
           aria-label={wished ? 'Remove from wishlist' : 'Add to wishlist'}
           onClick={() => toggle(product.id)}
-          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center bg-background/90 text-foreground transition hover:text-accent"
+          className="absolute right-3 top-3 z-10 flex h-10 w-10 items-center justify-center rounded-full bg-card/95 text-foreground transition hover:text-accent"
         >
           <Heart className={cn('h-4 w-4', wished && 'fill-accent text-accent')} />
         </button>
-        <div className="absolute inset-x-3 bottom-3 z-10 flex translate-y-2 gap-2 opacity-0 transition duration-300 group-hover:translate-y-0 group-hover:opacity-100 max-md:translate-y-0 max-md:opacity-100">
-          <Button
-            size="sm"
-            className="flex-1"
-            onClick={() => addItem(product, product.variants[0]?.id || 'default')}
-          >
-            Add to cart
-          </Button>
-          <Link
-            href={`/products/${product.slug}`}
-            className="flex h-10 w-10 items-center justify-center border border-border bg-background"
-            aria-label="Quick view"
-          >
-            <Eye className="h-4 w-4" />
+      </div>
+
+      <div className="mt-5 flex flex-1 flex-col gap-3">
+        <div>
+          <p className="text-[11px] uppercase tracking-[0.18em] text-muted">{product.brand}</p>
+          <Link href={`/products/${product.slug}`}>
+            <h3 className="mt-1 font-serif text-2xl leading-tight text-foreground transition hover:text-accent">
+              {product.title}
+            </h3>
           </Link>
         </div>
-      </div>
-      <div className="mt-5 flex flex-1 flex-col gap-2">
-        <div className="flex items-start justify-between gap-3">
+
+        <dl className="grid grid-cols-2 gap-x-3 gap-y-2 text-xs text-muted">
           <div>
-            <p className="text-[11px] uppercase tracking-[0.18em] text-muted">
-              {product.brand}
-            </p>
-            <Link href={`/products/${product.slug}`}>
-              <h3 className="mt-1 font-serif text-2xl leading-tight text-foreground transition hover:text-accent">
-                {product.title}
-              </h3>
-            </Link>
+            <dt className="uppercase tracking-[0.14em]">Lifespan</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.expectedLifespan}</dd>
           </div>
-          <p className="pt-1 text-sm tabular-nums">{formatPrice(product.price)}</p>
-        </div>
-        <p className="text-sm text-muted">{product.material}</p>
-        <div className="mt-auto flex items-center gap-4 pt-2 text-[11px] uppercase tracking-[0.14em] text-muted">
-          <span>Lifetime {product.lifetimeScore}</span>
-          <span>Warranty {product.warranty}</span>
-        </div>
+          <div>
+            <dt className="uppercase tracking-[0.14em]">Repairability</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.repairabilityScore}/100</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-[0.14em]">Warranty</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.warranty}</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-[0.14em]">Origin</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.countryOfOrigin}</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-[0.14em]">Editor</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.overallRating.toFixed(1)} / 5</dd>
+          </div>
+          <div>
+            <dt className="uppercase tracking-[0.14em]">Materials</dt>
+            <dd className="mt-1 text-sm text-foreground">{product.material}</dd>
+          </div>
+        </dl>
+
+        <p className="mt-auto pt-2 font-medium text-foreground">{formatPrice(product.price)}</p>
       </div>
     </motion.article>
   );

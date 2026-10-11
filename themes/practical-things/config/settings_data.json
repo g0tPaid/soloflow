@@ -1,0 +1,20 @@
+{
+  "current": {
+    "color_background": "#FAFAF8",
+    "color_card": "#FFFFFF",
+    "color_text": "#111111",
+    "color_muted": "#666666",
+    "color_accent": "#245C4A",
+    "color_border": "#E8E8E8"
+  },
+  "presets": {
+    "Default": {
+      "color_background": "#FAFAF8",
+      "color_card": "#FFFFFF",
+      "color_text": "#111111",
+      "color_muted": "#666666",
+      "color_accent": "#245C4A",
+      "color_border": "#E8E8E8"
+    }
+  }
+}
