@@ -485,6 +485,8 @@ export class InvoicesService {
       updateData.status = nextStatusFromLedger;
     }
 
+    if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();
+
     if (dto.dueDate !== undefined) updateData.dueDate = dto.dueDate ? new Date(dto.dueDate) : null;
 
     if (dto.notes !== undefined) updateData.notes = dto.notes;

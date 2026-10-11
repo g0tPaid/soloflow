@@ -271,6 +271,7 @@ export const updateInvoiceSchema = z
     number: z.string().min(1, 'Invoice number is required').max(50).optional(),
     status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
     dueDate: optionalDateField.optional(),
+    currency: z.string().length(3).optional(),
     notes: z.string().optional().nullable(),
     discount: z.number().min(0).optional(),
     shipping: z.number().min(0).optional(),
@@ -326,6 +327,7 @@ export const updateQuoteSchema = z.object({
     .enum(['DRAFT', 'SENT', 'ACCEPTED', 'REJECTED', 'EXPIRED', 'CANCELLED', 'CONVERTED'])
     .optional(),
   validUntil: optionalDateField.optional(),
+  currency: z.string().length(3).optional(),
   notes: z.string().optional().nullable(),
   discount: z.number().min(0).optional(),
   shipping: z.number().min(0).optional(),

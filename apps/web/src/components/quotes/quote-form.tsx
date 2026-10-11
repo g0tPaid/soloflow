@@ -10,12 +10,12 @@ import {
   updateQuoteSchema,
   type CreateQuoteInput,
   type UpdateQuoteInput,
-  CURRENCIES,
 } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencySelect } from '@/components/currency-select';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { VatFields } from '@/components/invoices/vat-fields';
@@ -145,7 +145,7 @@ export function QuoteForm(props: QuoteFormProps) {
     },
   });
 
-  const currency = isEdit ? quote!.currency : quoteCurrency;
+  const currency = quoteCurrency;
   const discount = isEdit
     ? Number(editForm.watch('discount') ?? 0)
     : Number(createForm.watch('discount') ?? 0);
@@ -213,6 +213,7 @@ export function QuoteForm(props: QuoteFormProps) {
 
       await props.onSubmit({
         ...data,
+        currency: quoteCurrency,
         validUntil: data.validUntil || null,
         notes: data.notes || null,
         shipping: Number.isFinite(Number(data.shipping)) ? Math.max(0, Number(data.shipping)) : 0,
@@ -258,7 +259,7 @@ export function QuoteForm(props: QuoteFormProps) {
           <CardHeader>
             <CardTitle>Quote details</CardTitle>
             <CardDescription>
-              Number, status, valid until, discount, and notes
+              Number, status, currency, valid until, discount, and notes
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -282,6 +283,16 @@ export function QuoteForm(props: QuoteFormProps) {
             <div className="space-y-2">
               <Label htmlFor="validUntil">Valid until</Label>
               <Input id="validUntil" type="date" {...editForm.register('validUntil')} />
+            </div>
+            <div className="sm:col-span-2">
+              <CurrencySelect
+                id="edit-currency"
+                value={quoteCurrency}
+                onChange={(value) => {
+                  currencyTouched.current = true;
+                  setQuoteCurrency(value);
+                }}
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="discount">Discount</Label>
@@ -416,7 +427,17 @@ export function QuoteForm(props: QuoteFormProps) {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <CurrencySelect
+            id="currency"
+            value={quoteCurrency}
+            onChange={(value) => {
+              currencyTouched.current = true;
+              setQuoteCurrency(value);
+              createForm.setValue('currency', value);
+            }}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="issueDate">Issue date</Label>
               <Input id="issueDate" type="date" {...createForm.register('issueDate')} />
@@ -424,26 +445,6 @@ export function QuoteForm(props: QuoteFormProps) {
             <div className="space-y-2">
               <Label htmlFor="validUntil">Valid until</Label>
               <Input id="validUntil" type="date" {...createForm.register('validUntil')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <select
-                id="currency"
-                className={selectClassName}
-                value={quoteCurrency}
-                onChange={(e) => {
-                  const value = e.target.value;
-                  currencyTouched.current = true;
-                  setQuoteCurrency(value);
-                  createForm.setValue('currency', value);
-                }}
-              >
-                {CURRENCIES.map((c) => (
-                  <option key={c.code} value={c.code}>
-                    {c.symbol} {c.code} — {c.name}
-                  </option>
-                ))}
-              </select>
             </div>
           </div>
 

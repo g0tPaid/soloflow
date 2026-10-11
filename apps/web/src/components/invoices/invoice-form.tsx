@@ -12,13 +12,13 @@ import {
   PROVISIONAL_INVOICE_NUMBER,
   type CreateInvoiceInput,
   type UpdateInvoiceInput,
-  CURRENCIES,
 } from '@flowbooks/shared';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CurrencySelect } from '@/components/currency-select';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { VatFields } from '@/components/invoices/vat-fields';
@@ -150,7 +150,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
     },
   });
 
-  const currency = isEdit ? invoice!.currency : invoiceCurrency;
+  const currency = invoiceCurrency;
   const discount = isEdit
     ? Number(editForm.watch('discount') ?? 0)
     : Number(createForm.watch('discount') ?? 0);
@@ -227,6 +227,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
 
       await props.onSubmit({
         ...data,
+        currency: invoiceCurrency,
         dueDate: data.dueDate || null,
         notes: data.notes || null,
         shipping: Number.isFinite(Number(data.shipping)) ? Math.max(0, Number(data.shipping)) : 0,
@@ -272,7 +273,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
           <CardHeader>
             <CardTitle>Invoice details</CardTitle>
             <CardDescription>
-              Number, status, due date, discount, and notes
+              Number, status, currency, due date, discount, and notes
             </CardDescription>
           </CardHeader>
           <CardContent className="grid gap-4 sm:grid-cols-2">
@@ -299,6 +300,16 @@ export function InvoiceForm(props: InvoiceFormProps) {
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due date</Label>
               <Input id="dueDate" type="date" {...editForm.register('dueDate')} />
+            </div>
+            <div className="sm:col-span-2">
+              <CurrencySelect
+                id="edit-currency"
+                value={invoiceCurrency}
+                onChange={(value) => {
+                  currencyTouched.current = true;
+                  setInvoiceCurrency(value);
+                }}
+              />
             </div>
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor="discount">Discount</Label>
@@ -438,7 +449,17 @@ export function InvoiceForm(props: InvoiceFormProps) {
             )}
           </div>
 
-          <div className="grid gap-4 sm:grid-cols-3">
+          <CurrencySelect
+            id="currency"
+            value={invoiceCurrency}
+            onChange={(value) => {
+              currencyTouched.current = true;
+              setInvoiceCurrency(value);
+              createForm.setValue('currency', value);
+            }}
+          />
+
+          <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2">
               <Label htmlFor="issueDate">Issue date</Label>
               <Input id="issueDate" type="date" {...createForm.register('issueDate')} />
@@ -446,32 +467,6 @@ export function InvoiceForm(props: InvoiceFormProps) {
             <div className="space-y-2">
               <Label htmlFor="dueDate">Due date</Label>
               <Input id="dueDate" type="date" {...createForm.register('dueDate')} />
-            </div>
-            <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              {isEdit ? (
-                <p className="flex h-9 items-center rounded-md border border-input bg-muted/40 px-3 text-sm">
-                  {invoice!.currency}
-                </p>
-              ) : (
-                <select
-                  id="currency"
-                  className={selectClassName}
-                  value={invoiceCurrency}
-                  onChange={(e) => {
-                    const value = e.target.value;
-                    currencyTouched.current = true;
-                    setInvoiceCurrency(value);
-                    createForm.setValue('currency', value);
-                  }}
-                >
-                  {CURRENCIES.map((c) => (
-                    <option key={c.code} value={c.code}>
-                      {c.symbol} {c.code} — {c.name}
-                    </option>
-                  ))}
-                </select>
-              )}
             </div>
           </div>
 

@@ -198,6 +198,7 @@ export class QuotesService {
       total,
     };
 
+    if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();
     if (dto.status) updateData.status = dto.status as QuoteStatus;
     if (dto.validUntil !== undefined) {
       updateData.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
