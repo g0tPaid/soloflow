@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 
@@ -123,6 +123,13 @@ export class UpdateQuoteDto {
   @IsOptional()
   @IsString()
   status?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  currency?: string;
 
   @ApiProperty({ required: false })
   @IsOptional()

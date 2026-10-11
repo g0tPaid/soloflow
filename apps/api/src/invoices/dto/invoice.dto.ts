@@ -139,6 +139,13 @@ export class UpdateInvoiceDto {
 
   @ApiProperty({ required: false })
   @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  currency?: string;
+
+  @ApiProperty({ required: false })
+  @IsOptional()
   @IsDateString()
   dueDate?: string;
 
