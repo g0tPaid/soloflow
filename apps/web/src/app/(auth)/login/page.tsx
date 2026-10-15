@@ -1,5 +1,10 @@
+import type { Metadata } from 'next';
 import { Suspense } from 'react';
 import LoginPage from './login-page';
+
+export const metadata: Metadata = {
+  robots: { index: true, follow: true },
+};
 
 export default function LoginRoute() {
   return (
