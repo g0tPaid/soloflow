@@ -4,6 +4,7 @@ import { ThemeProvider } from '@/components/providers/theme-provider';
 import { QueryProvider } from '@/components/providers/query-provider';
 import { AppSessionProvider } from '@/components/providers/session-provider';
 import { RegisterServiceWorker } from '@/components/pwa/register-service-worker';
+import { publicSiteUrl } from '@/lib/site-url';
 import './globals.css';
 
 const inter = Inter({
@@ -13,6 +14,7 @@ const inter = Inter({
 });
 
 export const metadata: Metadata = {
+  metadataBase: new URL(publicSiteUrl()),
   title: { default: 'SoloFlow', template: '%s · SoloFlow' },
   description: 'Simple accounting for solopreneurs',
   applicationName: 'SoloFlow',

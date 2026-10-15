@@ -1,20 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { LOCAL_MODE } from '@/lib/local-mode';
-
-const publicPrefixes = [
-  '/login',
-  '/register',
-  '/invite',
-  '/forgot-password',
-  '/reset-password',
-  '/privacy',
-  '/api/auth',
-];
-
-function isPublicPath(pathname: string) {
-  return publicPrefixes.some((prefix) => pathname.startsWith(prefix));
-}
+import { isPublicPath } from '@/lib/public-paths';
 
 export default auth((req) => {
   if (LOCAL_MODE) {
