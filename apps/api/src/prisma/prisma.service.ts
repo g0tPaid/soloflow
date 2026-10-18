@@ -206,6 +206,13 @@ const REQUIRED_SCHEMA_STATEMENTS = [
       FOREIGN KEY ("invitedById") REFERENCES "users"("id") ON DELETE CASCADE ON UPDATE CASCADE;
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
   `ALTER TABLE "invoice_items" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`,
+  `ALTER TABLE "quote_items" ADD COLUMN IF NOT EXISTS "name" TEXT`,
+  `ALTER TABLE "quote_items" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`,
+  `ALTER TABLE "quotes" ADD COLUMN IF NOT EXISTS "taxRate" DECIMAL(5,2) NOT NULL DEFAULT 0`,
+  `ALTER TABLE "quotes" ADD COLUMN IF NOT EXISTS "shippingMethod" "ShippingMethod"`,
+  `ALTER TABLE "quotes" ADD COLUMN IF NOT EXISTS "shippingTerms" "ShippingTerms"`,
+  `ALTER TABLE "quotes" ADD COLUMN IF NOT EXISTS "shippingFromCountry" TEXT`,
+  `ALTER TABLE "quotes" ADD COLUMN IF NOT EXISTS "shippingToCountry" TEXT`,
   `ALTER TABLE "quote_items" ADD COLUMN IF NOT EXISTS "sortOrder" INTEGER NOT NULL DEFAULT 0`,
   `CREATE INDEX IF NOT EXISTS "invoice_items_invoiceId_sortOrder_idx" ON "invoice_items"("invoiceId", "sortOrder")`,
   `CREATE INDEX IF NOT EXISTS "quote_items_quoteId_sortOrder_idx" ON "quote_items"("quoteId", "sortOrder")`,

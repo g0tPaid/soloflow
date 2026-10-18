@@ -173,7 +173,6 @@ export function LineItemsEditor({
               value={row.name}
               onChange={(e) => update(index, { name: e.target.value })}
               placeholder="Product or service name"
-              required
             />
           </div>
           <div className="space-y-2">

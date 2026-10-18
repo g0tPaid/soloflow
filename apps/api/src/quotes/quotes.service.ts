@@ -96,8 +96,8 @@ export class QuotesService {
       }
     }
 
-    try {
-      return await this.prisma.$transaction(async (tx) => {
+    const write = () =>
+      this.prisma.$transaction(async (tx) => {
         const quote = await tx.quote.create({
           data: {
             organizationId,
@@ -121,13 +121,13 @@ export class QuotesService {
               create: dto.items.map((item, index) => {
                 const name = item.name?.trim() || null;
                 const description = item.description?.trim() || name || 'Item';
+                const productId =
+                  item.productId && productImages.has(item.productId) ? item.productId : null;
                 return {
-                  productId: item.productId || null,
+                  productId,
                   name,
                   description,
-                  imageUrl:
-                    item.imageUrl ||
-                    (item.productId ? productImages.get(item.productId) ?? null : null),
+                  imageUrl: item.imageUrl || (productId ? productImages.get(productId) ?? null : null),
                   quantity: item.quantity,
                   unitPrice: item.unitPrice,
                   taxRate: 0,
@@ -154,13 +154,22 @@ export class QuotesService {
 
         return quote;
       });
+
+    try {
+      return await write();
     } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      throw new BadRequestException(
-        message.includes('Unique constraint')
-          ? 'Quote number already exists. Use a different number.'
-          : `Could not create quote: ${message}`,
-      );
+      if (error instanceof BadRequestException) throw error;
+      await this.tryRepairSchema();
+      try {
+        return await write();
+      } catch (retryError) {
+        const message = retryError instanceof Error ? retryError.message : String(retryError);
+        throw new BadRequestException(
+          message.includes('Unique constraint')
+            ? 'Quote number already exists. Use a different number.'
+            : `Could not create quote: ${message}`,
+        );
+      }
     }
   }
 
@@ -219,48 +228,85 @@ export class QuotesService {
       updateData.number = await this.assertUniqueNumber(organizationId, dto.number, id);
     }
 
-    if (dto.items?.length) {
-      const productIds = [
-        ...new Set(dto.items.map((item) => item.productId).filter((pid): pid is string => !!pid)),
-      ];
-      const productImages = new Map<string, string | null>();
-      if (productIds.length > 0) {
-        const products = await this.prisma.product.findMany({
-          where: { organizationId, id: { in: productIds } },
-          select: { id: true, imageUrl: true },
-        });
-        for (const product of products) {
-          productImages.set(product.id, product.imageUrl);
-        }
-      }
+    const itemRows = dto.items?.length
+      ? await this.quoteItemRows(organizationId, id, dto.items)
+      : null;
 
-      updateData.items = {
-        deleteMany: {},
-        create: dto.items.map((item, index) => {
-          const name = item.name?.trim() || null;
-          const description = item.description?.trim() || name || 'Item';
-          return {
-            productId: item.productId || null,
-            name,
-            description,
-            imageUrl:
-              item.imageUrl ||
-              (item.productId ? productImages.get(item.productId) ?? null : null),
-            quantity: item.quantity,
-            unitPrice: item.unitPrice,
-            taxRate: 0,
-            amount: item.quantity * item.unitPrice,
-            sortOrder: index,
-          };
-        }),
-      };
+    const write = () =>
+      this.prisma.$transaction(async (tx) => {
+        if (itemRows) {
+          await tx.quoteItem.deleteMany({ where: { quoteId: id } });
+          await tx.quoteItem.createMany({ data: itemRows });
+        }
+        return tx.quote.update({
+          where: { id },
+          data: updateData,
+          include: {
+            items: { include: { product: true }, orderBy: { sortOrder: 'asc' } },
+            customer: true,
+          },
+        });
+      });
+
+    try {
+      return await write();
+    } catch (error) {
+      if (error instanceof BadRequestException || error instanceof NotFoundException) throw error;
+      await this.tryRepairSchema();
+      try {
+        return await write();
+      } catch (retryError) {
+        if (retryError instanceof BadRequestException || retryError instanceof NotFoundException) {
+          throw retryError;
+        }
+        const message = retryError instanceof Error ? retryError.message : String(retryError);
+        throw new BadRequestException(`Could not save quote: ${message}`);
+      }
+    }
+  }
+
+  /** Keep the typed line even when the catalog product was deleted. */
+  private async quoteItemRows(
+    organizationId: string,
+    quoteId: string,
+    items: NonNullable<UpdateQuoteDto['items']>,
+  ) {
+    const productIds = [
+      ...new Set(items.map((item) => item.productId).filter((pid): pid is string => !!pid)),
+    ];
+    const productImages = new Map<string, string | null>();
+    if (productIds.length > 0) {
+      const products = await this.prisma.product.findMany({
+        where: { organizationId, id: { in: productIds } },
+        select: { id: true, imageUrl: true },
+      });
+      for (const product of products) {
+        productImages.set(product.id, product.imageUrl);
+      }
     }
 
-    return this.prisma.quote.update({
-      where: { id },
-      data: updateData,
-      include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
+    return items.map((item, index) => {
+      const name = item.name?.trim() || null;
+      const description = item.description?.trim() || name || 'Item';
+      const productId = item.productId && productImages.has(item.productId) ? item.productId : null;
+      return {
+        quoteId,
+        productId,
+        name,
+        description,
+        imageUrl: item.imageUrl || (productId ? productImages.get(productId) ?? null : null),
+        quantity: item.quantity,
+        unitPrice: item.unitPrice,
+        taxRate: 0,
+        amount: item.quantity * item.unitPrice,
+        sortOrder: index,
+      };
     });
+  }
+
+  private async tryRepairSchema() {
+    if (typeof this.prisma.ensureRequiredSchema !== 'function') return;
+    await this.prisma.ensureRequiredSchema();
   }
 
   /** Create a draft invoice from this quote and mark the quote CONVERTED. */
