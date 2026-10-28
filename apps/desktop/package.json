@@ -1,0 +1,44 @@
+{
+  "name": "@flowbooks/desktop",
+  "version": "0.1.0",
+  "private": true,
+  "description": "SoloFlow billing app for Windows",
+  "author": "SoloFlow",
+  "main": "src/main.js",
+  "scripts": {
+    "start": "electron .",
+    "test": "node --test src/allowed-url.test.js",
+    "dist:win": "electron-builder --win portable --x64"
+  },
+  "build": {
+    "appId": "com.soloflow.desktop",
+    "productName": "SoloFlow",
+    "executableName": "SoloFlow",
+    "directories": {
+      "output": "dist"
+    },
+    "files": [
+      "src/**/*",
+      "!src/**/*.test.js",
+      "assets/**/*",
+      "package.json"
+    ],
+    "win": {
+      "icon": "assets/icon.ico",
+      "signAndEditExecutable": false,
+      "target": [
+        {
+          "target": "portable",
+          "arch": ["x64"]
+        }
+      ]
+    },
+    "portable": {
+      "artifactName": "SoloFlow.exe"
+    }
+  },
+  "devDependencies": {
+    "electron": "^33.4.11",
+    "electron-builder": "^25.1.8"
+  }
+}
