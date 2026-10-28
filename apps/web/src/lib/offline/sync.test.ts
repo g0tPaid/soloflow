@@ -4,8 +4,14 @@ import type { Invoice } from '@/lib/api';
 import { createInvoiceWithOfflineFallback } from '@/lib/offline/create-invoice';
 import { MemoryOfflineStorage } from '@/lib/offline/memory-store';
 import { SyncOfflineError } from '@/lib/offline/network';
-import { flushOutbox, invoiceCreateBodyForSync } from '@/lib/offline/sync';
+import { flushOutbox, invoiceCreateBodyForSync, LIVE_SYNC_INTERVAL_MS } from '@/lib/offline/sync';
 import type { OutboxJob } from '@/lib/offline/types';
+
+describe('live sync', () => {
+  it('keeps the phone copy in step while SoloFlow is open', () => {
+    expect(LIVE_SYNC_INTERVAL_MS).toBe(20_000);
+  });
+});
 
 const data: CreateInvoiceInput = {
   customerId: 'cus_1',

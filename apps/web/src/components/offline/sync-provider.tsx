@@ -11,7 +11,7 @@ import { offlineQueryOptions } from '@/lib/offline/network';
 import { setSyncHandler, subscribeOfflineChanges } from '@/lib/offline/events';
 import { loadInvoiceList } from '@/lib/offline/invoice-list';
 import { getOfflineStore } from '@/lib/offline/store';
-import { flushOutbox } from '@/lib/offline/sync';
+import { flushOutbox, LIVE_SYNC_INTERVAL_MS } from '@/lib/offline/sync';
 
 type SyncContextValue = {
   online: boolean;
@@ -122,6 +122,27 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       document.removeEventListener('visibilitychange', onVisible);
     };
   }, [requestSync]);
+
+  useEffect(() => {
+    if (!token || !organizationId || !online) return;
+    const timer = window.setInterval(() => {
+      if (document.visibilityState !== 'visible') return;
+      void requestSync();
+      void queryClient.fetchQuery({
+        queryKey: ['customers', organizationId],
+        queryFn: () => loadCustomers({ token, organizationId }),
+      });
+      void queryClient.fetchQuery({
+        queryKey: ['products', organizationId],
+        queryFn: () => loadProducts({ token, organizationId }),
+      });
+      void queryClient.fetchQuery({
+        queryKey: ['invoices', organizationId, null],
+        queryFn: () => loadInvoiceList({ token, organizationId, params: { limit: 50 } }),
+      });
+    }, LIVE_SYNC_INTERVAL_MS);
+    return () => window.clearInterval(timer);
+  }, [token, organizationId, online, requestSync, queryClient]);
 
   return (
     <SyncContext.Provider value={{ online, pendingCount, errorCount, syncing, requestSync }}>

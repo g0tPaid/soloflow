@@ -15,6 +15,9 @@ export interface FlushResult {
 
 const flushLocks = new Map<string, Promise<FlushResult>>();
 
+/** Pull server changes and push queued invoices while the app is open. */
+export const LIVE_SYNC_INTERVAL_MS = 20_000;
+
 /** Drop provisional numbers so the server assigns the next real number. */
 export function invoiceCreateBodyForSync(job: OutboxJob): CreateInvoiceInput {
   const payload: CreateInvoiceInput = { ...job.payload, clientRequestId: job.clientRequestId };
