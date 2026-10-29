@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useRef, useState, useEffect } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
+import { z } from 'zod';
 import {
   createQuoteSchema,
   updateQuoteSchema,
@@ -19,8 +20,9 @@ import { CurrencySelect } from '@/components/currency-select';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { VatFields } from '@/components/invoices/vat-fields';
-import { type LineItemInput, parseStoredLineItem } from '@/lib/line-items';
+import { type LineItemInput, linesForSave, parseStoredLineItem } from '@/lib/line-items';
 import type { Customer, Quote, Product } from '@/lib/api';
+import { clearQuoteDraft, readQuoteDraft, writeQuoteDraft, type QuoteDraft } from '@/lib/quote-draft';
 import { cn } from '@/lib/utils';
 
 const selectClassName = cn(
@@ -56,8 +58,53 @@ function toLineItems(items?: Quote['items']): LineItemInput[] {
   });
 }
 
-const createQuoteFormSchema = createQuoteSchema.omit({ items: true });
+/** Empty number inputs become NaN with valueAsNumber. Treat that as 0 so Save still runs. */
+function finiteOrZero(value: unknown): number {
+  if (typeof value === 'number' && Number.isFinite(value)) return value;
+  if (typeof value === 'string' && value.trim() !== '') {
+    const num = Number(value);
+    if (Number.isFinite(num)) return num;
+  }
+  return 0;
+}
+
+const moneyField = z.preprocess(finiteOrZero, z.number().min(0));
+const taxField = z.preprocess(
+  (value) => Math.min(100, Math.max(0, finiteOrZero(value))),
+  z.number().min(0).max(100),
+);
+
+const createQuoteFormSchema = createQuoteSchema.omit({ items: true }).extend({
+  discount: moneyField.optional(),
+  shipping: moneyField.optional(),
+  taxRate: taxField.optional(),
+});
 type CreateQuoteFormValues = Omit<CreateQuoteInput, 'items'>;
+
+const editQuoteFormSchema = updateQuoteSchema.extend({
+  discount: moneyField.optional(),
+  shipping: moneyField.optional(),
+  taxRate: taxField.optional(),
+});
+
+function firstFormError(errors: Record<string, unknown>): string {
+  for (const value of Object.values(errors)) {
+    if (value && typeof value === 'object' && 'message' in value && value.message) {
+      return String(value.message);
+    }
+  }
+  return 'Please check the form and try again';
+}
+
+function prepareItems(items: LineItemInput[]): LineItemInput[] {
+  return linesForSave(items).map((item) => ({
+    ...item,
+    productId: item.productId || null,
+    quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
+    unitPrice: Number.isFinite(item.unitPrice) ? Math.max(0, item.unitPrice) : 0,
+    taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
+  }));
+}
 
 const QUOTE_STATUSES = [
   'DRAFT',
@@ -98,6 +145,7 @@ export function QuoteForm(props: QuoteFormProps) {
   const [items, setItems] = useState<LineItemInput[]>(() => toLineItems(quote?.items));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
+  const [notice, setNotice] = useState('');
   const [quoteCurrency, setQuoteCurrency] = useState(
     isEdit ? quote!.currency : businessCurrency,
   );
@@ -108,6 +156,9 @@ export function QuoteForm(props: QuoteFormProps) {
     isEdit ? Number(quote!.taxRate ?? 0) : 0,
   );
   const currencyTouched = useRef(isEdit);
+  const draftId = isEdit ? quote!.id : 'new';
+  const baseline = useRef<QuoteDraft | null>(null);
+  const restoredDraft = useRef(false);
 
   const createForm = useForm<CreateQuoteFormValues>({
     resolver: zodResolver(createQuoteFormSchema),
@@ -129,7 +180,7 @@ export function QuoteForm(props: QuoteFormProps) {
   });
 
   const editForm = useForm<UpdateQuoteInput>({
-    resolver: zodResolver(updateQuoteSchema),
+    resolver: zodResolver(editQuoteFormSchema),
     defaultValues: {
       number: quote?.number ?? '',
       status: quote?.status ?? 'DRAFT',
@@ -146,11 +197,107 @@ export function QuoteForm(props: QuoteFormProps) {
   });
 
   const currency = quoteCurrency;
-  const discount = isEdit
-    ? Number(editForm.watch('discount') ?? 0)
-    : Number(createForm.watch('discount') ?? 0);
+  const discount = finiteOrZero(isEdit ? editForm.watch('discount') : createForm.watch('discount'));
   const editShipping = isEdit ? Number(editForm.watch('shipping') ?? 0) : shipping;
   const editTaxRate = isEdit ? Number(editForm.watch('taxRate') ?? 0) : taxRate;
+  const createValues = createForm.watch();
+  const editValues = editForm.watch();
+
+  function buildDraft(): QuoteDraft {
+    if (isEdit) {
+      const values = editForm.getValues();
+      const status = QUOTE_STATUSES.includes(values.status as (typeof QUOTE_STATUSES)[number])
+        ? values.status
+        : quote?.status ?? 'DRAFT';
+      return {
+        items,
+        currency: quoteCurrency,
+        shipping: finiteOrZero(values.shipping),
+        taxRate: Math.min(100, Math.max(0, finiteOrZero(values.taxRate))),
+        number: values.number ?? '',
+        status,
+        validUntil: typeof values.validUntil === 'string' ? values.validUntil : '',
+        notes: values.notes ?? '',
+        discount: finiteOrZero(values.discount),
+        shippingMethod: values.shippingMethod ?? null,
+        shippingTerms: values.shippingTerms ?? null,
+        shippingFromCountry: values.shippingFromCountry ?? '',
+        shippingToCountry: values.shippingToCountry ?? '',
+      };
+    }
+
+    const values = createForm.getValues();
+    return {
+      items,
+      currency: quoteCurrency,
+      shipping: finiteOrZero(shipping),
+      taxRate: Math.min(100, Math.max(0, finiteOrZero(taxRate))),
+      number: values.number ?? '',
+      validUntil: typeof values.validUntil === 'string' ? values.validUntil : '',
+      notes: values.notes ?? '',
+      discount: finiteOrZero(values.discount),
+      shippingMethod: values.shippingMethod ?? null,
+      shippingTerms: values.shippingTerms ?? null,
+      shippingFromCountry: values.shippingFromCountry ?? '',
+      shippingToCountry: values.shippingToCountry ?? '',
+    };
+  }
+
+  function applyDraft(draft: QuoteDraft) {
+    if (draft.items.length > 0) setItems(draft.items);
+    if (draft.currency) setQuoteCurrency(draft.currency);
+    setShipping(finiteOrZero(draft.shipping));
+    setTaxRate(Math.min(100, Math.max(0, finiteOrZero(draft.taxRate))));
+    const shared = {
+      validUntil: draft.validUntil || null,
+      notes: draft.notes ?? '',
+      discount: finiteOrZero(draft.discount),
+      shipping: finiteOrZero(draft.shipping),
+      taxRate: Math.min(100, Math.max(0, finiteOrZero(draft.taxRate))),
+      shippingMethod: draft.shippingMethod ?? null,
+      shippingTerms: draft.shippingTerms ?? null,
+      shippingFromCountry: draft.shippingFromCountry ?? '',
+      shippingToCountry: draft.shippingToCountry ?? '',
+    };
+    if (isEdit) {
+      const status = QUOTE_STATUSES.includes(draft.status as (typeof QUOTE_STATUSES)[number])
+        ? (draft.status as (typeof QUOTE_STATUSES)[number])
+        : quote?.status ?? 'DRAFT';
+      editForm.reset({ ...editForm.getValues(), ...shared, number: draft.number, status });
+      return;
+    }
+    createForm.reset({
+      ...createForm.getValues(),
+      ...shared,
+      number: draft.number,
+      currency: draft.currency || businessCurrency,
+    });
+  }
+
+  function rememberDraft() {
+    const draft = buildDraft();
+    baseline.current = draft;
+    writeQuoteDraft(draftId, draft);
+  }
+
+  function discardDraft() {
+    clearQuoteDraft(draftId);
+    baseline.current = null;
+    restoredDraft.current = false;
+    setItems(toLineItems(quote?.items));
+    setQuoteCurrency(isEdit ? quote!.currency : businessCurrency);
+    setShipping(isEdit ? Number(quote!.shipping ?? 0) : 0);
+    setTaxRate(isEdit ? Number(quote!.taxRate ?? 0) : 0);
+    setError('');
+    setNotice('');
+    if (isEdit) {
+      editForm.reset();
+      return;
+    }
+    createForm.reset();
+    const suggested = props.mode === 'create' ? props.suggestedNumber : '';
+    if (suggested) createForm.setValue('number', suggested);
+  }
 
   useEffect(() => {
     if (props.mode !== 'create') return;
@@ -161,18 +308,44 @@ export function QuoteForm(props: QuoteFormProps) {
     }
   }, [props, createForm]);
 
+  useEffect(() => {
+    const draft = readQuoteDraft(draftId);
+    if (!draft?.items.length) return;
+    restoredDraft.current = true;
+    applyDraft(draft);
+    setNotice('Restored unsaved quote');
+    // Restore once, from the draft written before this page loaded.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId]);
+
+  useEffect(() => {
+    if (restoredDraft.current) {
+      restoredDraft.current = false;
+      return;
+    }
+    const draft = buildDraft();
+    if (!baseline.current) {
+      baseline.current = draft;
+      return;
+    }
+    if (JSON.stringify(draft) === JSON.stringify(baseline.current)) return;
+    writeQuoteDraft(draftId, draft);
+    // Persist after each edit so leaving the page does not drop the quote.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [draftId, items, quoteCurrency, shipping, taxRate, createValues, editValues]);
+
   async function handleCreateSubmit(data: CreateQuoteFormValues) {
     if (props.mode !== 'create') return;
+    const sanitizedItems = prepareItems(items);
+    if (!sanitizedItems.length) {
+      setError('Add at least one line item with a name');
+      rememberDraft();
+      return;
+    }
     setSubmitting(true);
     setError('');
+    rememberDraft();
     try {
-      const sanitizedItems = items.map((item) => ({
-        ...item,
-        quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
-        unitPrice: Number.isFinite(item.unitPrice) ? Math.max(0, item.unitPrice) : 0,
-        taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
-      }));
-
       const created = await props.onSubmit({
         ...data,
         currency: quoteCurrency,
@@ -187,6 +360,7 @@ export function QuoteForm(props: QuoteFormProps) {
         validUntil: data.validUntil || null,
         notes: data.notes || null,
       });
+      clearQuoteDraft(draftId);
       router.push(`/quotes/${created.id}?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create quote');
@@ -197,20 +371,16 @@ export function QuoteForm(props: QuoteFormProps) {
 
   async function handleEditSubmit(data: UpdateQuoteInput) {
     if (props.mode !== 'edit') return;
-    if (!items.length || !items.some((item) => item.name.trim() || item.description.trim())) {
+    const sanitizedItems = prepareItems(items);
+    if (!sanitizedItems.length) {
       setError('Add at least one line item with a name');
+      rememberDraft();
       return;
     }
     setSubmitting(true);
     setError('');
+    rememberDraft();
     try {
-      const sanitizedItems = items.map((item) => ({
-        ...item,
-        quantity: Number.isFinite(item.quantity) && item.quantity > 0 ? item.quantity : 1,
-        unitPrice: Number.isFinite(item.unitPrice) ? Math.max(0, item.unitPrice) : 0,
-        taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
-      }));
-
       await props.onSubmit({
         ...data,
         currency: quoteCurrency,
@@ -222,6 +392,9 @@ export function QuoteForm(props: QuoteFormProps) {
           : 0,
         items: sanitizedItems,
       });
+      clearQuoteDraft(draftId);
+      baseline.current = buildDraft();
+      setNotice('Quote saved');
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update quote');
@@ -232,7 +405,15 @@ export function QuoteForm(props: QuoteFormProps) {
 
   if (isEdit) {
     return (
-      <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
+      <form
+        noValidate
+        onSubmit={editForm.handleSubmit(handleEditSubmit, (formErrors) => {
+          rememberDraft();
+          setNotice('');
+          setError(firstFormError(formErrors as Record<string, unknown>));
+        })}
+        className="space-y-6"
+      >
         <Card id="edit-line-items" className="scroll-mt-20 border-[#E40046]/40">
           <CardHeader>
             <CardTitle>Line items</CardTitle>
@@ -345,11 +526,15 @@ export function QuoteForm(props: QuoteFormProps) {
           </CardContent>
         </Card>
 
+        {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
         {error && <p className="text-sm text-destructive">{error}</p>}
 
         <div className="flex flex-col gap-3 sm:flex-row">
           <Button type="submit" disabled={submitting} size="lg" className="bg-[#E40046] text-white hover:bg-[#c4003c]">
             {submitting ? 'Saving...' : 'Save changes'}
+          </Button>
+          <Button type="button" variant="outline" onClick={discardDraft}>
+            Discard changes
           </Button>
           <Button type="button" variant="outline" asChild>
             <Link href="/quotes">Back to quotes</Link>
@@ -361,23 +546,12 @@ export function QuoteForm(props: QuoteFormProps) {
 
   return (
     <form
-      onSubmit={createForm.handleSubmit(
-        (data) => {
-          if (!items.length || !items.some((item) => item.name.trim() || item.description.trim())) {
-            setError('Add at least one line item with a name');
-            return;
-          }
-          return handleCreateSubmit(data);
-        },
-        (formErrors) => {
-          const first = Object.values(formErrors)[0];
-          const message =
-            first && typeof first === 'object' && 'message' in first
-              ? String(first.message)
-              : 'Please check the form and try again';
-          setError(message);
-        },
-      )}
+      noValidate
+      onSubmit={createForm.handleSubmit(handleCreateSubmit, (formErrors) => {
+        rememberDraft();
+        setNotice('');
+        setError(firstFormError(formErrors as Record<string, unknown>));
+      })}
       className="space-y-6"
     >
       <Card>
@@ -518,11 +692,15 @@ export function QuoteForm(props: QuoteFormProps) {
         </CardContent>
       </Card>
 
+      {notice && <p className="text-sm text-muted-foreground">{notice}</p>}
       {error && <p className="text-sm text-destructive">{error}</p>}
 
       <div className="flex flex-col gap-3 sm:flex-row">
         <Button type="submit" disabled={submitting}>
           {submitting ? 'Creating...' : 'Create quote'}
+        </Button>
+        <Button type="button" variant="outline" onClick={discardDraft}>
+          Discard changes
         </Button>
         <Button type="button" variant="outline" asChild>
           <Link href="/quotes">Cancel</Link>

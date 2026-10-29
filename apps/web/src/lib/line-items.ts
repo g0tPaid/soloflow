@@ -80,6 +80,17 @@ export function parseStoredLineItem(item: {
   return { name, description };
 }
 
+/** Drop untouched extra rows so they do not block Save. */
+export function linesForSave(items: LineItemInput[]): LineItemInput[] {
+  return items.filter(
+    (item) =>
+      item.name.trim() ||
+      item.description.trim() ||
+      Boolean(item.imageUrl) ||
+      (Number.isFinite(item.unitPrice) && item.unitPrice > 0),
+  );
+}
+
 /** Map UI line items to the API payload. */
 export function toApiLineItems(
   items: Array<
@@ -95,7 +106,7 @@ export function toApiLineItems(
     const details = item.description?.trim() || '';
 
     return {
-      productId: item.productId ?? null,
+      productId: item.productId || null,
       name: name || undefined,
       description: details || name || 'Item',
       quantity: Math.max(sanitizeNumber(item.quantity, 1), 0.0001),

@@ -1,5 +1,5 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { describe, expect, it, vi } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
 import { QuoteForm } from '@/components/quotes/quote-form';
 import type { Customer, Invoice, Quote } from '@/lib/api';
@@ -9,6 +9,10 @@ vi.mock('next/navigation', () => ({
 }));
 
 const customer = { id: 'cus_1', name: 'Ada' } as Customer;
+
+beforeEach(() => {
+  sessionStorage.clear();
+});
 
 describe('invoice and quote currency dropdown', () => {
   it('lets you choose a currency while creating an invoice', () => {
