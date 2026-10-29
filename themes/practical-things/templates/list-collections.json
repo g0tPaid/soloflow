@@ -1,0 +1,11 @@
+{
+  "sections": {
+    "collections": {
+      "type": "featured-collections",
+      "settings": {
+        "heading": "Collections"
+      }
+    }
+  },
+  "order": ["collections"]
+}
