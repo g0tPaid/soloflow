@@ -73,4 +73,45 @@ describe('buildPdfDocument', () => {
     expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
     expect(buffer.length).toBeGreaterThan(1000);
   });
+
+  it('still renders when a line image or stamp cannot be embedded', async () => {
+    const withImages: Invoice = {
+      ...invoice,
+      items: [
+        {
+          ...invoice.items![0],
+          imageUrl: 'https://example.invalid/shoe.jpg',
+        },
+        {
+          id: 'line-2',
+          description: '44 & 43',
+          name: 'VVQQ2',
+          quantity: 2,
+          unitPrice: 79,
+          taxRate: 0,
+          amount: 158,
+          imageUrl: 'data:image/webp;base64,AAAA',
+        },
+      ],
+    };
+    const stamped: Organization = {
+      ...org,
+      settings: {
+        ...org.settings!,
+        branding: {
+          ...org.settings!.branding,
+          invoiceSignature: PNG,
+          invoiceOffer1: 'https://cdn.example/offer.png',
+        },
+      },
+    };
+
+    const buffer = await renderToBuffer(
+      buildPdfDocument(
+        { type: 'invoices', invoice: withImages, org: stamped },
+        'https://soloflow.test',
+      ),
+    );
+    expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+  });
 });

@@ -3,7 +3,11 @@ import type { NextConfig } from 'next';
 const apiOrigin = process.env.API_URL?.replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@flowbooks/shared', '@react-pdf/renderer'],
+  transpilePackages: ['@flowbooks/shared'],
+  // Must stay external. Bundling this package into the Next server uses the
+  // react-server build, whose internals the PDF reconciler cannot read, and
+  // every invoice PDF then 500s. The browser still bundles it for offline PDFs.
+  serverExternalPackages: ['@react-pdf/renderer'],
   webpack: (config, { isServer }) => {
     if (!isServer) {
       config.resolve.alias = {
