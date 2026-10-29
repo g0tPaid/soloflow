@@ -8,11 +8,12 @@
     "start": "next start",
     "lint": "next lint",
     "test": "vitest run",
-    "cap:sync": "npx cap sync android",
-    "cap:open": "npx cap open android",
-    "apk:debug": "cd android && gradlew.bat assembleDebug"
+    "cap:sync": "cap sync android",
+    "cap:open": "cap open android",
+    "apk:debug": "node ./scripts/assemble-debug-apk.mjs"
   },
   "dependencies": {
+    "@capacitor-community/sqlite": "^7.0.3",
     "@capacitor/android": "^7.2.0",
     "@capacitor/core": "^7.2.0",
     "@capacitor/filesystem": "^7.1.8",
