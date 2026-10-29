@@ -3,7 +3,7 @@ import type { Customer, Invoice, Organization, Product } from '@/lib/api';
 
 /**
  * Device storage used by offline invoice create.
- * IndexedDB implements this in the browser. A Capacitor build can swap in SQLite
+ * IndexedDB implements this in the browser. The Android app uses SQLite
  * without changing the outbox or sync logic.
  */
 export type SyncState = 'synced' | 'pending' | 'error';

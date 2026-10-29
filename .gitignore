@@ -55,9 +55,18 @@ uploads/
 **/*.jks
 **/*.keystore
 *.aab
-apps/web/android/
+apps/web/android/.gradle/
+apps/web/android/build/
+apps/web/android/app/build/
+apps/web/android/capacitor-cordova-android-plugins/build/
+apps/web/android/local.properties
+apps/web/android/captures/
+apps/web/android/.idea/
+apps/web/android/*.iml
+apps/web/android/app/*.iml
 
 # Generated / local junk
 packages/database/src/generated/
 prisma-err.txt
-apps/web/www/
+apps/web/www/*
+!apps/web/www/index.html
