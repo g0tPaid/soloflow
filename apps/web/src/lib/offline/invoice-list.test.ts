@@ -87,4 +87,56 @@ describe('cacheServerInvoices', () => {
     expect(rows.find((row) => row.localId === 'still-pending')?.syncState).toBe('pending');
     expect(rows.find((row) => row.localId === 'srv-2')?.syncState).toBe('synced');
   });
+
+  it('keeps line items and customer address when the list payload is only a summary', async () => {
+    const store = new MemoryOfflineStorage();
+    await store.putInvoice(
+      stored({
+        localId: 'srv-1',
+        clientRequestId: 'client-1',
+        syncState: 'synced',
+        invoice: invoice({
+          id: 'srv-1',
+          number: 'INV-00009',
+          clientRequestId: 'client-1',
+          customer: {
+            id: 'cus_1',
+            name: 'Ada',
+            phone: '+971500000000',
+            address: { city: 'Dubai' },
+          },
+          items: [
+            {
+              id: 'line-1',
+              description: 'Widget',
+              name: 'Widget',
+              quantity: 2,
+              unitPrice: 15,
+              taxRate: 0,
+              amount: 30,
+            },
+          ],
+        }),
+      }),
+    );
+
+    await cacheServerInvoices(store, 'org_1', [
+      invoice({
+        id: 'srv-1',
+        number: 'INV-00009',
+        clientRequestId: 'client-1',
+        status: 'SENT',
+        customer: { id: 'cus_1', name: 'Ada Lovelace' },
+      }),
+    ]);
+
+    const saved = await store.getInvoice('org_1', 'srv-1');
+    expect(saved?.invoice.status).toBe('SENT');
+    expect(saved?.invoice.customer?.name).toBe('Ada Lovelace');
+    expect(saved?.invoice.customer?.phone).toBe('+971500000000');
+    expect(saved?.invoice.customer?.address).toEqual({ city: 'Dubai' });
+    expect(saved?.invoice.items).toEqual([
+      expect.objectContaining({ description: 'Widget', quantity: 2, amount: 30 }),
+    ]);
+  });
 });

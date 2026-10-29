@@ -3,7 +3,9 @@
 import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
+import type { Organization } from '@/lib/api';
 import { fetchServerPdfFile, type ServerPdfType } from '@/lib/fetch-server-pdf';
+import { resolveInvoicePdfFile } from '@/lib/offline/resolve-invoice-pdf';
 import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { shareDocumentByEmail } from '@/lib/share-document-file';
 import { shareInvoiceFile } from '@/lib/share-invoice-file';
@@ -15,6 +17,8 @@ type Props = {
   documentType: ServerPdfType;
   documentId: string;
   organizationId?: string | null;
+  /** On-device organization, used when the invoice PDF is rendered offline. */
+  organization?: Organization | null;
   filename: string;
   accentClassName?: string;
   whatsappMessage?: string;
@@ -29,6 +33,7 @@ export function PrintPageToolbar({
   documentType,
   documentId,
   organizationId,
+  organization,
   filename,
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
@@ -44,6 +49,14 @@ export function PrintPageToolbar({
   const shareBody = emailBody ?? whatsappMessage;
 
   async function buildPdfFile(): Promise<File> {
+    if (documentType === 'invoices') {
+      return resolveInvoicePdfFile({
+        documentId,
+        organizationId,
+        organization,
+        filename,
+      });
+    }
     return fetchServerPdfFile(documentType, documentId, {
       organizationId,
       filename,
@@ -58,8 +71,10 @@ export function PrintPageToolbar({
 
     try {
       const file = await buildPdfFile();
-      await downloadPdfToDevice(file);
-      setStatus('Download started — check your Files or Downloads folder.');
+      const saved = await downloadPdfToDevice(file);
+      setStatus(
+        saved === 'cancelled' ? '' : 'Download started — check your Files or Downloads folder.',
+      );
     } catch {
       setError('');
       setStatus('Choose Save as PDF in the print menu.');

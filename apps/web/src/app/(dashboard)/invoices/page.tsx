@@ -14,7 +14,7 @@ import { useSyncStatus } from '@/components/offline/sync-provider';
 import { applyFulfillmentStatusToPage, fulfillmentStatusPatch } from '@/lib/fulfillment-cache';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
-import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
+import { resolveInvoicePdfFile } from '@/lib/offline/resolve-invoice-pdf';
 import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
@@ -119,12 +119,14 @@ function InvoiceListDownloadButton({
     setBusy(true);
     try {
       const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
-      const file = await fetchServerPdfFile('invoices', invoiceId, {
+      const file = await resolveInvoicePdfFile({
+        documentId: invoiceId,
         organizationId,
         filename,
       });
       await downloadPdfToDevice(file);
     } catch {
+      if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
       window.open(
         `/print/invoices/${invoiceId}?org=${encodeURIComponent(organizationId)}`,
         '_blank',
@@ -573,6 +575,15 @@ export default function InvoicesPage() {
                       )}
                     </div>
                     )}
+                    {unsynced && organizationId ? (
+                      <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto sm:justify-end">
+                        <InvoiceListDownloadButton
+                          invoiceId={invoice.id}
+                          organizationId={organizationId}
+                          number={invoice.number}
+                        />
+                      </div>
+                    ) : null}
                   </div>
                   </div>
                   {!unsynced && (

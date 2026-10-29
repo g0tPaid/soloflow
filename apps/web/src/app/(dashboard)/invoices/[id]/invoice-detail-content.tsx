@@ -171,7 +171,12 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
 
   if (invoice && (screen?.syncState === 'pending' || screen?.syncState === 'error')) {
     return (
-      <PendingInvoiceDetail invoice={invoice} syncState={screen.syncState} syncError={screen.syncError} />
+      <PendingInvoiceDetail
+        invoice={invoice}
+        syncState={screen.syncState}
+        syncError={screen.syncError}
+        organizationId={organizationId ?? undefined}
+      />
     );
   }
 

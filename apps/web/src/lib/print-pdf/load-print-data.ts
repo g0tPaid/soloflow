@@ -1,13 +1,10 @@
 import 'server-only';
 
-import { api, type ExpenseDetail, type Invoice, type Organization } from '@/lib/api';
+import { api } from '@/lib/api';
 import { quoteAsInvoiceForPrint } from '@/lib/quote-print';
+import type { LoadedPrintDocument } from '@/lib/print-pdf/document-types';
 
-export type LoadedPrintDocument =
-  | { type: 'invoices'; invoice: Invoice; org: Organization }
-  | { type: 'receipts'; invoice: Invoice; org: Organization }
-  | { type: 'expenses'; expense: ExpenseDetail }
-  | { type: 'quotes'; invoice: Invoice; org: Organization };
+export type { LoadedPrintDocument } from '@/lib/print-pdf/document-types';
 
 export async function loadPrintDocument(
   accessToken: string,

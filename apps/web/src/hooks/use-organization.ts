@@ -6,6 +6,7 @@ import { api, type Organization } from '@/lib/api';
 import { DEFAULT_CURRENCY } from '@flowbooks/shared';
 import { isLikelyOfflineError } from '@/lib/offline/network';
 import { getOfflineStore } from '@/lib/offline/store';
+import { cachePrintImageUrls, collectOrganizationImageUrls } from '@/lib/print-pdf/embed-print-images';
 
 export const ORG_STORAGE_KEY = 'soloflow_org_id';
 export const LEGACY_ORG_STORAGE_KEY = 'flowbooks_org_id';
@@ -58,6 +59,7 @@ export function useOrganizationId() {
         setOrganization(active as Organization);
         setError(null);
         void getOfflineStore().writeOrganization(active as Organization).catch(() => undefined);
+        void cachePrintImageUrls(collectOrganizationImageUrls(active as Organization)).catch(() => undefined);
       } catch (err) {
         if (cancelled) return;
         setOrganizationId(stored);
