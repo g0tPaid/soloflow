@@ -3,7 +3,17 @@ import type { NextConfig } from 'next';
 const apiOrigin = process.env.API_URL?.replace(/\/$/, '');
 
 const nextConfig: NextConfig = {
-  transpilePackages: ['@flowbooks/shared'],
+  transpilePackages: ['@flowbooks/shared', '@react-pdf/renderer'],
+  webpack: (config, { isServer }) => {
+    if (!isServer) {
+      config.resolve.alias = {
+        ...(config.resolve.alias ?? {}),
+        canvas: false,
+        encoding: false,
+      };
+    }
+    return config;
+  },
   experimental: {
     serverActions: {
       bodySizeLimit: '10mb',

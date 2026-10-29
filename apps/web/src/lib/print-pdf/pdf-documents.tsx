@@ -1,5 +1,3 @@
-import 'server-only';
-
 import {
   Document,
   Image,
@@ -9,7 +7,6 @@ import {
   Svg,
   Text,
   View,
-  renderToBuffer,
 } from '@react-pdf/renderer';
 import type { ExpenseDetail, Invoice, Organization } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
@@ -22,7 +19,7 @@ import {
   shouldShowInvoiceLogo,
   type InvoiceAccentPalette,
 } from '@/lib/organization-branding';
-import type { LoadedPrintDocument } from '@/lib/print-pdf/load-print-data';
+import type { LoadedPrintDocument } from '@/lib/print-pdf/document-types';
 import {
   invoiceAmountPaid,
   invoiceBalanceDue,
@@ -1136,7 +1133,7 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string) {
   switch (document.type) {
     case 'invoices':
       return (
@@ -1170,11 +1167,4 @@ function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string) {
         </Document>
       );
   }
-}
-
-export async function renderDocumentPdfBuffer(
-  document: LoadedPrintDocument,
-  baseUrl: string,
-): Promise<Buffer> {
-  return renderToBuffer(buildPdfDocument(document, baseUrl));
 }

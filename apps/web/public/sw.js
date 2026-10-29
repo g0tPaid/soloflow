@@ -1,6 +1,7 @@
 /* SoloFlow app shell. Auth and the API proxy are never used as a fresh online cache. */
 const SHELL_CACHE = 'soloflow-shell-v1';
 const SESSION_CACHE = 'soloflow-session-v1';
+const IMAGE_CACHE = 'soloflow-images';
 const PRECACHE = ['/offline.html', '/manifest.webmanifest', '/icons/icon-192.png', '/icons/icon-512.png'];
 
 self.addEventListener('install', (event) => {
@@ -15,7 +16,13 @@ self.addEventListener('activate', (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => key.startsWith('soloflow-') && key !== SHELL_CACHE && key !== SESSION_CACHE)
+            .filter(
+              (key) =>
+                key.startsWith('soloflow-') &&
+                key !== SHELL_CACHE &&
+                key !== SESSION_CACHE &&
+                key !== IMAGE_CACHE,
+            )
             .map((key) => caches.delete(key)),
         ),
       )

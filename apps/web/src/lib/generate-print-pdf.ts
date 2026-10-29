@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
-import { renderDocumentPdfBuffer } from '@/lib/print-pdf/pdf-documents';
+import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 
 function resolveBaseUrl(request: Request) {
   const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
@@ -18,5 +19,5 @@ export async function generatePrintPdf(
 ): Promise<Buffer> {
   const baseUrl = resolveBaseUrl(request);
   const document = await loadPrintDocument(accessToken, type, id, organizationId);
-  return renderDocumentPdfBuffer(document, baseUrl);
+  return renderToBuffer(buildPdfDocument(document, baseUrl));
 }

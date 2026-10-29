@@ -15,6 +15,51 @@ function fileToBase64(file: File): Promise<string> {
   });
 }
 
+/** How a phone or desktop should persist a PDF that is already in memory. */
+export function choosePdfSaveStrategy(input: {
+  coarsePointer: boolean;
+  nativePlatform: boolean;
+  onLine: boolean;
+}): 'anchor' | 'native-file' | 'device-share' | 'server-relay' {
+  if (!input.coarsePointer) return 'anchor';
+  if (input.nativePlatform) return 'native-file';
+  if (!input.onLine) return 'device-share';
+  return 'server-relay';
+}
+
+function isNativePlatform() {
+  const cap = (window as Window & { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor;
+  return cap?.isNativePlatform?.() === true;
+}
+
+function triggerAnchorDownload(file: File) {
+  const url = URL.createObjectURL(file);
+  const link = document.createElement('a');
+  link.href = url;
+  link.download = file.name;
+  link.rel = 'noopener';
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+  window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
+}
+
+async function savePdfOnDeviceWithoutServer(file: File): Promise<'saved' | 'cancelled'> {
+  if (typeof navigator.share === 'function') {
+    const data: ShareData = { files: [file], title: file.name };
+    if (!navigator.canShare || navigator.canShare(data)) {
+      try {
+        await navigator.share(data);
+        return 'saved';
+      } catch (error) {
+        if ((error as Error).name === 'AbortError') return 'cancelled';
+      }
+    }
+  }
+  triggerAnchorDownload(file);
+  return 'saved';
+}
+
 function submitPdfDownloadForm(file: File, base64: string) {
   const form = document.createElement('form');
   form.method = 'POST';
@@ -97,26 +142,37 @@ async function saveWithCapacitorShare(file: File): Promise<boolean> {
   }
 }
 
-/** Download PDF as an attachment — no print dialog, no share sheet. */
-export async function downloadPdfToDevice(file: File): Promise<void> {
-  const base64 = await fileToBase64(file);
+/**
+ * Save a PDF the app already has.
+ * Desktop uses a file download. The Android app writes Documents via Capacitor.
+ * A phone browser relays through the server only while online; offline it uses
+ * the share sheet or a local download so the PWA does not need the network.
+ */
+export async function downloadPdfToDevice(file: File): Promise<'saved' | 'cancelled'> {
+  const coarse = typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches;
+  const onLine = typeof navigator === 'undefined' || navigator.onLine;
+  const strategy = choosePdfSaveStrategy({
+    coarsePointer: coarse,
+    nativePlatform: typeof window !== 'undefined' && isNativePlatform(),
+    onLine,
+  });
 
-  if (typeof window !== 'undefined' && !window.matchMedia('(pointer: coarse)').matches) {
-    const url = URL.createObjectURL(file);
-    const link = document.createElement('a');
-    link.href = url;
-    link.download = file.name;
-    link.rel = 'noopener';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
-    window.setTimeout(() => URL.revokeObjectURL(url), 30_000);
-    return;
+  if (strategy === 'anchor') {
+    triggerAnchorDownload(file);
+    return 'saved';
   }
 
-  if (await saveWithCapacitorFilesystem(file, base64)) return;
+  // Try the native bridge whenever this is a phone. The PWA has no Capacitor
+  // global, so this returns false and we continue with the strategy above.
+  const base64 = await fileToBase64(file);
+  if (await saveWithCapacitorFilesystem(file, base64)) return 'saved';
+
+  if (strategy === 'device-share' || !onLine) {
+    return savePdfOnDeviceWithoutServer(file);
+  }
 
   submitPdfDownloadForm(file, base64);
+  return 'saved';
 }
 
 /** Save PDF — share sheet on mobile, form POST download as fallback. */

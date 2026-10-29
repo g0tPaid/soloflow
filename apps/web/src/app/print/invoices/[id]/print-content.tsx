@@ -7,6 +7,9 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
+import { offlineQueryOptions } from '@/lib/offline/network';
+import { loadInvoiceScreen } from '@/lib/offline/load-invoice';
+import { cachePrintImageUrls, collectInvoiceImageUrls, collectOrganizationImageUrls } from '@/lib/print-pdf/embed-print-images';
 import { resolveImageSrc, parseBranding } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
@@ -43,17 +46,22 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   });
 
   const {
-    data: invoice,
-    isLoading,
-    isFetching,
+    data: screen,
     isError,
     error,
   } = useQuery({
     queryKey: ['invoice-print', id, organizationId],
-    queryFn: () => api.invoices.get(session!.accessToken!, organizationId!, id),
+    queryFn: () =>
+      loadInvoiceScreen({
+        token: session?.accessToken ?? '',
+        organizationId: organizationId!,
+        invoiceId: id,
+      }),
     enabled: canFetch,
     retry: 1,
+    ...offlineQueryOptions,
   });
+  const invoice = screen?.invoice;
 
   useEffect(() => {
     if (!invoice) return;
@@ -74,7 +82,12 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
       const img = new window.Image();
       img.src = src;
     }
-  }, [invoice, orgDetail]);
+    const orgForCache = orgDetail ?? organization;
+    void cachePrintImageUrls([
+      ...collectInvoiceImageUrls(invoice),
+      ...(orgForCache ? collectOrganizationImageUrls(orgForCache) : []),
+    ]).catch(() => undefined);
+  }, [invoice, orgDetail, organization]);
 
   if (sessionStatus === 'loading' || (!isReady && !orgFromUrl)) {
     return <p className="p-8 text-center text-sm text-gray-500">Preparing invoice…</p>;
@@ -118,7 +131,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
     );
   }
 
-  if (!canFetch || isLoading || isFetching || !invoice) {
+  if (!canFetch || !invoice) {
     return <p className="p-8 text-center text-sm text-gray-500">Preparing invoice…</p>;
   }
 
@@ -135,6 +148,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
           documentType="invoices"
           documentId={id}
           organizationId={organizationId}
+          organization={org}
           filename={safeFilename}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}

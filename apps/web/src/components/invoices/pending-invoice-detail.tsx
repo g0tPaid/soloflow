@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { PendingSyncBadge } from '@/components/invoices/pending-sync-badge';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { useSyncStatus } from '@/components/offline/sync-provider';
@@ -13,10 +14,12 @@ export function PendingInvoiceDetail({
   invoice,
   syncState,
   syncError,
+  organizationId,
 }: {
   invoice: Invoice;
   syncState: SyncState;
   syncError?: string | null;
+  organizationId?: string;
 }) {
   const { requestSync, syncing } = useSyncStatus();
 
@@ -35,9 +38,18 @@ export function PendingInvoiceDetail({
             />
           </div>
         </div>
-        <Link href="/invoices" className="text-sm text-primary hover:underline">
-          ← Back to invoices
-        </Link>
+        <div className="flex flex-col items-stretch gap-2 sm:items-end">
+          {organizationId ? (
+            <DownloadInvoicePdfButton
+              invoiceId={invoice.id}
+              organizationId={organizationId}
+              filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
+            />
+          ) : null}
+          <Link href="/invoices" className="text-sm text-primary hover:underline">
+            ← Back to invoices
+          </Link>
+        </div>
       </div>
 
       <Card className="border-amber-300 bg-amber-50/70 dark:border-amber-800 dark:bg-amber-950/30">

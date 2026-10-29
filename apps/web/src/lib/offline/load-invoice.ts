@@ -1,7 +1,14 @@
 import { api, type Invoice } from '@/lib/api';
+import { cachePrintImageUrls, collectInvoiceImageUrls } from '@/lib/print-pdf/embed-print-images';
 import { isLikelyOfflineError, SyncOfflineError } from '@/lib/offline/network';
 import { getOfflineStore } from '@/lib/offline/store';
 import type { OfflineStorage, SyncState } from '@/lib/offline/types';
+
+function rememberInvoiceImages(invoice: Invoice) {
+  const urls = collectInvoiceImageUrls(invoice);
+  if (urls.length === 0) return;
+  void cachePrintImageUrls(urls).catch(() => undefined);
+}
 
 export interface InvoiceScreenData {
   invoice: Invoice;
@@ -39,6 +46,7 @@ export async function loadInvoiceScreen(input: {
           invoice,
         })
         .catch(() => undefined);
+      rememberInvoiceImages(invoice);
       return { invoice, syncState: 'synced', syncError: null };
     } catch (error) {
       if (!isLikelyOfflineError(error)) {
