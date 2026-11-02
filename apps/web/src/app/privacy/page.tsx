@@ -5,6 +5,7 @@ import { APP_NAME } from '@flowbooks/shared';
 export const metadata: Metadata = {
   title: 'Privacy Policy',
   description: `Privacy policy for ${APP_NAME}`,
+  robots: { index: true, follow: true },
 };
 
 export default function PrivacyPage() {
