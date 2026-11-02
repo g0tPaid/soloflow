@@ -313,7 +313,7 @@ export function ExpenseForm({
                           <div>
                             <p className="font-medium">{row.name || row.description || 'Item'}</p>
                             {row.description && row.name && (
-                              <p className="text-xs text-muted-foreground">{row.description}</p>
+                              <p className="whitespace-pre-wrap text-xs text-muted-foreground">{row.description}</p>
                             )}
                           </div>
                         </div>

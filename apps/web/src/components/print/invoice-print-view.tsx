@@ -445,7 +445,7 @@ export function InvoicePrintView({
                             {name || description || 'Item'}
                           </p>
                           {description && name && (
-                            <p className="mt-0.5 text-xs leading-relaxed text-slate-500">
+                            <p className="mt-0.5 whitespace-pre-wrap text-xs leading-relaxed text-slate-500">
                               {description}
                             </p>
                           )}

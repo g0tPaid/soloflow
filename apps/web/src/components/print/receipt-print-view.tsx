@@ -194,7 +194,7 @@ export function ReceiptPrintView({
                     <td className="px-4 py-3">
                       <p className="font-semibold">{name || description || 'Item'}</p>
                       {description && name && (
-                        <p className="text-xs text-slate-500">{description}</p>
+                        <p className="whitespace-pre-wrap text-xs text-slate-500">{description}</p>
                       )}
                     </td>
                     <td className="px-3 py-3 text-right tabular-nums">{Number(item.quantity)}</td>

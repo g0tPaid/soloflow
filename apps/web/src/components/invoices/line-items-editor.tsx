@@ -106,7 +106,7 @@ export function LineItemsEditor({
             <div>
               <p className="font-medium">{row.name || row.description}</p>
               {row.name && row.description ? (
-                <p className="text-muted-foreground">{row.description}</p>
+                <p className="whitespace-pre-wrap text-muted-foreground">{row.description}</p>
               ) : null}
               <p className="text-muted-foreground">
                 {row.quantity} × {formatCurrency(row.unitPrice, currency)}
@@ -178,10 +178,19 @@ export function LineItemsEditor({
           </div>
           <div className="space-y-2">
             <Label>Description</Label>
-            <Input
+            <textarea
               value={row.description}
+              rows={2}
               onChange={(e) => update(index, { description: e.target.value })}
-              placeholder="Extra details (optional)"
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') e.stopPropagation();
+              }}
+              placeholder="Extra details (optional). Enter or Shift+Enter for a new line"
+              className={cn(
+                'flex min-h-[64px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm',
+                'placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
+                'whitespace-pre-wrap',
+              )}
             />
           </div>
 

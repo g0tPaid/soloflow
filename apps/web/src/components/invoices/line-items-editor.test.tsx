@@ -34,6 +34,20 @@ describe('LineItemsEditor reorder', () => {
     expect(itemNames()).toEqual(['Alpha', 'Bravo', 'Charlie']);
   });
 
+  it('keeps a second description line from Shift+Enter', () => {
+    render(<EditorHarness initial={[line('Widget')]} />);
+
+    const description = screen.getByPlaceholderText(
+      'Extra details (optional). Enter or Shift+Enter for a new line',
+    );
+    expect(description.tagName).toBe('TEXTAREA');
+
+    fireEvent.keyDown(description, { key: 'Enter', shiftKey: true });
+    fireEvent.change(description, { target: { value: 'Line one\nLine two' } });
+
+    expect(description).toHaveValue('Line one\nLine two');
+  });
+
   it('hides move buttons when there is only one line', () => {
     render(<EditorHarness initial={[line('Only')]} />);
     expect(screen.queryByRole('button', { name: /Move item/ })).not.toBeInTheDocument();

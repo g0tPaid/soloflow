@@ -169,7 +169,7 @@ export function ExpensePrintView({
                         <div>
                           <p className="font-semibold">{name || description || 'Item'}</p>
                           {description && name && (
-                            <p className="text-xs text-slate-500">{description}</p>
+                            <p className="whitespace-pre-wrap text-xs text-slate-500">{description}</p>
                           )}
                         </div>
                       </div>
