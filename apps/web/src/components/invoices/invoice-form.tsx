@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -14,16 +14,26 @@ import {
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 import { useOnlineStatus } from '@/hooks/use-online-status';
+import { useDocumentDraft, usePublishFormDraft, type DocumentDraftController } from '@/hooks/use-document-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySelect } from '@/components/currency-select';
+import { DraftStatus } from '@/components/invoices/draft-status';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { VatFields } from '@/components/invoices/vat-fields';
 import { type LineItemInput, parseStoredLineItem } from '@/lib/line-items';
 import type { Customer, Invoice, Product } from '@/lib/api';
+import {
+  NEW_DOCUMENT_DRAFT_ID,
+  draftLineFromInput,
+  formDraftContent,
+  lineInputFromDraft,
+  type FormDraftContent,
+} from '@/lib/form-draft/model';
+import type { FormDraftRepository } from '@/lib/form-draft/repository';
 import { cn } from '@/lib/utils';
 
 const selectClassName = cn(
@@ -73,7 +83,14 @@ const INVOICE_STATUSES = [
   'VOID',
 ] as const;
 
-interface CreateInvoiceFormProps {
+interface DraftFormExtras {
+  /** Signed-in user and organization. Drafts are stored only when both are present. */
+  draftIdentity?: { userId: string; organizationId: string } | null;
+  draftRepository?: FormDraftRepository;
+  onSaved?: () => void | Promise<void>;
+}
+
+interface CreateInvoiceFormProps extends DraftFormExtras {
   mode: 'create';
   customers: Customer[];
   products: Product[];
@@ -82,7 +99,7 @@ interface CreateInvoiceFormProps {
   onSubmit: (data: CreateInvoiceInput) => Promise<{ id: string; offlinePending?: boolean }>;
 }
 
-interface EditInvoiceFormProps {
+interface EditInvoiceFormProps extends DraftFormExtras {
   mode: 'edit';
   invoice: Invoice;
   customers: Customer[];
@@ -93,60 +110,143 @@ interface EditInvoiceFormProps {
 
 type InvoiceFormProps = CreateInvoiceFormProps | EditInvoiceFormProps;
 
+function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraftContent {
+  if (props.mode === 'edit') {
+    const invoice = props.invoice;
+    return formDraftContent({
+      customerId: invoice.customerId ?? '',
+      number: invoice.number ?? '',
+      issueDate: toDateInput(invoice.issueDate) || today,
+      dueDate: toDateInput(invoice.dueDate),
+      notes: invoice.notes ?? '',
+      discount: Number(invoice.discount ?? 0),
+      shipping: Number(invoice.shipping ?? 0),
+      taxRate: Number(invoice.taxRate ?? 0),
+      shippingMethod: invoice.shippingMethod ?? null,
+      shippingTerms: invoice.shippingTerms ?? null,
+      shippingFromCountry: invoice.shippingFromCountry ?? '',
+      shippingToCountry: invoice.shippingToCountry ?? '',
+      status: invoice.status ?? 'DRAFT',
+      currency: invoice.currency,
+      currencyTouched: true,
+      items: toLineItems(invoice.items).map(draftLineFromInput),
+    });
+  }
+  return formDraftContent({
+    number: props.suggestedNumber ?? '',
+    issueDate: today,
+    currency: props.defaultCurrency ?? 'INR',
+    currencyTouched: false,
+  });
+}
+
 export function InvoiceForm(props: InvoiceFormProps) {
+  const today = useRef(toDateInput(new Date())).current;
+  const baseline = useMemo(
+    () => buildInvoiceBaseline(props, today),
+    // Suggested numbers and saved invoices update the baseline for a new session.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      props.mode,
+      props.mode === 'edit' ? props.invoice.id : props.suggestedNumber,
+      props.mode === 'edit' ? props.invoice.updatedAt : props.defaultCurrency,
+      today,
+    ],
+  );
+  const identity = props.draftIdentity;
+  const scope =
+    identity?.userId && identity.organizationId
+      ? {
+          userId: identity.userId,
+          organizationId: identity.organizationId,
+          kind: 'invoice' as const,
+          documentId: props.mode === 'edit' ? props.invoice.id : NEW_DOCUMENT_DRAFT_ID,
+        }
+      : null;
+  const draft = useDocumentDraft({
+    scope,
+    baseline,
+    repository: props.draftRepository,
+  });
+  if (scope && !draft.ready) {
+    return (
+      <div
+        className="h-64 animate-pulse rounded-lg bg-muted"
+        aria-busy="true"
+        aria-label="Checking for a saved draft"
+      />
+    );
+  }
+  return (
+    <InvoiceFormEditor
+      key={draft.generation}
+      {...props}
+      initialContent={scope ? draft.initialContent : undefined}
+      draft={draft.controller}
+    />
+  );
+}
+
+function InvoiceFormEditor(
+  props: InvoiceFormProps & {
+    initialContent?: FormDraftContent;
+    draft: DocumentDraftController;
+  },
+) {
   const router = useRouter();
   const isEdit = props.mode === 'edit';
   const invoice = isEdit ? props.invoice : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';
+  const seed = props.initialContent;
+  const draftRef = useRef(props.draft);
+  draftRef.current = props.draft;
 
-  const [items, setItems] = useState<LineItemInput[]>(() => toLineItems(invoice?.items));
+  const [items, setItems] = useState<LineItemInput[]>(() =>
+    seed ? seed.items.map(lineInputFromDraft) : toLineItems(invoice?.items),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [invoiceCurrency, setInvoiceCurrency] = useState(
-    isEdit ? invoice!.currency : businessCurrency,
+    seed?.currency ?? (isEdit ? invoice!.currency : businessCurrency),
   );
-  const [shipping, setShipping] = useState(
-    isEdit ? Number(invoice!.shipping ?? 0) : 0,
-  );
-  const [taxRate, setTaxRate] = useState(
-    isEdit ? Number(invoice!.taxRate ?? 0) : 0,
-  );
-  const currencyTouched = useRef(isEdit);
+  const [shipping, setShipping] = useState(seed ? seed.shipping : isEdit ? Number(invoice!.shipping ?? 0) : 0);
+  const [taxRate, setTaxRate] = useState(seed ? seed.taxRate : isEdit ? Number(invoice!.taxRate ?? 0) : 0);
+  const currencyTouched = useRef(seed ? seed.currencyTouched : isEdit);
   const online = useOnlineStatus();
 
   const createForm = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
-      customerId: '',
-      number: props.mode === 'create' ? props.suggestedNumber ?? '' : '',
-      issueDate: toDateInput(new Date()),
-      dueDate: '',
-      currency: isEdit ? invoice!.currency : businessCurrency,
-      notes: '',
-      discount: 0,
-      shipping: 0,
-      taxRate: 0,
-      shippingMethod: null,
-      shippingTerms: null,
-      shippingFromCountry: '',
-      shippingToCountry: '',
+      customerId: seed?.customerId ?? '',
+      number: seed?.number ?? (props.mode === 'create' ? props.suggestedNumber ?? '' : ''),
+      issueDate: seed?.issueDate || toDateInput(new Date()),
+      dueDate: seed?.dueDate ?? '',
+      currency: seed?.currency ?? (isEdit ? invoice!.currency : businessCurrency),
+      notes: seed?.notes ?? '',
+      discount: seed?.discount ?? 0,
+      shipping: seed?.shipping ?? 0,
+      taxRate: seed?.taxRate ?? 0,
+      shippingMethod: seed?.shippingMethod ?? null,
+      shippingTerms: seed?.shippingTerms ?? null,
+      shippingFromCountry: seed?.shippingFromCountry ?? '',
+      shippingToCountry: seed?.shippingToCountry ?? '',
     },
   });
 
   const editForm = useForm<UpdateInvoiceInput>({
     resolver: zodResolver(updateInvoiceSchema),
     defaultValues: {
-      number: invoice?.number ?? '',
-      status: invoice?.status ?? 'DRAFT',
-      dueDate: toDateInput(invoice?.dueDate) || null,
-      notes: invoice?.notes ?? '',
-      discount: Number(invoice?.discount ?? 0),
-      shipping: Number(invoice?.shipping ?? 0),
-      taxRate: Number(invoice?.taxRate ?? 0),
-      shippingMethod: invoice?.shippingMethod ?? null,
-      shippingTerms: invoice?.shippingTerms ?? null,
-      shippingFromCountry: invoice?.shippingFromCountry ?? '',
-      shippingToCountry: invoice?.shippingToCountry ?? '',
+      number: seed?.number ?? invoice?.number ?? '',
+      status: (seed?.status || invoice?.status || 'DRAFT') as UpdateInvoiceInput['status'],
+      dueDate: seed ? seed.dueDate || null : toDateInput(invoice?.dueDate) || null,
+      notes: seed?.notes ?? invoice?.notes ?? '',
+      discount: seed?.discount ?? Number(invoice?.discount ?? 0),
+      shipping: seed?.shipping ?? Number(invoice?.shipping ?? 0),
+      taxRate: seed?.taxRate ?? Number(invoice?.taxRate ?? 0),
+      shippingMethod: seed?.shippingMethod ?? invoice?.shippingMethod ?? null,
+      shippingTerms: seed?.shippingTerms ?? invoice?.shippingTerms ?? null,
+      shippingFromCountry: seed?.shippingFromCountry ?? invoice?.shippingFromCountry ?? '',
+      shippingToCountry: seed?.shippingToCountry ?? invoice?.shippingToCountry ?? '',
     },
   });
 
@@ -158,16 +258,61 @@ export function InvoiceForm(props: InvoiceFormProps) {
   const editTaxRate = isEdit ? Number(editForm.watch('taxRate') ?? 0) : taxRate;
 
   const suggestedNumber = props.mode === 'create' ? props.suggestedNumber : undefined;
+  const createValues = createForm.watch();
+  const editValues = editForm.watch();
+  const draftContent = isEdit
+    ? formDraftContent({
+        customerId: invoice?.customerId ?? '',
+        number: editValues.number ?? '',
+        issueDate: toDateInput(invoice?.issueDate),
+        dueDate: editValues.dueDate ?? '',
+        notes: editValues.notes ?? '',
+        discount: editValues.discount,
+        shipping: editValues.shipping,
+        taxRate: editValues.taxRate,
+        shippingMethod: editValues.shippingMethod ?? null,
+        shippingTerms: editValues.shippingTerms ?? null,
+        shippingFromCountry: editValues.shippingFromCountry ?? '',
+        shippingToCountry: editValues.shippingToCountry ?? '',
+        status: editValues.status ?? '',
+        currency: invoiceCurrency,
+        currencyTouched: currencyTouched.current,
+        items: items.map(draftLineFromInput),
+      })
+    : formDraftContent({
+        customerId: createValues.customerId ?? '',
+        number: createValues.number ?? '',
+        issueDate: createValues.issueDate ?? '',
+        dueDate: createValues.dueDate ?? '',
+        notes: createValues.notes ?? '',
+        discount: createValues.discount,
+        shipping,
+        taxRate,
+        shippingMethod: createValues.shippingMethod ?? null,
+        shippingTerms: createValues.shippingTerms ?? null,
+        shippingFromCountry: createValues.shippingFromCountry ?? '',
+        shippingToCountry: createValues.shippingToCountry ?? '',
+        currency: invoiceCurrency,
+        currencyTouched: currencyTouched.current,
+        items: items.map(draftLineFromInput),
+      });
+  const draftContentRef = useRef(draftContent);
+  draftContentRef.current = draftContent;
+  usePublishFormDraft(props.draft, draftContent);
 
   useEffect(() => {
     if (props.mode !== 'create') return;
+    const current = createForm.getValues('number');
     if (!online) {
-      createForm.setValue('number', PROVISIONAL_INVOICE_NUMBER);
+      if (!current || isProvisionalInvoiceNumber(current)) {
+        createForm.setValue('number', PROVISIONAL_INVOICE_NUMBER);
+        draftRef.current.adoptBaseline({ number: PROVISIONAL_INVOICE_NUMBER });
+      }
       return;
     }
-    const current = createForm.getValues('number');
     if ((!current || isProvisionalInvoiceNumber(current)) && suggestedNumber) {
       createForm.setValue('number', suggestedNumber);
+      draftRef.current.adoptBaseline({ number: suggestedNumber });
     }
   }, [props.mode, online, suggestedNumber, createForm]);
 
@@ -183,6 +328,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
         taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
       }));
 
+      const submittedDraft = draftContentRef.current;
       const created = await props.onSubmit({
         ...data,
         currency: invoiceCurrency,
@@ -197,6 +343,15 @@ export function InvoiceForm(props: InvoiceFormProps) {
         dueDate: data.dueDate || null,
         notes: data.notes || null,
       });
+      try {
+        await props.draft.markExplicitSave(submittedDraft);
+      } catch {
+        setError(
+          'The invoice was saved, but the on-device draft could not be cleared. Discard the draft before leaving so it is not applied again.',
+        );
+        return;
+      }
+      await props.onSaved?.();
       if (created.offlinePending) {
         router.push('/invoices');
         return;
@@ -225,6 +380,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
         taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
       }));
 
+      const submittedDraft = draftContentRef.current;
       await props.onSubmit({
         ...data,
         currency: invoiceCurrency,
@@ -236,6 +392,15 @@ export function InvoiceForm(props: InvoiceFormProps) {
           : 0,
         items: sanitizedItems,
       });
+      try {
+        await props.draft.markExplicitSave(submittedDraft);
+      } catch {
+        setError(
+          'The invoice was saved, but the on-device draft could not be cleared. Discard the draft before leaving so it is not applied again.',
+        );
+        return;
+      }
+      await props.onSaved?.();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update invoice');
@@ -361,6 +526,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
             />
           </CardContent>
         </Card>
+
+        <DraftStatus kind="invoice" draft={props.draft} />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -539,6 +706,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      <DraftStatus kind="invoice" draft={props.draft} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
