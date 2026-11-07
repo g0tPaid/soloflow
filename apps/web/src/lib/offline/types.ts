@@ -53,4 +53,16 @@ export interface OfflineStorage {
   deleteOutbox(clientRequestId: string): Promise<void>;
   rememberAlias(organizationId: string, localId: string, serverId: string): Promise<void>;
   resolveAlias(organizationId: string, localId: string): Promise<string | null>;
+  /** Recoverable invoice/quote form draft. Never synced and never issued. */
+  getFormDraft(key: string): Promise<StoredFormDraft | null>;
+  putFormDraft(record: StoredFormDraft): Promise<void>;
+  deleteFormDraft(key: string): Promise<void>;
+}
+
+/** JSON document stored on device for an in-progress invoice or quote form. */
+export interface StoredFormDraft {
+  key: string;
+  organizationId: string;
+  savedAt: number;
+  json: string;
 }
