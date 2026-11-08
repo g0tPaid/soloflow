@@ -23,18 +23,35 @@
         font-size: 1.5rem;
       }
       p {
-        margin: 0;
+        margin: 0 0 1rem;
         line-height: 1.5;
       }
+      a {
+        color: #e40046;
+      }
     </style>
+    <script>
+      (function () {
+        var target = 'https://soloflow.practicalthings.store/dashboard';
+        var storageKey = 'soloflow-shell-retry';
+        try {
+          if (sessionStorage.getItem(storageKey) === '1') return;
+          sessionStorage.setItem(storageKey, '1');
+        } catch (error) {
+          return;
+        }
+        location.replace(target);
+      })();
+    </script>
   </head>
   <body>
     <main>
       <h1>SoloFlow is offline</h1>
       <p>
-        Connect once so this phone can open SoloFlow. After you sign in, you can create invoices
-        without a connection. They sync to your account when you are back online.
+        Connect once so this phone can open SoloFlow. After you sign in, dashboard and invoices
+        open again without a connection.
       </p>
+      <p><a href="https://soloflow.practicalthings.store/dashboard">Try again</a></p>
     </main>
   </body>
 </html>
