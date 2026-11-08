@@ -2,7 +2,7 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useRef, useState, useEffect } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import {
@@ -11,16 +11,26 @@ import {
   type CreateQuoteInput,
   type UpdateQuoteInput,
 } from '@flowbooks/shared';
+import { useDocumentDraft, usePublishFormDraft, type DocumentDraftController } from '@/hooks/use-document-draft';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySelect } from '@/components/currency-select';
+import { DraftStatus } from '@/components/invoices/draft-status';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
 import { VatFields } from '@/components/invoices/vat-fields';
 import { type LineItemInput, parseStoredLineItem } from '@/lib/line-items';
 import type { Customer, Quote, Product } from '@/lib/api';
+import {
+  NEW_DOCUMENT_DRAFT_ID,
+  draftLineFromInput,
+  formDraftContent,
+  lineInputFromDraft,
+  type FormDraftContent,
+} from '@/lib/form-draft/model';
+import type { FormDraftRepository } from '@/lib/form-draft/repository';
 import { cn } from '@/lib/utils';
 
 const selectClassName = cn(
@@ -69,7 +79,14 @@ const QUOTE_STATUSES = [
   'CONVERTED',
 ] as const;
 
-interface CreateQuoteFormProps {
+interface DraftFormExtras {
+  /** Signed-in user and organization. Drafts are stored only when both are present. */
+  draftIdentity?: { userId: string; organizationId: string } | null;
+  draftRepository?: FormDraftRepository;
+  onSaved?: () => void | Promise<void>;
+}
+
+interface CreateQuoteFormProps extends DraftFormExtras {
   mode: 'create';
   customers: Customer[];
   products: Product[];
@@ -78,7 +95,7 @@ interface CreateQuoteFormProps {
   onSubmit: (data: CreateQuoteInput) => Promise<{ id: string }>;
 }
 
-interface EditQuoteFormProps {
+interface EditQuoteFormProps extends DraftFormExtras {
   mode: 'edit';
   quote: Quote;
   customers: Customer[];
@@ -89,59 +106,141 @@ interface EditQuoteFormProps {
 
 type QuoteFormProps = CreateQuoteFormProps | EditQuoteFormProps;
 
+function buildQuoteBaseline(props: QuoteFormProps, today: string): FormDraftContent {
+  if (props.mode === 'edit') {
+    const quote = props.quote;
+    return formDraftContent({
+      customerId: quote.customerId ?? '',
+      number: quote.number ?? '',
+      issueDate: toDateInput(quote.issueDate) || today,
+      validUntil: toDateInput(quote.validUntil),
+      notes: quote.notes ?? '',
+      discount: Number(quote.discount ?? 0),
+      shipping: Number(quote.shipping ?? 0),
+      taxRate: Number(quote.taxRate ?? 0),
+      shippingMethod: quote.shippingMethod ?? null,
+      shippingTerms: quote.shippingTerms ?? null,
+      shippingFromCountry: quote.shippingFromCountry ?? '',
+      shippingToCountry: quote.shippingToCountry ?? '',
+      status: quote.status ?? 'DRAFT',
+      currency: quote.currency,
+      currencyTouched: true,
+      items: toLineItems(quote.items).map(draftLineFromInput),
+    });
+  }
+  return formDraftContent({
+    number: props.suggestedNumber ?? '',
+    issueDate: today,
+    currency: props.defaultCurrency ?? 'INR',
+    currencyTouched: false,
+  });
+}
+
 export function QuoteForm(props: QuoteFormProps) {
+  const today = useRef(toDateInput(new Date())).current;
+  const baseline = useMemo(
+    () => buildQuoteBaseline(props, today),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [
+      props.mode,
+      props.mode === 'edit' ? props.quote.id : props.suggestedNumber,
+      props.mode === 'edit' ? props.quote.updatedAt : props.defaultCurrency,
+      today,
+    ],
+  );
+  const identity = props.draftIdentity;
+  const scope =
+    identity?.userId && identity.organizationId
+      ? {
+          userId: identity.userId,
+          organizationId: identity.organizationId,
+          kind: 'quote' as const,
+          documentId: props.mode === 'edit' ? props.quote.id : NEW_DOCUMENT_DRAFT_ID,
+        }
+      : null;
+  const draft = useDocumentDraft({
+    scope,
+    baseline,
+    repository: props.draftRepository,
+  });
+  if (scope && !draft.ready) {
+    return (
+      <div
+        className="h-64 animate-pulse rounded-lg bg-muted"
+        aria-busy="true"
+        aria-label="Checking for a saved draft"
+      />
+    );
+  }
+  return (
+    <QuoteFormEditor
+      key={draft.generation}
+      {...props}
+      initialContent={scope ? draft.initialContent : undefined}
+      draft={draft.controller}
+    />
+  );
+}
+
+function QuoteFormEditor(
+  props: QuoteFormProps & {
+    initialContent?: FormDraftContent;
+    draft: DocumentDraftController;
+  },
+) {
   const router = useRouter();
   const isEdit = props.mode === 'edit';
   const quote = isEdit ? props.quote : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';
+  const seed = props.initialContent;
+  const draftRef = useRef(props.draft);
+  draftRef.current = props.draft;
 
-  const [items, setItems] = useState<LineItemInput[]>(() => toLineItems(quote?.items));
+  const [items, setItems] = useState<LineItemInput[]>(() =>
+    seed ? seed.items.map(lineInputFromDraft) : toLineItems(quote?.items),
+  );
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState('');
   const [quoteCurrency, setQuoteCurrency] = useState(
-    isEdit ? quote!.currency : businessCurrency,
+    seed?.currency ?? (isEdit ? quote!.currency : businessCurrency),
   );
-  const [shipping, setShipping] = useState(
-    isEdit ? Number(quote!.shipping ?? 0) : 0,
-  );
-  const [taxRate, setTaxRate] = useState(
-    isEdit ? Number(quote!.taxRate ?? 0) : 0,
-  );
-  const currencyTouched = useRef(isEdit);
+  const [shipping, setShipping] = useState(seed ? seed.shipping : isEdit ? Number(quote!.shipping ?? 0) : 0);
+  const [taxRate, setTaxRate] = useState(seed ? seed.taxRate : isEdit ? Number(quote!.taxRate ?? 0) : 0);
+  const currencyTouched = useRef(seed ? seed.currencyTouched : isEdit);
 
   const createForm = useForm<CreateQuoteFormValues>({
     resolver: zodResolver(createQuoteFormSchema),
     defaultValues: {
-      customerId: '',
-      number: props.mode === 'create' ? props.suggestedNumber ?? '' : '',
-      issueDate: toDateInput(new Date()),
-      validUntil: '',
-      currency: isEdit ? quote!.currency : businessCurrency,
-      notes: '',
-      discount: 0,
-      shipping: 0,
-      taxRate: 0,
-      shippingMethod: null,
-      shippingTerms: null,
-      shippingFromCountry: '',
-      shippingToCountry: '',
+      customerId: seed?.customerId ?? '',
+      number: seed?.number ?? (props.mode === 'create' ? props.suggestedNumber ?? '' : ''),
+      issueDate: seed?.issueDate || toDateInput(new Date()),
+      validUntil: seed?.validUntil ?? '',
+      currency: seed?.currency ?? (isEdit ? quote!.currency : businessCurrency),
+      notes: seed?.notes ?? '',
+      discount: seed?.discount ?? 0,
+      shipping: seed?.shipping ?? 0,
+      taxRate: seed?.taxRate ?? 0,
+      shippingMethod: seed?.shippingMethod ?? null,
+      shippingTerms: seed?.shippingTerms ?? null,
+      shippingFromCountry: seed?.shippingFromCountry ?? '',
+      shippingToCountry: seed?.shippingToCountry ?? '',
     },
   });
 
   const editForm = useForm<UpdateQuoteInput>({
     resolver: zodResolver(updateQuoteSchema),
     defaultValues: {
-      number: quote?.number ?? '',
-      status: quote?.status ?? 'DRAFT',
-      validUntil: toDateInput(quote?.validUntil) || null,
-      notes: quote?.notes ?? '',
-      discount: Number(quote?.discount ?? 0),
-      shipping: Number(quote?.shipping ?? 0),
-      taxRate: Number(quote?.taxRate ?? 0),
-      shippingMethod: quote?.shippingMethod ?? null,
-      shippingTerms: quote?.shippingTerms ?? null,
-      shippingFromCountry: quote?.shippingFromCountry ?? '',
-      shippingToCountry: quote?.shippingToCountry ?? '',
+      number: seed?.number ?? quote?.number ?? '',
+      status: (seed?.status || quote?.status || 'DRAFT') as UpdateQuoteInput['status'],
+      validUntil: seed ? seed.validUntil || null : toDateInput(quote?.validUntil) || null,
+      notes: seed?.notes ?? quote?.notes ?? '',
+      discount: seed?.discount ?? Number(quote?.discount ?? 0),
+      shipping: seed?.shipping ?? Number(quote?.shipping ?? 0),
+      taxRate: seed?.taxRate ?? Number(quote?.taxRate ?? 0),
+      shippingMethod: seed?.shippingMethod ?? quote?.shippingMethod ?? null,
+      shippingTerms: seed?.shippingTerms ?? quote?.shippingTerms ?? null,
+      shippingFromCountry: seed?.shippingFromCountry ?? quote?.shippingFromCountry ?? '',
+      shippingToCountry: seed?.shippingToCountry ?? quote?.shippingToCountry ?? '',
     },
   });
 
@@ -152,14 +251,57 @@ export function QuoteForm(props: QuoteFormProps) {
   const editShipping = isEdit ? Number(editForm.watch('shipping') ?? 0) : shipping;
   const editTaxRate = isEdit ? Number(editForm.watch('taxRate') ?? 0) : taxRate;
 
+  const createValues = createForm.watch();
+  const editValues = editForm.watch();
+  const draftContent = isEdit
+    ? formDraftContent({
+        customerId: quote?.customerId ?? '',
+        number: editValues.number ?? '',
+        issueDate: toDateInput(quote?.issueDate),
+        validUntil: editValues.validUntil ?? '',
+        notes: editValues.notes ?? '',
+        discount: editValues.discount,
+        shipping: editValues.shipping,
+        taxRate: editValues.taxRate,
+        shippingMethod: editValues.shippingMethod ?? null,
+        shippingTerms: editValues.shippingTerms ?? null,
+        shippingFromCountry: editValues.shippingFromCountry ?? '',
+        shippingToCountry: editValues.shippingToCountry ?? '',
+        status: editValues.status ?? '',
+        currency: quoteCurrency,
+        currencyTouched: currencyTouched.current,
+        items: items.map(draftLineFromInput),
+      })
+    : formDraftContent({
+        customerId: createValues.customerId ?? '',
+        number: createValues.number ?? '',
+        issueDate: createValues.issueDate ?? '',
+        validUntil: createValues.validUntil ?? '',
+        notes: createValues.notes ?? '',
+        discount: createValues.discount,
+        shipping,
+        taxRate,
+        shippingMethod: createValues.shippingMethod ?? null,
+        shippingTerms: createValues.shippingTerms ?? null,
+        shippingFromCountry: createValues.shippingFromCountry ?? '',
+        shippingToCountry: createValues.shippingToCountry ?? '',
+        currency: quoteCurrency,
+        currencyTouched: currencyTouched.current,
+        items: items.map(draftLineFromInput),
+      });
+  const draftContentRef = useRef(draftContent);
+  draftContentRef.current = draftContent;
+  usePublishFormDraft(props.draft, draftContent);
+
   useEffect(() => {
     if (props.mode !== 'create') return;
     const suggested = props.suggestedNumber;
     if (!suggested) return;
     if (!createForm.getValues('number')) {
       createForm.setValue('number', suggested);
+      draftRef.current.adoptBaseline({ number: suggested });
     }
-  }, [props, createForm]);
+  }, [props.mode, props.mode === 'create' ? props.suggestedNumber : '', createForm]);
 
   async function handleCreateSubmit(data: CreateQuoteFormValues) {
     if (props.mode !== 'create') return;
@@ -173,6 +315,7 @@ export function QuoteForm(props: QuoteFormProps) {
         taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
       }));
 
+      const submittedDraft = draftContentRef.current;
       const created = await props.onSubmit({
         ...data,
         currency: quoteCurrency,
@@ -187,6 +330,15 @@ export function QuoteForm(props: QuoteFormProps) {
         validUntil: data.validUntil || null,
         notes: data.notes || null,
       });
+      try {
+        await props.draft.markExplicitSave(submittedDraft);
+      } catch {
+        setError(
+          'The quote was saved, but the on-device draft could not be cleared. Discard the draft before leaving so it is not applied again.',
+        );
+        return;
+      }
+      await props.onSaved?.();
       router.push(`/quotes/${created.id}?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create quote');
@@ -211,6 +363,7 @@ export function QuoteForm(props: QuoteFormProps) {
         taxRate: Number.isFinite(item.taxRate) ? item.taxRate : 0,
       }));
 
+      const submittedDraft = draftContentRef.current;
       await props.onSubmit({
         ...data,
         currency: quoteCurrency,
@@ -222,6 +375,15 @@ export function QuoteForm(props: QuoteFormProps) {
           : 0,
         items: sanitizedItems,
       });
+      try {
+        await props.draft.markExplicitSave(submittedDraft);
+      } catch {
+        setError(
+          'The quote was saved, but the on-device draft could not be cleared. Discard the draft before leaving so it is not applied again.',
+        );
+        return;
+      }
+      await props.onSaved?.();
       router.refresh();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to update quote');
@@ -344,6 +506,8 @@ export function QuoteForm(props: QuoteFormProps) {
             />
           </CardContent>
         </Card>
+
+        <DraftStatus kind="quote" draft={props.draft} />
 
         {error && <p className="text-sm text-destructive">{error}</p>}
 
@@ -517,6 +681,8 @@ export function QuoteForm(props: QuoteFormProps) {
           </div>
         </CardContent>
       </Card>
+
+      <DraftStatus kind="quote" draft={props.draft} />
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 

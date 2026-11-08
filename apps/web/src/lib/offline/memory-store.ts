@@ -1,5 +1,5 @@
 import type { Customer, Organization, Product } from '@/lib/api';
-import type { OfflineStorage, OutboxJob, StoredInvoice } from '@/lib/offline/types';
+import type { OfflineStorage, OutboxJob, StoredFormDraft, StoredInvoice } from '@/lib/offline/types';
 
 /** In-memory OfflineStorage for tests and for calls that happen without IndexedDB. */
 export class MemoryOfflineStorage implements OfflineStorage {
@@ -9,6 +9,7 @@ export class MemoryOfflineStorage implements OfflineStorage {
   invoices = new Map<string, StoredInvoice>();
   outbox = new Map<string, OutboxJob>();
   aliases = new Map<string, string>();
+  formDrafts = new Map<string, StoredFormDraft>();
 
   private invoiceKey(organizationId: string, localId: string) {
     return `${organizationId}:${localId}`;
@@ -85,5 +86,17 @@ export class MemoryOfflineStorage implements OfflineStorage {
 
   async resolveAlias(organizationId: string, localId: string) {
     return this.aliases.get(this.invoiceKey(organizationId, localId)) ?? null;
+  }
+
+  async getFormDraft(key: string) {
+    return this.formDrafts.get(key) ?? null;
+  }
+
+  async putFormDraft(record: StoredFormDraft) {
+    this.formDrafts.set(record.key, record);
+  }
+
+  async deleteFormDraft(key: string) {
+    this.formDrafts.delete(key);
   }
 }

@@ -1,12 +1,13 @@
 import type { Customer, Organization, Product } from '@/lib/api';
 import type { DocumentDb } from '@/lib/offline/document-db';
-import type { OfflineStorage, OutboxJob, StoredInvoice } from '@/lib/offline/types';
+import type { OfflineStorage, OutboxJob, StoredFormDraft, StoredInvoice } from '@/lib/offline/types';
 
 const CATALOG = 'catalog';
 const ORGANIZATIONS = 'organizations';
 const INVOICES = 'invoices';
 const OUTBOX = 'outbox';
 const ALIASES = 'aliases';
+const FORM_DRAFTS = 'formDrafts';
 
 function invoiceKey(organizationId: string, localId: string) {
   return `${organizationId}:${localId}`;
@@ -136,5 +137,17 @@ export class SqliteOfflineStorage implements OfflineStorage {
 
   async resolveAlias(organizationId: string, localId: string) {
     return this.readJson<string>(ALIASES, invoiceKey(organizationId, localId));
+  }
+
+  async getFormDraft(key: string) {
+    return this.readJson<StoredFormDraft>(FORM_DRAFTS, key);
+  }
+
+  async putFormDraft(record: StoredFormDraft) {
+    await this.writeJson(FORM_DRAFTS, record.key, record.organizationId, record.savedAt, record);
+  }
+
+  async deleteFormDraft(key: string) {
+    await (await this.db()).delete(FORM_DRAFTS, key);
   }
 }

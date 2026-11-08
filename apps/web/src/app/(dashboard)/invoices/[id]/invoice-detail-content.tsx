@@ -119,6 +119,9 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
 
   async function handleUpdate(data: UpdateInvoiceInput) {
     await api.invoices.update(session!.accessToken!, organizationId!, id, data);
+  }
+
+  async function refreshInvoice() {
     await queryClient.invalidateQueries({ queryKey: ['invoice', id, organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['receipts', organizationId] });
@@ -416,7 +419,13 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
               customers={customersData?.data ?? []}
               products={productsData?.data ?? []}
               defaultCurrency={businessCurrency}
+              draftIdentity={
+                session?.user?.id && organizationId
+                  ? { userId: session.user.id, organizationId }
+                  : null
+              }
               onSubmit={handleUpdate}
+              onSaved={refreshInvoice}
             />
           </div>
           {showPayment && (

@@ -129,4 +129,18 @@ describe('SqliteOfflineStorage', () => {
     expect(await offline.resolveAlias('org_1', 'later')).toBe('inv_server');
     expect(await offline.resolveAlias('org_1', 'missing')).toBeNull();
   });
+
+  it('keeps form drafts out of the invoice list', async () => {
+    const offline = store();
+    await offline.putFormDraft({
+      key: 'user:org:invoice:new',
+      organizationId: 'org_1',
+      savedAt: 5,
+      json: '{"notes":"unsaved"}',
+    });
+    expect((await offline.getFormDraft('user:org:invoice:new'))?.json).toBe('{"notes":"unsaved"}');
+    expect(await offline.listInvoices('org_1')).toEqual([]);
+    await offline.deleteFormDraft('user:org:invoice:new');
+    expect(await offline.getFormDraft('user:org:invoice:new')).toBeNull();
+  });
 });

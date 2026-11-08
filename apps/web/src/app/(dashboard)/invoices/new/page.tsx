@@ -98,6 +98,11 @@ export default function NewInvoicePage() {
           products={products}
           defaultCurrency={businessCurrency}
           suggestedNumber={nextNumberData?.number}
+          draftIdentity={
+            session?.user?.id && organizationId
+              ? { userId: session.user.id, organizationId }
+              : null
+          }
           onSubmit={handleCreate}
         />
       )}

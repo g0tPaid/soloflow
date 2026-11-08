@@ -59,6 +59,9 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
 
   async function handleUpdate(data: UpdateQuoteInput) {
     await api.quotes.update(session!.accessToken!, organizationId!, id, data);
+  }
+
+  async function refreshQuote() {
     await queryClient.invalidateQueries({ queryKey: ['quote', id, organizationId] });
     await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
   }
@@ -200,7 +203,13 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
             customers={customersData?.data ?? []}
             products={productsData?.data ?? []}
             defaultCurrency={businessCurrency}
+            draftIdentity={
+              session?.user?.id && organizationId
+                ? { userId: session.user.id, organizationId }
+                : null
+            }
             onSubmit={handleUpdate}
+            onSaved={refreshQuote}
           />
         </div>
       )}

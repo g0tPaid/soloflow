@@ -1,8 +1,8 @@
 import type { Customer, Organization, Product } from '@/lib/api';
-import type { OfflineStorage, OutboxJob, StoredInvoice } from '@/lib/offline/types';
+import type { OfflineStorage, OutboxJob, StoredFormDraft, StoredInvoice } from '@/lib/offline/types';
 
 const DB_NAME = 'soloflow-offline';
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 type InvoiceRow = StoredInvoice & { key: string };
 
@@ -25,6 +25,7 @@ function openDatabase(): Promise<IDBDatabase> {
         store.createIndex('byOrg', 'organizationId', { unique: false });
       }
       if (!db.objectStoreNames.contains('aliases')) db.createObjectStore('aliases');
+      if (!db.objectStoreNames.contains('formDrafts')) db.createObjectStore('formDrafts');
     };
     request.onsuccess = () => resolve(request.result);
     request.onerror = () => {
@@ -192,5 +193,25 @@ export class IndexedDbOfflineStorage implements OfflineStorage {
       db.transaction('aliases').objectStore('aliases').get(invoiceKey(organizationId, localId)),
     );
     return (value as string | undefined) ?? null;
+  }
+
+  async getFormDraft(key: string) {
+    const db = await openDatabase();
+    const row = await requestToPromise(db.transaction('formDrafts').objectStore('formDrafts').get(key));
+    return (row as StoredFormDraft | undefined) ?? null;
+  }
+
+  async putFormDraft(record: StoredFormDraft) {
+    const db = await openDatabase();
+    const transaction = db.transaction('formDrafts', 'readwrite');
+    transaction.objectStore('formDrafts').put(record, record.key);
+    await transactionDone(transaction);
+  }
+
+  async deleteFormDraft(key: string) {
+    const db = await openDatabase();
+    const transaction = db.transaction('formDrafts', 'readwrite');
+    transaction.objectStore('formDrafts').delete(key);
+    await transactionDone(transaction);
   }
 }
