@@ -7,7 +7,7 @@ import { PrismaClient } from '@flowbooks/database';
  * but columns/enums were never added — the failure mode behind login 500s and
  * invoice create 500s.
  */
-const REQUIRED_SCHEMA_STATEMENTS = [
+export const REQUIRED_SCHEMA_STATEMENTS = [
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "isSuperAdmin" BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "suspendedAt" TIMESTAMP(3)`,
   `ALTER TABLE "users" ADD COLUMN IF NOT EXISTS "lastActiveAt" TIMESTAMP(3)`,
@@ -172,6 +172,7 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "payments_organizationId_idx" ON "payments"("organizationId")`,
   `CREATE INDEX IF NOT EXISTS "payments_invoiceId_idx" ON "payments"("invoiceId")`,
   `CREATE INDEX IF NOT EXISTS "payments_paidAt_idx" ON "payments"("paidAt")`,
+  `ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "voidedAt" TIMESTAMP(3)`,
   `DO $$ BEGIN
     ALTER TABLE "payments" ADD CONSTRAINT "payments_organizationId_fkey"
       FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
@@ -279,7 +280,7 @@ const REQUIRED_SCHEMA_STATEMENTS = [
 const DATA_BACKFILL_MARKER_ID = 'data-backfill-v1';
 
 /** Row rewrites. Skipped after the first successful run (see `_boot_schema_ensure`). */
-const DATA_BACKFILL_STATEMENTS = [
+export const DATA_BACKFILL_STATEMENTS = [
   `UPDATE "invoices" SET "amountPaid" = "total" WHERE "status" = 'PAID' AND "amountPaid" = 0`,
   `INSERT INTO "payments" ("id", "organizationId", "invoiceId", "amount", "paidAt", "method", "createdAt", "updatedAt")
    SELECT

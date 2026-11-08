@@ -6,5 +6,7 @@ export * from './validators';
 export * from './types';
 export * from './fx';
 export * from './invoice-balance';
+export * from './sales-invoice';
+export * from './customer-balance';
 export * from './order-status';
 export * from './workspace-search';

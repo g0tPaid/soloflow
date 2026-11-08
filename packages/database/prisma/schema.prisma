@@ -484,6 +484,8 @@ model Payment {
   paidAt         DateTime      @default(now())
   method         PaymentMethod @default(CASH)
   note           String?
+  /// Set when this payment is removed. The row stays so the receipt history is not destroyed.
+  voidedAt       DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 

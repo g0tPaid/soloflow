@@ -4,6 +4,7 @@ export async function shareInvoiceFile(
   file: File,
   text: string,
   phone?: string,
+  options?: { documentLabel?: string },
 ): Promise<ShareResult> {
   if (navigator.share) {
     const attempts: ShareData[] = [{ files: [file] }, { files: [file], text }];
@@ -26,7 +27,8 @@ export async function shareInvoiceFile(
   link.click();
   URL.revokeObjectURL(blobUrl);
 
-  const waText = encodeURIComponent(`${text}\n\n(Invoice file downloaded — attach it in WhatsApp)`);
+  const label = options?.documentLabel ?? 'Invoice';
+  const waText = encodeURIComponent(`${text}\n\n(${label} file downloaded — attach it in WhatsApp)`);
   const waUrl = phone ? `https://wa.me/${phone}?text=${waText}` : `https://wa.me/?text=${waText}`;
   window.setTimeout(() => {
     window.location.href = waUrl;

@@ -17,6 +17,7 @@ type SyncContextValue = {
   online: boolean;
   pendingCount: number;
   errorCount: number;
+  lastError: string | null;
   syncing: boolean;
   requestSync: () => Promise<void>;
 };
@@ -27,6 +28,7 @@ const idleSync: SyncContextValue = {
   online: true,
   pendingCount: 0,
   errorCount: 0,
+  lastError: null,
   syncing: false,
   requestSync: async () => undefined,
 };
@@ -42,6 +44,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
   const [pendingCount, setPendingCount] = useState(0);
   const [errorCount, setErrorCount] = useState(0);
+  const [lastError, setLastError] = useState<string | null>(null);
   const [syncing, setSyncing] = useState(false);
   const token = session?.accessToken;
 
@@ -49,11 +52,14 @@ export function SyncProvider({ children }: { children: ReactNode }) {
     if (!organizationId) {
       setPendingCount(0);
       setErrorCount(0);
+      setLastError(null);
       return;
     }
     const jobs = await getOfflineStore().listOutbox(organizationId).catch(() => []);
+    const failed = jobs.filter((job) => job.status === 'error');
     setPendingCount(jobs.filter((job) => job.status === 'pending').length);
-    setErrorCount(jobs.filter((job) => job.status === 'error').length);
+    setErrorCount(failed.length);
+    setLastError(failed.find((job) => job.lastError)?.lastError ?? null);
   }, [organizationId]);
 
   const requestSync = useCallback(async () => {
@@ -124,7 +130,7 @@ export function SyncProvider({ children }: { children: ReactNode }) {
   }, [requestSync]);
 
   return (
-    <SyncContext.Provider value={{ online, pendingCount, errorCount, syncing, requestSync }}>
+    <SyncContext.Provider value={{ online, pendingCount, errorCount, lastError, syncing, requestSync }}>
       {children}
     </SyncContext.Provider>
   );

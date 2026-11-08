@@ -46,6 +46,8 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
   const [converting, setConverting] = useState(false);
   const [convertError, setConvertError] = useState('');
   const [showPayment, setShowPayment] = useState(false);
+  const [voidingPaymentId, setVoidingPaymentId] = useState<string | null>(null);
+  const [paymentError, setPaymentError] = useState('');
 
   const fulfillmentMutation = useMutation({
     mutationFn: (data: UpdateInvoiceInput) =>
@@ -268,6 +270,9 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                   />
                 </>
               )}
+              <Button asChild type="button" size="lg" variant="outline">
+                <Link href={`/invoices/new?from=${invoice.id}`}>Use as new invoice</Link>
+              </Button>
               {invoice.customerId && (
                 <Button
                   type="button"
@@ -377,25 +382,57 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
               </div>
               {(invoice.payments ?? []).length > 0 && (
                 <ul className="divide-y rounded-lg border">
-                  {(invoice.payments ?? []).map((payment) => (
-                    <li
-                      key={payment.id}
-                      className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
-                    >
-                      <div>
-                        <p className="font-medium">
-                          {formatCurrency(Number(payment.amount), invoice.currency)}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          {new Date(payment.paidAt).toLocaleDateString()} ·{' '}
-                          {paymentMethodLabel(payment.method)}
-                          {payment.note ? ` · ${payment.note}` : ''}
-                        </p>
-                      </div>
-                    </li>
-                  ))}
+                  {(invoice.payments ?? []).map((payment) => {
+                    const removed = Boolean(payment.voidedAt);
+                    return (
+                      <li
+                        key={payment.id}
+                        className="flex items-center justify-between gap-3 px-3 py-2 text-sm"
+                      >
+                        <div>
+                          <p className={removed ? 'font-medium text-muted-foreground line-through' : 'font-medium'}>
+                            {formatCurrency(Number(payment.amount), invoice.currency)}
+                          </p>
+                          <p className="text-xs text-muted-foreground">
+                            {new Date(payment.paidAt).toLocaleDateString()} ·{' '}
+                            {paymentMethodLabel(payment.method)}
+                            {payment.note ? ` · ${payment.note}` : ''}
+                            {removed ? ' · Removed' : ''}
+                          </p>
+                        </div>
+                        {!removed && invoice.status !== 'VOID' ? (
+                          <Button
+                            type="button"
+                            size="sm"
+                            variant="outline"
+                            disabled={voidingPaymentId === payment.id}
+                            onClick={() => {
+                              const confirmed = window.confirm(
+                                `Remove this ${formatCurrency(Number(payment.amount), invoice.currency)} payment? The balance is recalculated. The other payments stay, and this one remains on the invoice as removed.`,
+                              );
+                              if (!confirmed || !session?.accessToken || !organizationId) return;
+                              setVoidingPaymentId(payment.id);
+                              setPaymentError('');
+                              void api.invoices
+                                .voidPayment(session.accessToken, organizationId, invoice.id, payment.id)
+                                .then(async () => {
+                                  await refreshInvoice();
+                                })
+                                .catch((err: unknown) => {
+                                  setPaymentError(err instanceof Error ? err.message : 'Could not remove the payment');
+                                })
+                                .finally(() => setVoidingPaymentId(null));
+                            }}
+                          >
+                            {voidingPaymentId === payment.id ? 'Removing…' : 'Remove'}
+                          </Button>
+                        ) : null}
+                      </li>
+                    );
+                  })}
                 </ul>
               )}
+              {paymentError ? <p className="text-sm text-destructive">{paymentError}</p> : null}
               {invoice.status !== 'VOID' &&
                 invoice.status !== 'CANCELLED' &&
                 invoiceBalanceDue(invoice) > 0.005 && (

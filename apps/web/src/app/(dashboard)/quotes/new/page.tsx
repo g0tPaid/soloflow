@@ -5,6 +5,8 @@ import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { api } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
+import { loadCustomers, loadProducts } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
 import { QuoteForm } from '@/components/quotes/quote-form';
 import { Card, CardContent } from '@/components/ui/card';
 import type { CreateQuoteInput } from '@flowbooks/shared';
@@ -13,16 +15,19 @@ export default function NewQuotePage() {
   const { data: session } = useSession();
   const { organizationId, businessCurrency, isReady } = useOrganizationId();
 
-  const { data: customersData, isLoading: customersLoading } = useQuery({
-    queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(session!.accessToken!, organizationId!, { limit: 100 }),
-    enabled: !!session?.accessToken && !!organizationId,
-  });
+  const { data: customersData, isLoading: customersLoading, isError: customersError, error: customersLoadError } =
+    useQuery({
+      queryKey: ['customers', organizationId],
+      queryFn: () => loadCustomers({ token: session!.accessToken!, organizationId: organizationId! }),
+      enabled: !!session?.accessToken && !!organizationId,
+      ...offlineQueryOptions,
+    });
 
-  const { data: productsData, isLoading: productsLoading } = useQuery({
+  const { data: productsData, isLoading: productsLoading, isError: productsError } = useQuery({
     queryKey: ['products', organizationId],
-    queryFn: () => api.products.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadProducts({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   const { data: nextNumberData } = useQuery({
@@ -57,11 +62,19 @@ export default function NewQuotePage() {
         </Card>
       )}
 
+      {(customersError || productsError) && (
+        <p className="text-sm text-destructive">
+          {customersLoadError instanceof Error
+            ? customersLoadError.message
+            : 'Could not load customers or products. You can still open an unsaved draft and discard it.'}
+        </p>
+      )}
+
       {isLoading && organizationId && (
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
       )}
 
-      {!isLoading && organizationId && customers.length === 0 && (
+      {!isLoading && organizationId && customers.length === 0 && !customersError && (
         <Card className="border-dashed">
           <CardContent className="flex flex-col items-center justify-center py-12 text-center">
             <p className="font-medium">No customers found</p>
@@ -78,7 +91,7 @@ export default function NewQuotePage() {
         </Card>
       )}
 
-      {!isLoading && organizationId && customers.length > 0 && (
+      {!isLoading && organizationId && (
         <QuoteForm
           mode="create"
           customers={customers}

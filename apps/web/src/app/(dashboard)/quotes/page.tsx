@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileSpreadsheet, Pencil, Download, Loader2, FileInput } from 'lucide-react';
 import { api, type QuoteStatus } from '@/lib/api';
+import { dedupeInvoicePages } from '@/lib/offline/invoice-list';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
@@ -14,6 +15,8 @@ import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
+import { UnsavedDraftBanner } from '@/components/invoices/unsaved-draft-banner';
+import { ShareQuoteWhatsAppButton } from '@/components/quotes/share-quote-whatsapp-button';
 
 function formatDate(value?: string | null) {
   if (!value) return '—';
@@ -76,9 +79,20 @@ export default function QuotesPage() {
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ['quotes', organizationId],
-    queryFn: () => api.quotes.list(session!.accessToken!, organizationId!, { limit: 50 }),
+    queryFn: ({ pageParam }) =>
+      api.quotes.list(session!.accessToken!, organizationId!, { page: pageParam, limit: 50 }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages ? lastPage.pagination.page + 1 : undefined,
     enabled: !!session?.accessToken && !!organizationId,
   });
 
@@ -90,7 +104,8 @@ export default function QuotesPage() {
     },
   });
 
-  const quotes = data?.data ?? [];
+  const quotes = dedupeInvoicePages(data?.pages.map((page) => page.data) ?? []);
+  const quoteTotal = data?.pages[0]?.pagination.total ?? quotes.length;
 
   function markStatus(id: string, status: QuoteStatus, event: React.MouseEvent) {
     event.preventDefault();
@@ -130,6 +145,16 @@ export default function QuotesPage() {
           </Button>
         )}
       </div>
+
+      {session?.user?.id && organizationId ? (
+        <UnsavedDraftBanner kind="quote" userId={session.user.id} organizationId={organizationId} />
+      ) : null}
+
+      {quotes.length > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Showing {quotes.length} of {quoteTotal}
+        </p>
+      ) : null}
 
       {isReady && !organizationId && (
         <Card className="border-dashed">
@@ -227,6 +252,14 @@ export default function QuotesPage() {
                           number={quote.number}
                         />
                       )}
+                      {organizationId ? (
+                        <ShareQuoteWhatsAppButton
+                          quote={quote}
+                          quoteId={quote.id}
+                          organizationId={organizationId}
+                          size="sm"
+                        />
+                      ) : null}
                       {!isConverted && (
                         <Button
                           type="button"
@@ -268,6 +301,12 @@ export default function QuotesPage() {
           })}
         </div>
       )}
+
+      {hasNextPage ? (
+        <Button type="button" variant="outline" disabled={isFetchingNextPage} onClick={() => void fetchNextPage()}>
+          {isFetchingNextPage ? 'Loading…' : 'Load more'}
+        </Button>
+      ) : null}
     </div>
   );
 }

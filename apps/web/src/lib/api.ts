@@ -258,6 +258,7 @@ export interface InvoicePayment {
   paidAt: string;
   method: PaymentMethod;
   note?: string | null;
+  voidedAt?: string | null;
   createdAt: string;
 }
 
@@ -757,6 +758,20 @@ export const api = {
       ),
     get: (token: string, organizationId: string, id: string) =>
       apiFetch<Customer>(`/customers/${id}`, { token, organizationId }),
+    activity: (token: string, organizationId: string, id: string) =>
+      apiFetch<{
+        balances: Array<{ currency: string; balanceDue: number; invoiceCount: number }>;
+        quotes: Array<{
+          id: string;
+          number: string;
+          status: QuoteStatus;
+          total: string | number;
+          currency: string;
+          validUntil?: string | null;
+          issueDate: string;
+        }>;
+        quoteCount: number;
+      }>(`/customers/${id}/activity`, { token, organizationId }),
     create: (
       token: string,
       organizationId: string,
@@ -1041,6 +1056,12 @@ export const api = {
           method: data.method,
           note: data.note || undefined,
         }),
+        token,
+        organizationId,
+      }),
+    voidPayment: (token: string, organizationId: string, invoiceId: string, paymentId: string) =>
+      apiFetch<Invoice>(`/invoices/${invoiceId}/payments/${paymentId}/void`, {
+        method: 'POST',
         token,
         organizationId,
       }),

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Invoice } from '@/lib/api';
-import { cacheServerInvoices, mergeInvoiceList } from '@/lib/offline/invoice-list';
+import { cacheServerInvoices, dedupeInvoicePages, mergeInvoiceList } from '@/lib/offline/invoice-list';
 import { MemoryOfflineStorage } from '@/lib/offline/memory-store';
 import type { StoredInvoice } from '@/lib/offline/types';
 
@@ -57,6 +57,25 @@ describe('mergeInvoiceList', () => {
     expect(merged.map((row) => row.id)).toEqual(['srv']);
   });
 
+  it('keeps an invoice with no customer and drops a vendor bill', () => {
+    const merged = mergeInvoiceList(
+      [
+        invoice({ id: 'open', customerId: null, vendorId: null, number: 'INV-00003' }),
+        invoice({ id: 'expense', customerId: null, vendorId: 'ven_1', number: 'EXP-00001' }),
+      ],
+      [],
+      null,
+    );
+    expect(merged.map((row) => row.id)).toEqual(['open']);
+  });
+
+  it('does not repeat a pending invoice once a later page has the synced copy', () => {
+    const pending = invoice({ id: 'local-1', clientRequestId: 'local-1', number: 'Pending' });
+    const synced = invoice({ id: 'srv', clientRequestId: 'local-1', number: 'INV-00008' });
+    const rows = dedupeInvoicePages([[pending, invoice({ id: 'srv-1', number: 'INV-00001' })], [synced]]);
+    expect(rows.map((row) => row.id)).toEqual(['local-1', 'srv-1']);
+  });
+
   it('hides pending drafts from the paid filter and keeps them for waiting for payment', () => {
     const local = [stored({})];
     expect(mergeInvoiceList([], local, 'paid')).toEqual([]);
@@ -65,7 +84,7 @@ describe('mergeInvoiceList', () => {
 });
 
 describe('cacheServerInvoices', () => {
-  it('replaces synced invoices and keeps unsynced ones', async () => {
+  it('keeps older synced invoices and drops only the pending row that just synced', async () => {
     const store = new MemoryOfflineStorage();
     await store.putInvoice(
       stored({
@@ -83,7 +102,7 @@ describe('cacheServerInvoices', () => {
     ]);
 
     const rows = await store.listInvoices('org_1');
-    expect(rows.map((row) => row.localId).sort()).toEqual(['srv-2', 'still-pending']);
+    expect(rows.map((row) => row.localId).sort()).toEqual(['old-server', 'srv-2', 'still-pending']);
     expect(rows.find((row) => row.localId === 'still-pending')?.syncState).toBe('pending');
     expect(rows.find((row) => row.localId === 'srv-2')?.syncState).toBe('synced');
   });
@@ -138,5 +157,37 @@ describe('cacheServerInvoices', () => {
     expect(saved?.invoice.items).toEqual([
       expect.objectContaining({ description: 'Widget', quantity: 2, amount: 30 }),
     ]);
+  });
+
+  it('does not drop a cached invoice that is absent from the current page', async () => {
+    const store = new MemoryOfflineStorage();
+    await store.putInvoice(
+      stored({
+        localId: 'older',
+        clientRequestId: 'older',
+        syncState: 'synced',
+        invoice: invoice({
+          id: 'older',
+          number: 'INV-00001',
+          items: [
+            {
+              id: 'line-old',
+              description: 'Older widget',
+              name: 'Older',
+              quantity: 1,
+              unitPrice: 8,
+              taxRate: 0,
+              amount: 8,
+            },
+          ],
+        }),
+      }),
+    );
+
+    await cacheServerInvoices(store, 'org_1', [invoice({ id: 'newer', number: 'INV-00099' })]);
+
+    const older = await store.getInvoice('org_1', 'older');
+    expect(older?.invoice.items?.[0]?.description).toBe('Older widget');
+    expect(await store.getInvoice('org_1', 'newer')).not.toBeNull();
   });
 });

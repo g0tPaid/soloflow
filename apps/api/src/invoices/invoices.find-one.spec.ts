@@ -49,6 +49,18 @@ describe('InvoicesService findOne', () => {
     expect(prisma.ensureRequiredSchema).not.toHaveBeenCalled();
   });
 
+  it('repairs a database that has no payments.voidedAt column before the detail query is retried', async () => {
+    prisma.invoice.findFirst
+      .mockRejectedValueOnce(new Error('column payments.voidedAt does not exist'))
+      .mockResolvedValueOnce(invoice);
+
+    const result = await service.findOne('org_1', 'inv_1');
+
+    expect(prisma.ensureRequiredSchema).toHaveBeenCalledTimes(1);
+    expect(prisma.invoice.findFirst).toHaveBeenCalledTimes(2);
+    expect(result.id).toBe('inv_1');
+  });
+
   it('repairs the schema and retries the ordered detail query', async () => {
     prisma.invoice.findFirst.mockRejectedValueOnce(new Error('column missing')).mockResolvedValueOnce(invoice);
 

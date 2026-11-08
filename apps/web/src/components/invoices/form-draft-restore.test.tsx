@@ -276,4 +276,54 @@ describe('invoice and quote draft recovery', () => {
     expect(screen.getByPlaceholderText('Product or service name')).toHaveValue('Server line');
     expect(await repo.read(invoiceScope('inv_9'))).toBeNull();
   });
+
+  it('keeps the saved customer and lines when the customer list fails to load and a different customer is suggested', async () => {
+    const repo = repository();
+    await repo.write({
+      version: 1,
+      scope: invoiceScope(),
+      savedAt: Date.parse('2026-11-08T01:00:00Z'),
+      imagesOmitted: false,
+      content: formDraftContent({
+        customerId: 'cus_1',
+        notes: 'Keep this draft',
+        currency: 'AED',
+        currencyTouched: true,
+        items: [
+          {
+            productId: 'prod_1',
+            name: 'Saved lamp',
+            description: 'Do not wipe',
+            quantity: 2,
+            unitPrice: 15,
+            taxRate: 0,
+            imageUrl: null,
+          },
+        ],
+      }),
+    });
+    const onSubmit = vi.fn(async () => ({ id: 'inv_new' }));
+    render(
+      <InvoiceForm
+        mode="create"
+        customers={[]}
+        products={[]}
+        defaultCurrency="USD"
+        suggestedNumber="INV-00999"
+        initialCustomerId="cus_other"
+        draftIdentity={identity}
+        draftRepository={repo}
+        onSubmit={onSubmit}
+      />,
+    );
+    expect(await screen.findByLabelText('Notes')).toHaveValue('Keep this draft');
+    expect(screen.getByLabelText('Customer *')).toHaveValue('cus_1');
+    expect(screen.getByPlaceholderText('Product or service name')).toHaveValue('Saved lamp');
+    expect(screen.getByPlaceholderText(/Extra details/)).toHaveValue('Do not wipe');
+    expect(onSubmit).not.toHaveBeenCalled();
+    const stored = await repo.read(invoiceScope());
+    expect(stored?.content.notes).toBe('Keep this draft');
+    expect(stored?.content.customerId).toBe('cus_1');
+    expect(stored?.content.items[0]?.name).toBe('Saved lamp');
+  });
 });

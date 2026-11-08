@@ -11,6 +11,7 @@ import { resolveImageSrc, parseBranding } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
 import { quoteAsInvoiceForPrint } from '@/lib/quote-print';
+import { buildQuoteWhatsAppMessage } from '@/components/quotes/share-quote-whatsapp-button';
 
 export function QuotePrintPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
@@ -136,6 +137,9 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
           organizationId={organizationId}
           filename={safeFilename}
           emailSubject={`Quote ${quote.number}`}
+          whatsappMessage={buildQuoteWhatsAppMessage(quote)}
+          whatsappPhone={quote.customer?.phone ?? undefined}
+          emailBody={buildQuoteWhatsAppMessage(quote)}
         />
       )}
 
