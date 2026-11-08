@@ -2,8 +2,9 @@
  * HTML documents are stored separately from Next.js RSC flights. A flight
  * response varies on `rsc`, and saving it under the page URL makes the next
  * offline launch miss the document. Private HTML is stored per signed-in user
- * so one account cannot open another's cached pages. Auth and the API are
- * never used as HTML. sw-core.js is inlined below so the worker can start offline.
+ * so one account cannot open another's cached pages. An expired or signed-out
+ * session does not receive those pages. Auth and the API are never used as HTML.
+ * sw-core.js is inlined below so the worker can start offline.
  */
 /**
  * Pure decisions for the SoloFlow service worker.
@@ -110,6 +111,27 @@
     return false;
   }
 
+  function accessTokenExpired(token, nowMs) {
+    if (typeof token !== 'string' || !token) return true;
+    var parts = token.split('.');
+    if (parts.length < 2) return true;
+    try {
+      var padded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (padded.length % 4) padded += '=';
+      var json = JSON.parse(atob(padded));
+      if (!json || typeof json.exp !== 'number') return false;
+      return json.exp * 1000 <= nowMs;
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function sessionIsUsable(session, nowMs) {
+    if (!session || typeof session !== 'object') return false;
+    if (!session.accessToken || accessTokenExpired(session.accessToken, nowMs)) return false;
+    return sessionOwnerId(session) !== '';
+  }
+
   function userShellCacheName(ownerId) {
     return ownerId ? 'soloflow-user-shell-v2:' + ownerId : '';
   }
@@ -149,6 +171,8 @@
     offlineShellAction: offlineShellAction,
     staticAssetUrls: staticAssetUrls,
     sessionOwnerId: sessionOwnerId,
+    accessTokenExpired: accessTokenExpired,
+    sessionIsUsable: sessionIsUsable,
     isPublicShellPath: isPublicShellPath,
     userShellCacheName: userShellCacheName,
     shellStoreDecision: shellStoreDecision,
@@ -156,7 +180,6 @@
     NAVIGATION_FALLBACK_STATUS: 200,
   };
 });
-
 
 const SHELL_CACHE = 'soloflow-shell-v2';
 const SESSION_CACHE = 'soloflow-session-v1';
@@ -239,7 +262,9 @@ async function readCachedSession() {
 }
 
 async function currentOwnerId() {
-  return core.sessionOwnerId(await readCachedSession());
+  const session = await readCachedSession();
+  if (!core.sessionIsUsable(session, Date.now())) return '';
+  return core.sessionOwnerId(session);
 }
 
 async function networkFirstSession(request) {
@@ -249,7 +274,7 @@ async function networkFirstSession(request) {
     if (response.ok) {
       const data = await response.clone().json().catch(() => null);
       const ownerId = core.sessionOwnerId(data);
-      if (data && data.accessToken && ownerId) {
+      if (core.sessionIsUsable(data, Date.now()) && ownerId) {
         const previous = core.sessionOwnerId(await readCachedSession());
         if (previous && previous !== ownerId) await clearOtherUserShells(ownerId);
         else await clearOtherUserShells(ownerId);
@@ -269,7 +294,17 @@ async function networkFirstSession(request) {
     return response;
   } catch {
     const cached = await cache.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true });
-    if (cached) return cached;
+    if (cached) {
+      const data = await cached.clone().json().catch(() => null);
+      if (!core.sessionIsUsable(data, Date.now())) {
+        await clearUserShell();
+        return new Response('null', {
+          status: 200,
+          headers: { 'Content-Type': 'application/json' },
+        });
+      }
+      return cached;
+    }
     return new Response('null', {
       status: 200,
       headers: { 'Content-Type': 'application/json' },

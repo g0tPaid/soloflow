@@ -21,6 +21,7 @@ import {
 } from '@/lib/organization-branding';
 import type { LoadedPrintDocument } from '@/lib/print-pdf/document-types';
 import {
+  activePayments,
   invoiceAmountPaid,
   invoiceBalanceDue,
   paymentMethodLabel,
@@ -799,7 +800,7 @@ function ReceiptPdfBody({
   const paidAmount = invoiceAmountPaid(invoice);
   const balanceDue = invoiceBalanceDue(invoice);
   const isPartial = balanceDue > 0.005;
-  const payments = invoice.payments ?? [];
+  const payments = activePayments(invoice.payments);
   const lastPayment = payments.length
     ? payments.reduce((latest, payment) =>
         new Date(payment.paidAt) > new Date(latest.paidAt) ? payment : latest,

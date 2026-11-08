@@ -1,4 +1,3 @@
-import { BadRequestException } from '@nestjs/common';
 import { InvoicesService } from './invoices.service';
 
 describe('InvoicesService payments', () => {
@@ -140,14 +139,26 @@ describe('InvoicesService payments', () => {
     expect(prisma.payment.update).not.toHaveBeenCalled();
   });
 
-  it('refuses a second void of the same payment', async () => {
+  it('returns the invoice unchanged when the same payment is removed twice', async () => {
     prisma.payment.findFirst.mockResolvedValue({
       id: 'pay_1',
+      invoiceId: 'inv_1',
+      organizationId: 'org_1',
       amount: 40,
       method: 'CASH',
-      voidedAt: new Date(),
+      voidedAt: new Date('2026-11-01T00:00:00.000Z'),
     });
-    await expect(service.voidPayment('org_1', 'inv_1', 'pay_1')).rejects.toBeInstanceOf(BadRequestException);
+    const updated = await service.voidPayment('org_1', 'inv_1', 'pay_1');
+    expect(updated.amountPaid).toBe(60);
+    expect(prisma.payment.update).not.toHaveBeenCalled();
+    expect(prisma.payment.deleteMany).not.toHaveBeenCalled();
+    expect(prisma.auditLog.create).not.toHaveBeenCalled();
+  });
+
+  it('does not void a payment for a different organization', async () => {
+    prisma.invoice.findFirst.mockResolvedValue(null);
+    await expect(service.voidPayment('org_other', 'inv_1', 'pay_1')).rejects.toThrow('Invoice not found');
+    expect(prisma.payment.update).not.toHaveBeenCalled();
   });
 
   it('refuses to clear every payment by changing Paid back to Sent', async () => {

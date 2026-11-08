@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { Invoice } from '@/lib/api';
-import { cacheServerInvoices, mergeInvoiceList } from '@/lib/offline/invoice-list';
+import { cacheServerInvoices, dedupeInvoicePages, mergeInvoiceList } from '@/lib/offline/invoice-list';
 import { MemoryOfflineStorage } from '@/lib/offline/memory-store';
 import type { StoredInvoice } from '@/lib/offline/types';
 
@@ -55,6 +55,25 @@ describe('mergeInvoiceList', () => {
       null,
     );
     expect(merged.map((row) => row.id)).toEqual(['srv']);
+  });
+
+  it('keeps an invoice with no customer and drops a vendor bill', () => {
+    const merged = mergeInvoiceList(
+      [
+        invoice({ id: 'open', customerId: null, vendorId: null, number: 'INV-00003' }),
+        invoice({ id: 'expense', customerId: null, vendorId: 'ven_1', number: 'EXP-00001' }),
+      ],
+      [],
+      null,
+    );
+    expect(merged.map((row) => row.id)).toEqual(['open']);
+  });
+
+  it('does not repeat a pending invoice once a later page has the synced copy', () => {
+    const pending = invoice({ id: 'local-1', clientRequestId: 'local-1', number: 'Pending' });
+    const synced = invoice({ id: 'srv', clientRequestId: 'local-1', number: 'INV-00008' });
+    const rows = dedupeInvoicePages([[pending, invoice({ id: 'srv-1', number: 'INV-00001' })], [synced]]);
+    expect(rows.map((row) => row.id)).toEqual(['local-1', 'srv-1']);
   });
 
   it('hides pending drafts from the paid filter and keeps them for waiting for payment', () => {

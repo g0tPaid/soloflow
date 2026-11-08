@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import {
+  activePayments,
   invoiceAmountPaid,
   invoiceBalanceDue,
   isReceiptEligible,
@@ -30,6 +31,18 @@ describe('invoice balance', () => {
   it('hides receipts for unpaid or void invoices', () => {
     expect(isReceiptEligible({ total: 100, amountPaid: 0, status: 'SENT' })).toBe(false);
     expect(isReceiptEligible({ total: 100, amountPaid: 40, status: 'VOID' })).toBe(false);
+  });
+
+  it('ignores a voided payment in the paid amount, balance, and receipt lines', () => {
+    const payments = [
+      { id: 'pay_void', amount: 40, voidedAt: '2026-11-01T00:00:00.000Z' },
+      { id: 'pay_live', amount: 20, voidedAt: null },
+    ];
+    const invoice = { total: 100, amountPaid: 60, status: 'PARTIAL', payments };
+    expect(activePayments(payments).map((payment) => payment.id)).toEqual(['pay_live']);
+    expect(invoiceAmountPaid(invoice)).toBe(20);
+    expect(invoiceBalanceDue(invoice)).toBe(80);
+    expect(invoiceAmountPaid({ total: 100, amountPaid: 60, status: 'PARTIAL', payments: [] })).toBe(60);
   });
 
   it('labels payment methods for receipts', () => {

@@ -621,6 +621,10 @@ function InvoiceFormEditor(
               })}
             >
               <option value="">Select customer</option>
+              {createForm.watch('customerId') &&
+              !props.customers.some((customer) => customer.id === createForm.watch('customerId')) ? (
+                <option value={createForm.watch('customerId')}>Saved customer</option>
+              ) : null}
               {props.customers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name}

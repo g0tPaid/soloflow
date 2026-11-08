@@ -459,7 +459,7 @@ export class InvoicesService {
       taxRate,
     );
 
-    const alreadyPaid = toMoneyNumber(existing.amountPaid);
+    const alreadyPaid = this.ledgerPaid(existing);
     if (alreadyPaid > total + 0.005) {
       throw new BadRequestException(
         'Invoice total cannot be less than the amount already paid. Increase the total, or wait until payments match.',
@@ -486,6 +486,10 @@ export class InvoicesService {
       taxAmount,
       total,
     };
+
+    if (!markingPaid && Math.abs(alreadyPaid - toMoneyNumber(existing.amountPaid)) > 0.005) {
+      updateData.amountPaid = alreadyPaid;
+    }
 
     if (statusFightsLedger) {
       throw new BadRequestException(
@@ -713,7 +717,8 @@ export class InvoicesService {
       throw new BadRequestException('Payment amount must be greater than 0');
     }
 
-    const remaining = invoiceBalanceDue(invoice);
+    const alreadyPaid = this.ledgerPaid(invoice);
+    const remaining = invoiceBalanceDue({ total: invoice.total, amountPaid: alreadyPaid });
     if (remaining <= 0.005) {
       throw new BadRequestException('This invoice is already paid in full');
     }
@@ -724,7 +729,7 @@ export class InvoicesService {
     }
 
     const applied = Math.min(amount, remaining);
-    const nextPaid = toMoneyNumber(toMoneyNumber(invoice.amountPaid) + applied);
+    const nextPaid = toMoneyNumber(alreadyPaid + applied);
     const nextStatus = statusAfterPayment(toMoneyNumber(invoice.total), nextPaid);
     const previousStatus = invoice.status;
 
@@ -755,6 +760,13 @@ export class InvoicesService {
     }
 
     return updated;
+  }
+
+  /** Prefer the live payment rows. A stored amountPaid can still include a voided row. */
+  private ledgerPaid(invoice: { amountPaid?: unknown; payments?: Array<{ amount: unknown; voidedAt?: Date | null }> | null }) {
+    const rows = invoice.payments ?? [];
+    if (rows.length > 0) return this.sumActivePayments(rows);
+    return toMoneyNumber(invoice.amountPaid as number);
   }
 
   private sumActivePayments(payments: Array<{ amount: unknown; voidedAt?: Date | null }>) {
@@ -788,7 +800,7 @@ export class InvoicesService {
       where: { id: paymentId, invoiceId, organizationId },
     });
     if (!payment) throw new NotFoundException('Payment not found');
-    if (payment.voidedAt) throw new BadRequestException('This payment is already removed');
+    if (payment.voidedAt) return invoice;
 
     const updated = await this.prisma.$transaction(async (tx) => {
       await tx.payment.update({

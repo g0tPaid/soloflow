@@ -14,8 +14,9 @@ export function mergeInvoiceList(
   local: StoredInvoice[],
   filter?: InvoiceListFilter | null,
 ): ListedInvoice[] {
+  const serverSales = serverInvoices.filter((invoice) => !isVendorExpenseInvoice(invoice));
   const serverClientIds = new Set(
-    serverInvoices.map((invoice) => invoice.clientRequestId).filter((id): id is string => !!id),
+    serverSales.map((invoice) => invoice.clientRequestId).filter((id): id is string => !!id),
   );
   const pending = local
     .filter((record) => record.syncState === 'pending' || record.syncState === 'error')
@@ -28,7 +29,24 @@ export function mergeInvoiceList(
       syncState: record.syncState,
       syncError: record.syncError,
     }));
-  return [...pending, ...serverInvoices];
+  return [...pending, ...serverSales];
+}
+
+/** Drop a row that already appeared on an earlier page, including a pending copy of a synced invoice. */
+export function dedupeInvoicePages<T extends { id: string; clientRequestId?: string | null }>(pages: T[][]): T[] {
+  const seenIds = new Set<string>();
+  const seenClientIds = new Set<string>();
+  const rows: T[] = [];
+  for (const page of pages) {
+    for (const row of page) {
+      if (seenIds.has(row.id)) continue;
+      if (row.clientRequestId && seenClientIds.has(row.clientRequestId)) continue;
+      seenIds.add(row.id);
+      if (row.clientRequestId) seenClientIds.add(row.clientRequestId);
+      rows.push(row);
+    }
+  }
+  return rows;
 }
 
 function activeFilter(listFilter?: string): InvoiceListFilter | null {

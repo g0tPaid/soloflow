@@ -9,6 +9,7 @@ import {
 } from '@/lib/organization-branding';
 import { formatCurrency } from '@/lib/utils';
 import {
+  activePayments,
   invoiceAmountPaid,
   invoiceBalanceDue,
   paymentMethodLabel,
@@ -50,7 +51,7 @@ export function ReceiptPrintView({
   const paidAmount = invoiceAmountPaid(invoice);
   const balanceDue = invoiceBalanceDue(invoice);
   const isPartial = balanceDue > 0.005;
-  const payments = invoice.payments ?? [];
+  const payments = activePayments(invoice.payments);
   const lastPayment = payments.length
     ? payments.reduce((latest, payment) =>
         new Date(payment.paidAt) > new Date(latest.paidAt) ? payment : latest,

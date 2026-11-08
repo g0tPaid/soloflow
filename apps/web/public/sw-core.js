@@ -103,6 +103,27 @@
     return false;
   }
 
+  function accessTokenExpired(token, nowMs) {
+    if (typeof token !== 'string' || !token) return true;
+    var parts = token.split('.');
+    if (parts.length < 2) return true;
+    try {
+      var padded = parts[1].replace(/-/g, '+').replace(/_/g, '/');
+      while (padded.length % 4) padded += '=';
+      var json = JSON.parse(atob(padded));
+      if (!json || typeof json.exp !== 'number') return false;
+      return json.exp * 1000 <= nowMs;
+    } catch (error) {
+      return true;
+    }
+  }
+
+  function sessionIsUsable(session, nowMs) {
+    if (!session || typeof session !== 'object') return false;
+    if (!session.accessToken || accessTokenExpired(session.accessToken, nowMs)) return false;
+    return sessionOwnerId(session) !== '';
+  }
+
   function userShellCacheName(ownerId) {
     return ownerId ? 'soloflow-user-shell-v2:' + ownerId : '';
   }
@@ -142,6 +163,8 @@
     offlineShellAction: offlineShellAction,
     staticAssetUrls: staticAssetUrls,
     sessionOwnerId: sessionOwnerId,
+    accessTokenExpired: accessTokenExpired,
+    sessionIsUsable: sessionIsUsable,
     isPublicShellPath: isPublicShellPath,
     userShellCacheName: userShellCacheName,
     shellStoreDecision: shellStoreDecision,

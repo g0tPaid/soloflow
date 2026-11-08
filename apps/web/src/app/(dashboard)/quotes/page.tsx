@@ -7,6 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileSpreadsheet, Pencil, Download, Loader2, FileInput } from 'lucide-react';
 import { api, type QuoteStatus } from '@/lib/api';
+import { dedupeInvoicePages } from '@/lib/offline/invoice-list';
 import { cn, formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
@@ -103,7 +104,7 @@ export default function QuotesPage() {
     },
   });
 
-  const quotes = data?.pages.flatMap((page) => page.data) ?? [];
+  const quotes = dedupeInvoicePages(data?.pages.map((page) => page.data) ?? []);
   const quoteTotal = data?.pages[0]?.pagination.total ?? quotes.length;
 
   function markStatus(id: string, status: QuoteStatus, event: React.MouseEvent) {

@@ -7,7 +7,7 @@ import { useSession } from 'next-auth/react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
 import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
-import { loadInvoiceList } from '@/lib/offline/invoice-list';
+import { dedupeInvoicePages, loadInvoiceList } from '@/lib/offline/invoice-list';
 import { offlineQueryOptions } from '@/lib/offline/network';
 import { PendingSyncBadge } from '@/components/invoices/pending-sync-badge';
 import { useSyncStatus } from '@/components/offline/sync-provider';
@@ -245,7 +245,7 @@ export default function InvoicesPage() {
     },
   });
 
-  const invoices = data?.pages.flatMap((page) => page.data) ?? [];
+  const invoices = dedupeInvoicePages(data?.pages.map((page) => page.data) ?? []);
   const invoiceTotal = data?.pages[0]?.pagination.total ?? invoices.length;
 
   async function refreshInvoiceQueries() {

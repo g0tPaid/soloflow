@@ -22,7 +22,9 @@ const core = require(
     cachedPaths: string[],
   ) => { type: string; path?: string };
   staticAssetUrls: (html: string) => string[];
-  sessionOwnerId: (session: { user?: { id?: string } } | null) => string;
+  sessionOwnerId: (session: { user?: { id?: string }; accessToken?: string } | null) => string;
+  accessTokenExpired: (token: string, nowMs: number) => boolean;
+  sessionIsUsable: (session: { user?: { id?: string }; accessToken?: string } | null, nowMs: number) => boolean;
   isPublicShellPath: (path: string) => boolean;
   userShellCacheName: (ownerId: string) => string;
   shellStoreDecision: (
@@ -100,6 +102,20 @@ describe('service worker shell decisions', () => {
       path: '/offline.html',
     });
     expect(core.offlineShellAction('/dashboard', [])).toEqual({ type: 'offline-page' });
+  });
+
+  it('rejects an expired or signed-out session and keeps a current one', () => {
+    const now = Date.parse('2026-11-08T12:00:00Z');
+    const token = (expSeconds: number) => {
+      const payload = Buffer.from(JSON.stringify({ exp: expSeconds })).toString('base64url');
+      return `header.${payload}.sig`;
+    };
+    const fresh = { user: { id: 'user_a' }, accessToken: token(Math.floor(now / 1000) + 60) };
+    const expired = { user: { id: 'user_a' }, accessToken: token(Math.floor(now / 1000) - 60) };
+    expect(core.sessionIsUsable(fresh, now)).toBe(true);
+    expect(core.sessionIsUsable(expired, now)).toBe(false);
+    expect(core.sessionIsUsable({ user: { id: 'user_a' } }, now)).toBe(false);
+    expect(core.sessionIsUsable(null, now)).toBe(false);
   });
 
   it('stores private HTML only for a real signed-in user and keeps login public', () => {

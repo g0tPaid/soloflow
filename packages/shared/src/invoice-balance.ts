@@ -20,11 +20,33 @@ export function toMoneyNumber(
   return Number.isFinite(n) ? roundMoney(n) : 0;
 }
 
+export function isVoidedPayment(payment: { voidedAt?: string | Date | null }): boolean {
+  return payment.voidedAt != null && payment.voidedAt !== '';
+}
+
+export function activePayments<T extends { voidedAt?: string | Date | null }>(
+  payments: T[] | null | undefined,
+): T[] {
+  return (payments ?? []).filter((payment) => !isVoidedPayment(payment));
+}
+
+export function sumActivePaymentAmounts(
+  payments: Array<{ amount?: string | number | { toString(): string } | null; voidedAt?: string | Date | null }> | null | undefined,
+): number {
+  return toMoneyNumber(
+    activePayments(payments).reduce((sum, payment) => sum + toMoneyNumber(payment.amount), 0),
+  );
+}
+
 export function invoiceAmountPaid(invoice: {
   amountPaid?: string | number | { toString(): string } | null;
   status?: string;
   total?: string | number | { toString(): string } | null;
+  payments?: Array<{ amount?: string | number | { toString(): string } | null; voidedAt?: string | Date | null }> | null;
 }): number {
+  if (Array.isArray(invoice.payments) && invoice.payments.length > 0) {
+    return sumActivePaymentAmounts(invoice.payments);
+  }
   if (invoice.amountPaid != null && invoice.amountPaid !== '') {
     return toMoneyNumber(invoice.amountPaid);
   }
