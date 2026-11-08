@@ -172,6 +172,7 @@ const REQUIRED_SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "payments_organizationId_idx" ON "payments"("organizationId")`,
   `CREATE INDEX IF NOT EXISTS "payments_invoiceId_idx" ON "payments"("invoiceId")`,
   `CREATE INDEX IF NOT EXISTS "payments_paidAt_idx" ON "payments"("paidAt")`,
+  `ALTER TABLE "payments" ADD COLUMN IF NOT EXISTS "voidedAt" TIMESTAMP(3)`,
   `DO $$ BEGIN
     ALTER TABLE "payments" ADD CONSTRAINT "payments_organizationId_fkey"
       FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;

@@ -23,6 +23,12 @@ export class CustomersController {
     return this.customersService.findAll(orgId, page, limit);
   }
 
+  @Get(':id/activity')
+  @ApiOperation({ summary: 'Customer balances by currency and their quotes' })
+  activity(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.customersService.activity(orgId, id);
+  }
+
   @Get(':id')
   findOne(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.customersService.findOne(orgId, id);

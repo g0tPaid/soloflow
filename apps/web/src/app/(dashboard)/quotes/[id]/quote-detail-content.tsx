@@ -12,6 +12,9 @@ import { useOrganizationId } from '@/hooks/use-organization';
 import { QuoteForm } from '@/components/quotes/quote-form';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
 import { DownloadQuotePdfButton } from '@/components/quotes/download-quote-pdf-button';
+import { ShareQuoteWhatsAppButton } from '@/components/quotes/share-quote-whatsapp-button';
+import { loadCustomers, loadProducts } from '@/lib/offline/catalog';
+import { offlineQueryOptions } from '@/lib/offline/network';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent } from '@/components/ui/card';
 import type { UpdateQuoteInput } from '@flowbooks/shared';
@@ -35,14 +38,16 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
 
   const { data: customersData } = useQuery({
     queryKey: ['customers', organizationId],
-    queryFn: () => api.customers.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadCustomers({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   const { data: productsData } = useQuery({
     queryKey: ['products', organizationId],
-    queryFn: () => api.products.list(session!.accessToken!, organizationId!, { limit: 100 }),
+    queryFn: () => loadProducts({ token: session!.accessToken!, organizationId: organizationId! }),
     enabled: !!session?.accessToken && !!organizationId,
+    ...offlineQueryOptions,
   });
 
   useEffect(() => {
@@ -148,6 +153,12 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
                   filename={`${quote.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
                 />
               )}
+              <ShareQuoteWhatsAppButton
+                quote={quote}
+                quoteId={id}
+                organizationId={organizationId}
+                fullWidth
+              />
               {quote.status !== 'CONVERTED' && (
                 <Button
                   type="button"

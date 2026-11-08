@@ -48,6 +48,12 @@ describe('InvoicesService findAll', () => {
       action: true,
       createdAt: true,
     });
+    expect(prisma.invoice.findMany.mock.calls[0][0].where).toEqual(
+      expect.objectContaining({
+        organizationId: 'org_1',
+        NOT: { AND: [{ vendorId: { not: null } }, { customerId: null }] },
+      }),
+    );
     expect(prisma.ensureRequiredSchema).not.toHaveBeenCalled();
   });
 

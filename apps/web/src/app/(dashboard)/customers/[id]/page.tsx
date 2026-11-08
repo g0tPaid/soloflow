@@ -30,6 +30,12 @@ export default function CustomerViewPage() {
     enabled: canFetch,
   });
 
+  const activityQuery = useQuery({
+    queryKey: ['customer-activity', organizationId, id],
+    queryFn: () => api.customers.activity(token!, organizationId!, id),
+    enabled: canFetch,
+  });
+
   if (status === 'loading' || !isReady || customerQuery.isLoading) {
     return <div className="h-40 animate-pulse rounded-lg bg-muted" />;
   }
@@ -74,6 +80,17 @@ export default function CustomerViewPage() {
       customer={customerQuery.data}
       invoices={invoicesQuery.data?.data ?? []}
       invoicesLoading={invoicesQuery.isLoading}
+      balances={activityQuery.data?.balances ?? []}
+      balancesLoading={activityQuery.isLoading}
+      balancesError={
+        activityQuery.isError
+          ? activityQuery.error instanceof Error
+            ? activityQuery.error.message
+            : 'Could not load the balance'
+          : null
+      }
+      quotes={activityQuery.data?.quotes ?? []}
+      quoteCount={activityQuery.data?.quoteCount}
       invoicesError={
         invoicesQuery.isError
           ? invoicesQuery.error instanceof Error

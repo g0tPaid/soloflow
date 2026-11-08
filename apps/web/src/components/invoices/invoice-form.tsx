@@ -30,6 +30,7 @@ import {
   NEW_DOCUMENT_DRAFT_ID,
   draftLineFromInput,
   formDraftContent,
+  formDraftFingerprint,
   lineInputFromDraft,
   type FormDraftContent,
 } from '@/lib/form-draft/model';
@@ -96,6 +97,11 @@ interface CreateInvoiceFormProps extends DraftFormExtras {
   products: Product[];
   defaultCurrency?: string;
   suggestedNumber?: string;
+  /** Prefill from a customer card. A saved draft on this device still wins. */
+  initialCustomerId?: string;
+  /** Copy of another invoice. Applied only after the page has consent to replace a draft. */
+  initialDraft?: FormDraftContent;
+  catalogTruncated?: boolean;
   onSubmit: (data: CreateInvoiceInput) => Promise<{ id: string; offlinePending?: boolean }>;
 }
 
@@ -132,10 +138,19 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraft
       items: toLineItems(invoice.items).map(draftLineFromInput),
     });
   }
+  if (props.initialDraft) {
+    return formDraftContent({
+      ...props.initialDraft,
+      number: props.initialDraft.number || props.suggestedNumber || '',
+      issueDate: props.initialDraft.issueDate || today,
+    });
+  }
+  const prefilled = props.customers.find((customer) => customer.id === props.initialCustomerId);
   return formDraftContent({
+    customerId: props.initialCustomerId ?? '',
     number: props.suggestedNumber ?? '',
     issueDate: today,
-    currency: props.defaultCurrency ?? 'INR',
+    currency: prefilled?.currency || props.defaultCurrency || 'INR',
     currencyTouched: false,
   });
 }
@@ -150,6 +165,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
       props.mode,
       props.mode === 'edit' ? props.invoice.id : props.suggestedNumber,
       props.mode === 'edit' ? props.invoice.updatedAt : props.defaultCurrency,
+      'initialCustomerId' in props ? props.initialCustomerId ?? '' : '',
+      'initialDraft' in props ? formDraftFingerprint(props.initialDraft ?? formDraftContent({})) : '',
       today,
     ],
   );
@@ -460,6 +477,7 @@ function InvoiceFormEditor(
               </select>
               <p className="text-xs text-muted-foreground">
                 For half payments use Record payment above. Marking Paid here records the remaining balance.
+                Changing the status does not delete payments. Remove a payment from the list above.
               </p>
             </div>
             <div className="space-y-2">
@@ -614,6 +632,11 @@ function InvoiceFormEditor(
                 {createForm.formState.errors.customerId.message}
               </p>
             )}
+            {props.catalogTruncated ? (
+              <p className="text-xs text-muted-foreground">
+                Showing the first 2,000 customers and products. Use search if someone is missing.
+              </p>
+            ) : null}
           </div>
 
           <CurrencySelect

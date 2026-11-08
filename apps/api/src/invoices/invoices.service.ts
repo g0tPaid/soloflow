@@ -21,6 +21,7 @@ import {
 } from '@flowbooks/shared';
 
 import { normalizePagination } from '../common/pagination';
+import { salesInvoiceWhere } from './sales-invoice-where';
 
 const fulfillmentEventsInclude = {
   orderBy: [{ createdAt: 'desc' as const }, { id: 'desc' as const }],
@@ -97,6 +98,7 @@ function invoiceReadInclude(ordered: boolean): Prisma.InvoiceInclude {
 
 const ORDER_CANCELLED_ACTION = 'invoice.order_cancelled';
 const ORDER_REOPENED_ACTION = 'invoice.order_reopened';
+const PAYMENT_VOIDED_ACTION = 'invoice.payment_voided';
 
 import { InventoryService } from '../inventory/inventory.service';
 
@@ -124,7 +126,7 @@ export class InvoicesService {
   ) {
 
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
-    const where: Prisma.InvoiceWhereInput = { organizationId };
+    const where: Prisma.InvoiceWhereInput = salesInvoiceWhere(organizationId);
 
     if (fulfillmentStatus === 'NONE') {
       where.fulfillmentStatus = null;
@@ -468,9 +470,15 @@ export class InvoicesService {
       alreadyPaid > 0.005 ? statusAfterPayment(total, alreadyPaid) : null;
     const markingPaid =
       dto.status === InvoiceStatus.PAID && existing.status !== InvoiceStatus.PAID;
-    const markingUnpaid =
-      (dto.status === InvoiceStatus.SENT || dto.status === InvoiceStatus.DRAFT) &&
-      (existing.status === InvoiceStatus.PAID || existing.status === InvoiceStatus.PARTIAL);
+    const livePayments = (existing.payments ?? []).filter((payment) => !payment.voidedAt);
+    const statusFightsLedger =
+      Boolean(dto.status) &&
+      dto.status !== existing.status &&
+      dto.status !== InvoiceStatus.PAID &&
+      dto.status !== InvoiceStatus.CANCELLED &&
+      dto.status !== InvoiceStatus.VOID &&
+      (livePayments.length > 0 || alreadyPaid > 0.005) &&
+      dto.status !== nextStatusFromLedger;
 
     const updateData: Prisma.InvoiceUpdateInput = {
       subtotal,
@@ -478,6 +486,12 @@ export class InvoicesService {
       taxAmount,
       total,
     };
+
+    if (statusFightsLedger) {
+      throw new BadRequestException(
+        'Payments are still on this invoice. Remove the mistaken payment instead of changing the status.',
+      );
+    }
 
     if (dto.status && !markingPaid) {
       updateData.status = dto.status as InvoiceStatus;
@@ -595,19 +609,6 @@ export class InvoicesService {
         where: { id },
         data: { status: InvoiceStatus.PAID },
         include: invoiceDetailInclude,
-      });
-      await this.syncSaleStock(organizationId, existing.status, updated);
-      return updated;
-    }
-
-    if (markingUnpaid) {
-      const updated = await this.prisma.$transaction(async (tx) => {
-        await tx.payment.deleteMany({ where: { invoiceId: id, organizationId } });
-        return tx.invoice.update({
-          where: { id },
-          data: { ...updateData, amountPaid: 0, status: dto.status as InvoiceStatus },
-          include: invoiceDetailInclude,
-        });
       });
       await this.syncSaleStock(organizationId, existing.status, updated);
       return updated;
@@ -753,6 +754,80 @@ export class InvoicesService {
       await this.syncSaleStock(organizationId, previousStatus, updated);
     }
 
+    return updated;
+  }
+
+  private sumActivePayments(payments: Array<{ amount: unknown; voidedAt?: Date | null }>) {
+    return toMoneyNumber(
+      payments
+        .filter((payment) => !payment.voidedAt)
+        .reduce((sum, payment) => sum + toMoneyNumber(payment.amount as number), 0),
+    );
+  }
+
+  private statusForLedger(current: InvoiceStatus, total: number, nextPaid: number): InvoiceStatus {
+    if (current === InvoiceStatus.CANCELLED || current === InvoiceStatus.VOID) return current;
+    if (nextPaid <= 0.005) {
+      if (current === InvoiceStatus.PAID || current === InvoiceStatus.PARTIAL) return InvoiceStatus.SENT;
+      return current;
+    }
+    return statusAfterPayment(total, nextPaid) as InvoiceStatus;
+  }
+
+  /**
+   * Keep the payment row and mark it voided. amountPaid and status are
+   * recomputed from the payments that are still active. Other payments stay.
+   */
+  async voidPayment(organizationId: string, invoiceId: string, paymentId: string) {
+    const invoice = await this.findOne(organizationId, invoiceId);
+    if (invoice.status === InvoiceStatus.VOID) {
+      throw new BadRequestException('A void invoice cannot change payments this way');
+    }
+
+    const payment = await this.prisma.payment.findFirst({
+      where: { id: paymentId, invoiceId, organizationId },
+    });
+    if (!payment) throw new NotFoundException('Payment not found');
+    if (payment.voidedAt) throw new BadRequestException('This payment is already removed');
+
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.payment.update({
+        where: { id: payment.id },
+        data: { voidedAt: new Date() },
+      });
+      const remaining = await tx.payment.findMany({
+        where: { invoiceId, organizationId, voidedAt: null },
+      });
+      const nextPaid = this.sumActivePayments(remaining);
+      const nextStatus = this.statusForLedger(invoice.status, toMoneyNumber(invoice.total), nextPaid);
+      const saved = await tx.invoice.update({
+        where: { id: invoiceId },
+        data: { amountPaid: nextPaid, status: nextStatus },
+        include: invoiceDetailInclude,
+      });
+      await tx.auditLog.create({
+        data: {
+          organizationId,
+          action: PAYMENT_VOIDED_ACTION,
+          entityType: 'invoice',
+          entityId: invoiceId,
+          metadata: {
+            paymentId: payment.id,
+            amount: toMoneyNumber(payment.amount),
+            method: payment.method,
+            previousAmountPaid: toMoneyNumber(invoice.amountPaid),
+            nextAmountPaid: nextPaid,
+            previousStatus: invoice.status,
+            nextStatus,
+          },
+        },
+      });
+      return saved;
+    });
+
+    if (updated.status !== invoice.status) {
+      await this.syncSaleStock(organizationId, invoice.status, updated);
+    }
     return updated;
   }
 

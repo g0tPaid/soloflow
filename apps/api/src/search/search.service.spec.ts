@@ -60,6 +60,7 @@ describe('SearchService', () => {
       expect.objectContaining({
         where: {
           organizationId: 'org-1',
+          NOT: { AND: [{ vendorId: { not: null } }, { customerId: null }] },
           OR: [
             { number: { contains: 'Acme', mode: 'insensitive' } },
             { customer: { name: { contains: 'Acme', mode: 'insensitive' } } },

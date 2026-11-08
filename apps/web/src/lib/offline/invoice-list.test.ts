@@ -65,7 +65,7 @@ describe('mergeInvoiceList', () => {
 });
 
 describe('cacheServerInvoices', () => {
-  it('replaces synced invoices and keeps unsynced ones', async () => {
+  it('keeps older synced invoices and drops only the pending row that just synced', async () => {
     const store = new MemoryOfflineStorage();
     await store.putInvoice(
       stored({
@@ -83,7 +83,7 @@ describe('cacheServerInvoices', () => {
     ]);
 
     const rows = await store.listInvoices('org_1');
-    expect(rows.map((row) => row.localId).sort()).toEqual(['srv-2', 'still-pending']);
+    expect(rows.map((row) => row.localId).sort()).toEqual(['old-server', 'srv-2', 'still-pending']);
     expect(rows.find((row) => row.localId === 'still-pending')?.syncState).toBe('pending');
     expect(rows.find((row) => row.localId === 'srv-2')?.syncState).toBe('synced');
   });
@@ -138,5 +138,37 @@ describe('cacheServerInvoices', () => {
     expect(saved?.invoice.items).toEqual([
       expect.objectContaining({ description: 'Widget', quantity: 2, amount: 30 }),
     ]);
+  });
+
+  it('does not drop a cached invoice that is absent from the current page', async () => {
+    const store = new MemoryOfflineStorage();
+    await store.putInvoice(
+      stored({
+        localId: 'older',
+        clientRequestId: 'older',
+        syncState: 'synced',
+        invoice: invoice({
+          id: 'older',
+          number: 'INV-00001',
+          items: [
+            {
+              id: 'line-old',
+              description: 'Older widget',
+              name: 'Older',
+              quantity: 1,
+              unitPrice: 8,
+              taxRate: 0,
+              amount: 8,
+            },
+          ],
+        }),
+      }),
+    );
+
+    await cacheServerInvoices(store, 'org_1', [invoice({ id: 'newer', number: 'INV-00099' })]);
+
+    const older = await store.getInvoice('org_1', 'older');
+    expect(older?.invoice.items?.[0]?.description).toBe('Older widget');
+    expect(await store.getInvoice('org_1', 'newer')).not.toBeNull();
   });
 });

@@ -67,6 +67,16 @@ export class InvoicesController {
     return this.invoicesService.reopenOrder(orgId, id);
   }
 
+  @Post(':id/payments/:paymentId/void')
+  @ApiOperation({ summary: 'Void one recorded payment and recompute the invoice balance' })
+  voidPayment(
+    @Headers(TENANT_HEADER) orgId: string,
+    @Param('id') id: string,
+    @Param('paymentId') paymentId: string,
+  ) {
+    return this.invoicesService.voidPayment(orgId, id, paymentId);
+  }
+
   @Post(':id/payments')
   @ApiOperation({ summary: 'Record a customer payment against an invoice (full or partial)' })
   recordPayment(

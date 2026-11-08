@@ -7,6 +7,7 @@ import {
   workspaceSearchSubtitle,
 } from '@flowbooks/shared';
 import { PrismaService } from '../prisma/prisma.service';
+import { salesInvoiceWhere } from '../invoices/sales-invoice-where';
 
 function contains(query: string): Prisma.StringFilter {
   return { contains: query, mode: 'insensitive' };
@@ -35,7 +36,7 @@ export class SearchService {
       }),
       this.prisma.invoice.findMany({
         where: {
-          organizationId,
+          ...salesInvoiceWhere(organizationId),
           OR: [
             { number: contains(query) },
             { customer: { name: contains(query) } },

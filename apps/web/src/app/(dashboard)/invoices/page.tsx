@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
 import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
 import { loadInvoiceList } from '@/lib/offline/invoice-list';
@@ -32,6 +32,7 @@ import {
   type InvoiceListView,
 } from '@/components/invoices/invoice-view-toggle';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
+import { UnsavedDraftBanner } from '@/components/invoices/unsaved-draft-banner';
 import {
   invoiceAmountPaid,
   invoiceBalanceDue,
@@ -173,17 +174,28 @@ export default function InvoicesPage() {
     writeInvoiceListView(window.localStorage, next);
   }
 
-  const { data, isLoading, error } = useQuery({
+  const {
+    data,
+    isLoading,
+    error,
+    hasNextPage,
+    isFetchingNextPage,
+    fetchNextPage,
+  } = useInfiniteQuery({
     queryKey: ['invoices', organizationId, listFilter],
-    queryFn: () =>
+    queryFn: ({ pageParam }) =>
       loadInvoiceList({
         token: session!.accessToken!,
         organizationId: organizationId!,
         params: {
+          page: pageParam,
           limit: 50,
           listFilter: listFilter ?? undefined,
         },
       }),
+    initialPageParam: 1,
+    getNextPageParam: (lastPage) =>
+      lastPage.pagination.page < lastPage.pagination.totalPages ? lastPage.pagination.page + 1 : undefined,
     enabled: !!session?.accessToken && !!organizationId,
     staleTime: 0,
     ...offlineQueryOptions,
@@ -205,13 +217,22 @@ export default function InvoicesPage() {
       if (fulfillmentStatus === undefined || !organizationId) return;
       await queryClient.cancelQueries({ queryKey: ['invoices', organizationId] });
       const previous = queryClient.getQueriesData({ queryKey: ['invoices', organizationId] });
-      queryClient.setQueriesData({ queryKey: ['invoices', organizationId] }, (current) =>
-        applyFulfillmentStatusToPage(
+      queryClient.setQueriesData({ queryKey: ['invoices', organizationId] }, (current) => {
+        if (current && typeof current === 'object' && 'pages' in current) {
+          const infinite = current as { pages: Array<{ data: Invoice[] }> };
+          return {
+            ...infinite,
+            pages: infinite.pages.map(
+              (page) => applyFulfillmentStatusToPage(page, id, fulfillmentStatus) ?? page,
+            ),
+          };
+        }
+        return applyFulfillmentStatusToPage(
           current as { data: Invoice[] } | undefined,
           id,
           fulfillmentStatus,
-        ),
-      );
+        );
+      });
       return { previous };
     },
     onError: (_error, _variables, context) => {
@@ -224,7 +245,8 @@ export default function InvoicesPage() {
     },
   });
 
-  const invoices = data?.data ?? [];
+  const invoices = data?.pages.flatMap((page) => page.data) ?? [];
+  const invoiceTotal = data?.pages[0]?.pagination.total ?? invoices.length;
 
   async function refreshInvoiceQueries() {
     await Promise.all([
@@ -291,6 +313,16 @@ export default function InvoicesPage() {
           </div>
         )}
       </div>
+
+      {session?.user?.id && organizationId ? (
+        <UnsavedDraftBanner kind="invoice" userId={session.user.id} organizationId={organizationId} />
+      ) : null}
+
+      {invoices.length > 0 ? (
+        <p className="text-sm text-muted-foreground">
+          Showing {invoices.length} of {invoiceTotal}
+        </p>
+      ) : null}
 
       {isReady && !organizationId && (
         <Card className="border-dashed">
@@ -418,6 +450,9 @@ export default function InvoicesPage() {
                             Edit
                           </Link>
                         </Button>
+                        <Button asChild size="sm" variant="outline">
+                          <Link href={`/invoices/new?from=${invoice.id}`}>Use again</Link>
+                        </Button>
                         {canRecordPayment && (
                           <Button
                             type="button"
@@ -500,6 +535,9 @@ export default function InvoicesPage() {
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Link>
+                      </Button>
+                      <Button asChild size="sm" variant="outline" className="flex-1 sm:flex-none">
+                        <Link href={`/invoices/new?from=${invoice.id}`}>Use again</Link>
                       </Button>
                       {canRecordPayment && (
                         <Button
@@ -619,6 +657,17 @@ export default function InvoicesPage() {
           })}
         </div>
       )}
+
+      {hasNextPage ? (
+        <Button
+          type="button"
+          variant="outline"
+          disabled={isFetchingNextPage}
+          onClick={() => void fetchNextPage()}
+        >
+          {isFetchingNextPage ? 'Loading…' : 'Load more'}
+        </Button>
+      ) : null}
 
       {paymentInvoice && organizationId && (
         <RecordPaymentDialog
