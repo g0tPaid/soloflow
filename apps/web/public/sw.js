@@ -378,7 +378,7 @@ async function storeShell(request, response) {
         await cache.put(path, new Response(html, { status: 200, headers: shellHeaders(response, path) }));
       }),
     );
-    void precacheStatic(html);
+    await precacheStatic(html);
   } catch {
     // Keeping the live response matters more than this cache write.
   }
@@ -427,7 +427,7 @@ async function offlineNavigation(path) {
   );
 }
 
-async function handleShell(request) {
+async function handleShell(request, event) {
   const path = new URL(request.url).pathname || '/';
   const ownerId = await currentOwnerId().catch(() => '');
   const decision = core.shellStoreDecision(path, ownerId);
@@ -444,7 +444,7 @@ async function handleShell(request) {
 
   const fromNetwork = async () => {
     const response = await fetch(request);
-    await storeShell(request, response);
+    event.waitUntil(storeShell(request, response));
     if (request.mode === 'navigate' && response.redirected && response.ok) {
       const finalUrl = new URL(response.url);
       if (finalUrl.origin === new URL(request.url).origin) {
@@ -474,6 +474,7 @@ async function handleShell(request) {
       settled = true;
       return response;
     });
+  event.waitUntil(network.then(() => undefined));
   const timeout = new Promise((resolve) => {
     setTimeout(() => {
       if (!settled) resolve(cached);
@@ -548,6 +549,6 @@ self.addEventListener('fetch', (event) => {
   }
 
   if (core.isShellRequest(request)) {
-    event.respondWith(handleShell(request));
+    event.respondWith(handleShell(request, event));
   }
 });
