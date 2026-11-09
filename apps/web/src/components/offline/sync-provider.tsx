@@ -109,9 +109,11 @@ export function SyncProvider({ children }: { children: ReactNode }) {
       queryKey: ['products', organizationId],
       queryFn: () => loadProducts({ token, organizationId }),
     });
-    void queryClient.prefetchQuery({
+    void queryClient.prefetchInfiniteQuery({
       queryKey: ['invoices', organizationId, null],
-      queryFn: () => loadInvoiceList({ token, organizationId, params: { limit: 50 } }),
+      queryFn: ({ pageParam }) =>
+        loadInvoiceList({ token, organizationId, params: { page: pageParam, limit: 50 } }),
+      initialPageParam: 1,
       staleTime: 0,
       ...offlineQueryOptions,
     });
