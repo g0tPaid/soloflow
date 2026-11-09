@@ -268,10 +268,11 @@ async function currentOwnerId() {
 }
 
 async function networkFirstSession(request) {
-  const cache = await caches.open(SESSION_CACHE);
+  const cache = await caches.open(SESSION_CACHE).catch(() => null);
   try {
     const response = await fetch(request);
-    if (response.ok) {
+    if (response.ok && cache) {
+      try {
       const data = await response.clone().json().catch(() => null);
       const ownerId = core.sessionOwnerId(data);
       if (core.sessionIsUsable(data, Date.now()) && ownerId) {
@@ -290,14 +291,17 @@ async function networkFirstSession(request) {
       } else {
         await clearUserShell();
       }
+      } catch {
+        // A broken offline cache must not discard a live session response.
+      }
     }
     return response;
   } catch {
-    const cached = await cache.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true });
+    const cached = await cache?.match('/api/auth/session', { ignoreSearch: true, ignoreVary: true }).catch(() => undefined);
     if (cached) {
       const data = await cached.clone().json().catch(() => null);
       if (!core.sessionIsUsable(data, Date.now())) {
-        await clearUserShell();
+        await clearUserShell().catch(() => undefined);
         return new Response('null', {
           status: 200,
           headers: { 'Content-Type': 'application/json' },
@@ -365,7 +369,7 @@ async function storeShell(request, response) {
     if (!paths.length) return;
     const html = await response.clone().text();
     if (!/<html[\s>]/i.test(html) && !/<!doctype html/i.test(html)) return;
-    const ownerId = await currentOwnerId();
+    const ownerId = await currentOwnerId().catch(() => '');
     await Promise.all(
       paths.map(async (path) => {
         const decision = core.shellStoreDecision(path, ownerId);
@@ -382,7 +386,7 @@ async function storeShell(request, response) {
 
 async function matchShell(cache, path) {
   if (!cache || !path) return undefined;
-  return cache.match(path, { ignoreSearch: true, ignoreVary: true });
+  return cache.match(path, { ignoreSearch: true, ignoreVary: true }).catch(() => undefined);
 }
 
 async function allowedShellPaths(ownerId) {
@@ -406,7 +410,7 @@ async function offlineNavigation(path) {
   if (action.type === 'document' && action.path) {
     const decision = core.shellStoreDecision(action.path, ownerId);
     const cache = decision.store ? await cacheForDecision(decision.scope === 'user' ? decision : { scope: 'public' }) : null;
-    const publicCache = await caches.open(SHELL_CACHE);
+    const publicCache = await caches.open(SHELL_CACHE).catch(() => null);
     const hit =
       (decision.scope === 'user' ? await matchShell(cache, action.path) : await matchShell(publicCache, action.path)) ||
       (action.path === '/offline.html' ? await matchShell(publicCache, '/offline.html') : undefined);
@@ -429,7 +433,7 @@ async function handleShell(request) {
   const decision = core.shellStoreDecision(path, ownerId);
   const publicCache = await caches.open(SHELL_CACHE);
   const userCache =
-    decision.scope === 'user' ? await caches.open(core.userShellCacheName(ownerId)) : null;
+    decision.scope === 'user' ? await caches.open(core.userShellCacheName(ownerId)).catch(() => null) : null;
   const cached =
     decision.scope === 'user'
       ? await matchShell(userCache, path)
@@ -498,7 +502,7 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(request).then(async (response) => {
         if (url.pathname === '/api/auth/signout' && response.ok) {
-          await clearUserShell();
+          await clearUserShell().catch(() => undefined);
         }
         return response;
       }),
@@ -517,12 +521,12 @@ self.addEventListener('fetch', (event) => {
 
   if (isStatic) {
     event.respondWith(
-      caches.open(SHELL_CACHE).then(async (cache) => {
-        const cached = await cache.match(request, { ignoreSearch: true, ignoreVary: true });
+      caches.open(SHELL_CACHE).catch(() => null).then(async (cache) => {
+        const cached = await cache?.match(request, { ignoreSearch: true, ignoreVary: true }).catch(() => undefined);
         if (cached) return cached;
         try {
-          const response = await fetch(request);
-          if (response.ok) {
+          const response = await fetch(request, { cache: cached ? 'default' : 'reload' });
+          if (response.ok && cache) {
             try {
               const headers = new Headers(response.headers);
               headers.delete('Vary');
