@@ -273,24 +273,24 @@ async function networkFirstSession(request) {
     const response = await fetch(request);
     if (response.ok && cache) {
       try {
-      const data = await response.clone().json().catch(() => null);
-      const ownerId = core.sessionOwnerId(data);
-      if (core.sessionIsUsable(data, Date.now()) && ownerId) {
-        const previous = core.sessionOwnerId(await readCachedSession());
-        if (previous && previous !== ownerId) await clearOtherUserShells(ownerId);
-        else await clearOtherUserShells(ownerId);
-        await cache
-          .put(
-            '/api/auth/session',
-            new Response(JSON.stringify(data), {
-              status: 200,
-              headers: { 'Content-Type': 'application/json' },
-            }),
-          )
-          .catch(() => undefined);
-      } else {
-        await clearUserShell();
-      }
+        const data = await response.clone().json().catch(() => null);
+        const ownerId = core.sessionOwnerId(data);
+        if (core.sessionIsUsable(data, Date.now()) && ownerId) {
+          const previous = core.sessionOwnerId(await readCachedSession());
+          if (previous && previous !== ownerId) await clearOtherUserShells(ownerId);
+          else await clearOtherUserShells(ownerId);
+          await cache
+            .put(
+              '/api/auth/session',
+              new Response(JSON.stringify(data), {
+                status: 200,
+                headers: { 'Content-Type': 'application/json' },
+              }),
+            )
+            .catch(() => undefined);
+        } else {
+          await clearUserShell();
+        }
       } catch {
         // A broken offline cache must not discard a live session response.
       }
@@ -402,7 +402,7 @@ async function allowedShellPaths(ownerId) {
 }
 
 async function offlineNavigation(path) {
-  const ownerId = await currentOwnerId();
+  const ownerId = await currentOwnerId().catch(() => '');
   const action = core.offlineShellAction(path, await allowedShellPaths(ownerId));
   if (action.type === 'redirect' && action.path) {
     return Response.redirect(new URL(action.path, self.location.origin).href, 302);
@@ -429,9 +429,9 @@ async function offlineNavigation(path) {
 
 async function handleShell(request) {
   const path = new URL(request.url).pathname || '/';
-  const ownerId = await currentOwnerId();
+  const ownerId = await currentOwnerId().catch(() => '');
   const decision = core.shellStoreDecision(path, ownerId);
-  const publicCache = await caches.open(SHELL_CACHE);
+  const publicCache = await caches.open(SHELL_CACHE).catch(() => null);
   const userCache =
     decision.scope === 'user' ? await caches.open(core.userShellCacheName(ownerId)).catch(() => null) : null;
   const cached =
@@ -525,7 +525,7 @@ self.addEventListener('fetch', (event) => {
         const cached = await cache?.match(request, { ignoreSearch: true, ignoreVary: true }).catch(() => undefined);
         if (cached) return cached;
         try {
-          const response = await fetch(request, { cache: cached ? 'default' : 'reload' });
+          const response = await fetch(request, { cache: 'reload' });
           if (response.ok && cache) {
             try {
               const headers = new Headers(response.headers);
