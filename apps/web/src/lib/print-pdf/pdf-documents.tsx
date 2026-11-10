@@ -326,12 +326,12 @@ function resolveImg(url: string | null | undefined, baseUrl: string) {
   return resolveImageSrcForPrint(url, baseUrl);
 }
 
-function TopWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
+function TopWave({ colors = DEFAULT_INVOICE_COLORS, compact = false }: { colors?: InvoiceAccentPalette; compact?: boolean }) {
   return (
     <Svg
       viewBox="0 0 1440 80"
       preserveAspectRatio="none"
-      style={{ width: '100%', height: 28 }}
+      style={{ width: '100%', height: compact ? 17 : 28 }}
     >
       <Path
         fill={colors.accent}
@@ -346,12 +346,12 @@ function TopWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPa
   );
 }
 
-function SectionWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
+function SectionWave({ colors = DEFAULT_INVOICE_COLORS, compact = false }: { colors?: InvoiceAccentPalette; compact?: boolean }) {
   return (
     <Svg
       viewBox="0 0 1440 24"
       preserveAspectRatio="none"
-      style={{ width: '100%', height: 10, marginVertical: 6 }}
+      style={{ width: '100%', height: compact ? 6 : 10, marginVertical: compact ? 3 : 6 }}
     >
       <Path
         fill={colors.light}
@@ -361,12 +361,12 @@ function SectionWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAcce
   );
 }
 
-function BottomWave({ colors = DEFAULT_INVOICE_COLORS }: { colors?: InvoiceAccentPalette }) {
+function BottomWave({ colors = DEFAULT_INVOICE_COLORS, compact = false }: { colors?: InvoiceAccentPalette; compact?: boolean }) {
   return (
     <Svg
       viewBox="0 0 1440 100"
       preserveAspectRatio="none"
-      style={{ width: '100%', height: 36 }}
+      style={{ width: '100%', height: compact ? 22 : 36 }}
     >
       <Path
         fill={colors.dark}
@@ -422,15 +422,17 @@ function ContinuedPageHeader({
 function PageFooter({
   contacts,
   colors = DEFAULT_INVOICE_COLORS,
+  compact = false,
 }: {
   contacts: string[];
   colors?: InvoiceAccentPalette;
+  compact?: boolean;
 }) {
   const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
 
   return (
-    <View style={styles.fixedFooter} fixed>
-      <BottomWave colors={colors} />
+    <View style={[styles.fixedFooter, compact ? { height: 44 } : {}]} fixed>
+      <BottomWave colors={colors} compact={compact} />
       <View style={[styles.footerBar, { backgroundColor: colors.dark }]}>
         <Text style={styles.footerText}>{line || ' '}</Text>
       </View>
@@ -452,10 +454,12 @@ function CompanyHeader({
   org,
   baseUrl,
   accent = RED,
+  compact = false,
 }: {
   org: Organization;
   baseUrl: string;
   accent?: string;
+  compact?: boolean;
 }) {
   const branding = parseBranding(org.settings?.branding);
   const logo = shouldShowInvoiceLogo(branding, org.logo)
@@ -467,9 +471,9 @@ function CompanyHeader({
   return (
     <View style={styles.center}>
       {logo ? (
-        <Image src={logo} style={styles.logo} />
+        <Image src={logo} style={[styles.logo, compact ? { width: 49, height: 49, marginBottom: 3 } : {}]} />
       ) : (
-        <Text style={[styles.logoFallback, { backgroundColor: accent }]}>{initial}</Text>
+        <Text style={[styles.logoFallback, { backgroundColor: accent }, compact ? { width: 42, height: 42, fontSize: 19, paddingTop: 8, marginBottom: 3 } : {}]}>{initial}</Text>
       )}
       <Text style={styles.brandName}>{org.name}</Text>
       {branding.tagline ? (
@@ -593,24 +597,24 @@ function InvoicePdfBody({
   const footerContacts = [branding.website, branding.phone, branding.email].filter(Boolean);
 
   return (
-    <Page size="A4" style={styles.page} wrap>
+    <Page size="A4" style={[styles.page, photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-      <TopWave colors={colors} />
-      <View style={styles.pagePad}>
-        <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-        <SectionWave colors={colors} />
+      <TopWave colors={colors} compact={photoLayout} />
+      <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
+        <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact={photoLayout} />
+        <SectionWave colors={colors} compact={photoLayout} />
 
         <View style={styles.twoCol}>
           <View style={styles.colHalf}>
             <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }]}>
-              <Text style={[styles.billToInitial, { backgroundColor: colors.accent }]}>
+              <Text style={[styles.billToInitial, { backgroundColor: colors.accent }, photoLayout ? { width: 22, height: 22, paddingTop: 4, marginBottom: 3 } : {}]}>
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
               </Text>
               <Text style={styles.billToName}>{customer?.name}</Text>
               {customer?.taxId?.trim() ? (
                 <Text style={styles.billToTrn}>TRN : {customer.taxId.trim()}</Text>
               ) : null}
-              <Text style={styles.billToThanks}>Thank you for being a valued partner</Text>
+              <Text style={[styles.billToThanks, photoLayout ? { marginBottom: 2 } : {}]}>Thank you for being a valued partner</Text>
               {customerAddress.length > 0 ? (
                 <Text style={[styles.muted, { textAlign: 'center', marginBottom: 3 }]}>
                   {customerAddress.join(' · ')}
@@ -624,11 +628,12 @@ function InvoicePdfBody({
             </View>
           </View>
           <View style={styles.colHalf}>
-            <Text style={[styles.invoiceTitle, { color: colors.accent }]}>{documentLabel}</Text>
+            <Text style={[styles.invoiceTitle, { color: colors.accent }, photoLayout ? { fontSize: 21 } : {}]}>{documentLabel}</Text>
             <View
               style={[
                 styles.metaBox,
                 isInvoice ? { paddingVertical: 6 } : {},
+                photoLayout ? { marginTop: 3, paddingVertical: 4 } : {},
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
@@ -703,28 +708,30 @@ function InvoicePdfBody({
         )}
 
         {invoice.notes ? (
-          <View style={{ marginTop: 8, marginBottom: 4 }} wrap={false}>
+          <View style={{ marginTop: photoLayout ? 3 : 8, marginBottom: 4 }} wrap={false}>
             <Text style={[styles.sectionLabel, { color: colors.accent }]}>Notes</Text>
-            <View style={styles.notesBox}>
+            <View style={[styles.notesBox, photoLayout ? { padding: 5 } : {}]}>
               <Text>{invoice.notes}</Text>
             </View>
           </View>
         ) : null}
 
         {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
-        <View style={[styles.twoCol, { marginTop: 6, marginBottom: 4, alignItems: 'stretch' }]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}]} wrap={false}>
           {photoLayout ? (
-            <View style={[styles.colHalf, styles.signatureBox, { flexDirection: 'row', alignItems: 'center' }]}>
+            <>
               {signatureSrc ? (
-                <View style={{ flex: 1, alignItems: 'center' }}>
-                  <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center' }]}>
+                <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 5 }]}>
+                  <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center', marginBottom: 3 }]}>
                     Authorized signature
                   </Text>
-                  <Image src={signatureSrc} style={{ width: 58, height: 58, objectFit: 'contain' }} cache={false} />
+                  <Image src={signatureSrc} style={{ width: 48, height: 48, objectFit: 'contain' }} cache={false} />
                 </View>
               ) : null}
-              <InvoiceTrackingQr accent={colors.dark} />
-            </View>
+              <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }]}>
+                <InvoiceTrackingQr accent={colors.dark} />
+              </View>
+            </>
           ) : (
             <View style={styles.colHalf}>
               <View style={styles.signatureBox}>
@@ -739,8 +746,8 @@ function InvoicePdfBody({
               </View>
             </View>
           )}
-          <View style={styles.colHalf}>
-            <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}]}>
+          <View style={[styles.colHalf, photoLayout ? { flex: 1.65 } : {}]}>
+            <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}, photoLayout ? { flex: 1, padding: 5 } : {}]}>
               <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                 <Text style={styles.muted}>Subtotal</Text>
                 <Text>{money(invoice.subtotal, currency)}</Text>
@@ -818,7 +825,7 @@ function InvoicePdfBody({
         ) : null}
       </View>
 
-      <PageFooter contacts={footerContacts as string[]} colors={colors} />
+      <PageFooter contacts={footerContacts as string[]} colors={colors} compact={photoLayout} />
       <PageNumber />
     </Page>
   );
