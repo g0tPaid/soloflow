@@ -53,7 +53,7 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors, branded = false }: 
     <>
       {rows.map((row, index) => (
         <View key={index} wrap={false}>
-          {index === 0 ? <Text style={[styles.heading, { color: colors.dark }, branded ? { color: '#ffffff', backgroundColor: colors.dark, marginBottom: 5, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 4 } : {}]}>{branded ? 'PRODUCTS' : 'ITEMS'}</Text> : null}
+          {index === 0 ? <Text style={[styles.heading, { color: colors.dark }, branded ? { color: '#ffffff', backgroundColor: '#d6001c', marginBottom: 5, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 4 } : {}]}>{branded ? 'PRODUCTS' : 'ITEMS'}</Text> : null}
           <View style={styles.row}>
             {row.map((item, column) => {
               const { name, description } = parseStoredLineItem(item);
