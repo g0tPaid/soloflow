@@ -29,6 +29,7 @@ import {
 } from '@flowbooks/shared';
 
 import { InvoiceBarcode } from './invoice-barcode';
+import { SourcingBrand } from './sourcing-brand';
 import { InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
 const RED = '#DC2626';
@@ -491,10 +492,10 @@ function CompanyHeader({
   );
   return (
     <View style={barcode ? { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 } : styles.center}>
-      {logo ? (
-        <Image src={logo} style={[styles.logo, barcode ? { width: 95, height: 66, marginBottom: 0 } : compact ? { width: 49, height: 49, marginBottom: 3 } : {}]} />
+      {barcode ? <SourcingBrand /> : logo ? (
+        <Image src={logo} style={[styles.logo, compact ? { width: 49, height: 49, marginBottom: 3 } : {}]} />
       ) : (
-        <Text style={[styles.logoFallback, { backgroundColor: accent }, barcode ? { width: 66, height: 66, fontSize: 27, paddingTop: 15, marginBottom: 0 } : compact ? { width: 42, height: 42, fontSize: 19, paddingTop: 8, marginBottom: 3 } : {}]}>{initial}</Text>
+        <Text style={[styles.logoFallback, { backgroundColor: accent }, compact ? { width: 42, height: 42, fontSize: 19, paddingTop: 8, marginBottom: 3 } : {}]}>{initial}</Text>
       )}
       {barcode ? (
         <View style={{ flex: 1, alignItems: 'flex-end', textAlign: 'right' }}>
@@ -618,7 +619,7 @@ function InvoicePdfBody({
       {barcodeLayout ? <View style={{ height: 7, backgroundColor: colors.dark }} /> : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
         {barcodeLayout ? (
-          <View style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
+          <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
             <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact barcode={{ number: invoice.number, id: invoice.id }} />
           </View>
         ) : (
