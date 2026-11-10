@@ -652,7 +652,16 @@ function InvoicePdfBody({
                   {customerAddress.join(' · ')}
                 </Text>
               ) : null}
-              {(customer?.email || customer?.phone) && (
+              {barcodeLayout ? (
+                <>
+                  {customer?.phone ? (
+                    <Text style={[styles.muted, { alignSelf: 'stretch', textAlign: 'center', marginTop: 2 }]}>
+                      {customer.phone}
+                    </Text>
+                  ) : null}
+                  {customer?.email ? <Text style={styles.muted}>{customer.email}</Text> : null}
+                </>
+              ) : (customer?.email || customer?.phone) && (
                 <Text style={[styles.muted, { textAlign: 'center' }]}>
                   {[customer?.phone, customer?.email].filter(Boolean).join(' · ')}
                 </Text>
@@ -752,7 +761,7 @@ function InvoicePdfBody({
         ) : null}
 
         {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
-        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}, barcodeLayout ? { borderTopWidth: 1, borderTopColor: '#d6001c', paddingTop: 5 } : {}]} wrap={false}>
           {photoLayout ? (
             <>
               {signatureSrc ? (
@@ -760,7 +769,7 @@ function InvoicePdfBody({
                   <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center', marginBottom: 3 }]}>
                     Authorized signature
                   </Text>
-                  <Image src={signatureSrc} style={{ width: 66, height: 66, objectFit: 'contain' }} cache={false} />
+                  <Image src={signatureSrc} style={{ width: 74, height: 74, objectFit: 'contain' }} cache={false} />
                 </View>
               ) : null}
               <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }, barcodeLayout ? { borderWidth: 0, backgroundColor: colors.softBg } : {}]}>
