@@ -19,37 +19,39 @@ export function DownloadInvoicePdfButton({
   size?: 'default' | 'lg';
 }) {
   const { organization } = useOrganizationId();
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState<1 | 2 | null>(null);
   const [error, setError] = useState('');
   const printUrl = organizationId
     ? `/print/invoices/${invoiceId}?org=${encodeURIComponent(organizationId)}`
     : `/print/invoices/${invoiceId}`;
 
-  async function handleDownload() {
+  async function handleDownload(version: 1 | 2) {
     if (!organizationId || busy) {
-      if (!organizationId) window.location.href = printUrl;
+      if (!organizationId && version === 1) window.location.href = printUrl;
+      if (!organizationId && version === 2) setError('Select an organization to download this invoice.');
       return;
     }
-    setBusy(true);
+    setBusy(version);
     setError('');
     try {
       const file = await resolveInvoicePdfFile({
         documentId: invoiceId,
         organizationId,
         organization,
-        filename,
+        filename: version === 2 ? filename.replace(/(?:\.pdf)?$/i, '-v2.pdf') : filename,
+        version: version === 2 ? 2 : undefined,
       });
       const saved = await downloadPdfToDevice(file);
       if (saved === 'cancelled') setError('');
     } catch (err) {
       const offline = typeof navigator !== 'undefined' && navigator.onLine === false;
-      if (!offline) {
+      if (!offline && version === 1) {
         window.location.href = printUrl;
         return;
       }
       setError(err instanceof Error ? err.message : 'Could not create the PDF on this device.');
     } finally {
-      setBusy(false);
+      setBusy(null);
     }
   }
 
@@ -60,11 +62,22 @@ export function DownloadInvoicePdfButton({
         variant="default"
         size={size}
         className="gap-2"
-        disabled={busy}
-        onClick={() => void handleDownload()}
+        disabled={busy !== null}
+        onClick={() => void handleDownload(1)}
       >
-        {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        {busy ? 'Preparing PDF…' : 'Download PDF'}
+        {busy === 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        {busy === 1 ? 'Preparing PDF…' : 'Download PDF (Version 1)'}
+      </Button>
+      <Button
+        type="button"
+        variant="outline"
+        size={size}
+        className="gap-2"
+        disabled={busy !== null}
+        onClick={() => void handleDownload(2)}
+      >
+        {busy === 2 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+        {busy === 2 ? 'Preparing PDF…' : 'Invoice Version 2'}
       </Button>
       {error ? <p className="text-right text-[11px] text-red-600">{error}</p> : null}
       <p className="text-right text-[11px] text-muted-foreground">

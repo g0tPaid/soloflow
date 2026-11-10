@@ -27,6 +27,8 @@ import {
   paymentMethodLabel,
 } from '@flowbooks/shared';
 
+import { InvoiceV2Pdf } from './invoice-v2-pdf';
+
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
 const GREEN = '#059669';
@@ -1150,12 +1152,16 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: 2) {
   switch (document.type) {
     case 'invoices':
       return (
         <Document>
-          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+          {version === 2 ? (
+            <InvoiceV2Pdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+          ) : (
+            <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+          )}
         </Document>
       );
     case 'quotes':

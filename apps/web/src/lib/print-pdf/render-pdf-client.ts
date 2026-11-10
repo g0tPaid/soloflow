@@ -14,6 +14,7 @@ export async function renderInvoicePdfFile(
   org: Organization,
   filename: string,
   baseUrl?: string,
+  version?: 2,
 ): Promise<File> {
   const origin = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '');
   const prepared = await embedInvoiceImages(invoice, org, origin);
@@ -21,6 +22,7 @@ export async function renderInvoicePdfFile(
     buildPdfDocument(
       { type: 'invoices', invoice: prepared.invoice, org: prepared.org },
       origin,
+      version,
     ),
   ).toBlob();
   const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
