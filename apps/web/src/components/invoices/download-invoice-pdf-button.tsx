@@ -21,7 +21,7 @@ export function DownloadInvoicePdfButton({
   size?: 'default' | 'lg';
 }) {
   const preferredVersion = invoiceVersionForPath(usePathname()) ?? 1;
-  const versions = [preferredVersion, ...([1, 2, 3] as const).filter((version) => version !== preferredVersion)];
+  const versions: (1 | InvoicePdfVersion)[] = [preferredVersion, ...([1, 2, 3] as const).filter((version) => version !== preferredVersion)];
   const { organization } = useOrganizationId();
   const [busy, setBusy] = useState<1 | InvoicePdfVersion | null>(null);
   const [error, setError] = useState('');
