@@ -567,6 +567,7 @@ function InvoicePdfBody({
   dueDateLabel?: string;
 }) {
   const currency = invoice.currency;
+  const isInvoice = documentLabel === 'INVOICE';
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const colors = invoiceAccentPalette(branding.invoiceAccent);
@@ -742,9 +743,23 @@ function InvoicePdfBody({
                   <Text>{money(taxAmount, currency)}</Text>
                 </View>
               ) : null}
+              {isInvoice ? (
+                <>
+                  <View style={styles.totalLine}>
+                    <Text style={styles.muted}>Invoice total</Text>
+                    <Text>{money(invoice.total, currency)}</Text>
+                  </View>
+                  <View style={styles.totalLine}>
+                    <Text style={styles.muted}>Amount paid</Text>
+                    <Text>{money(invoiceAmountPaid(invoice), currency)}</Text>
+                  </View>
+                </>
+              ) : null}
               <View style={[styles.grandTotal, { borderTopColor: colors.accent }]}>
-                <Text>TOTAL DUE</Text>
-                <Text style={{ color: colors.accent }}>{money(invoice.total, currency)}</Text>
+                <Text>{isInvoice ? 'BALANCE DUE' : 'TOTAL DUE'}</Text>
+                <Text style={{ color: colors.accent }}>
+                  {money(isInvoice ? invoiceBalanceDue(invoice) : invoice.total, currency)}
+                </Text>
               </View>
             </View>
           </View>

@@ -58,6 +58,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         invoiceId: id,
       }),
     enabled: canFetch,
+    staleTime: 0,
     retry: 1,
     ...offlineQueryOptions,
   });
