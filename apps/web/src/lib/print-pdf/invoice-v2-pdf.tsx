@@ -59,7 +59,7 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors, branded = false }: 
               const { name, description } = parseStoredLineItem(item);
               const image = resolveImageSrcForPrint(item.imageUrl ?? item.product?.imageUrl, baseUrl);
               return (
-                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: colors.softBg } : {}]}>
+                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: '#ffffff' } : {}]}>
                   <Text style={[styles.serial, { color: colors.dark }, branded ? { backgroundColor: colors.light, right: 6, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 } : {}]}>{index * 3 + column + 1}</Text>
                   <View style={[styles.photo, { backgroundColor: branded ? '#ffffff' : colors.softBg }]}>
                     {image ? <Image src={image} style={styles.image} /> : (

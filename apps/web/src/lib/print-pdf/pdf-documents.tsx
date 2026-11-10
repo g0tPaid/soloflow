@@ -475,7 +475,7 @@ function CompanyHeader({
 
   const details = (
     <>
-      <Text style={[styles.brandName, barcode ? { fontSize: 17 } : {}]}>{org.name}</Text>
+      <Text style={[styles.brandName, barcode ? { fontSize: 12.75 } : {}]}>{org.name}</Text>
       {branding.tagline ? (
         <Text style={[styles.tagline, { color: accent }]}>{branding.tagline}</Text>
       ) : null}
