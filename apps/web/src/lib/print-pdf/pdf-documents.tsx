@@ -598,7 +598,7 @@ function InvoicePdfBody({
 
         <View style={styles.twoCol}>
           <View style={styles.colHalf}>
-            <View style={[styles.billToCard, { borderColor: colors.softBorder }]}>
+            <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }]}>
               <Text style={[styles.billToInitial, { backgroundColor: colors.accent }]}>
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
               </Text>
@@ -624,6 +624,7 @@ function InvoicePdfBody({
             <View
               style={[
                 styles.metaBox,
+                isInvoice ? { paddingVertical: 6 } : {},
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
@@ -653,7 +654,7 @@ function InvoicePdfBody({
           colors={colors}
         />
 
-        <View style={[styles.tableHeader, { backgroundColor: colors.accent }]} wrap={false}>
+        <View style={[styles.tableHeader, { backgroundColor: colors.accent }, isInvoice ? { paddingVertical: 5 } : {}]} wrap={false}>
           <Text style={styles.colNo}>#</Text>
           <Text style={[styles.colImg, { textAlign: 'center' }]}>Image</Text>
           <Text style={styles.colDesc}>Description</Text>
@@ -668,12 +669,12 @@ function InvoicePdfBody({
             <View
               key={item.id}
               wrap={false}
-              style={[styles.tableRow, index % 2 === 1 ? styles.tableRowAlt : {}]}
+              style={[styles.tableRow, isInvoice ? { paddingVertical: 3 } : {}, index % 2 === 1 ? styles.tableRowAlt : {}]}
             >
               <Text style={styles.colNo}>{index + 1}</Text>
               <View style={styles.colImg}>
                 {imageSrc ? (
-                  <Image src={imageSrc} style={styles.productImg} />
+                  <Image src={imageSrc} style={[styles.productImg, isInvoice ? { width: 28, height: 28 } : {}]} />
                 ) : (
                   <Text style={[styles.muted, { fontSize: 6, textAlign: 'center' }]}>—</Text>
                 )}
@@ -708,32 +709,32 @@ function InvoicePdfBody({
                 Authorized signature
               </Text>
               {signatureSrc ? (
-                <Image src={signatureSrc} style={styles.signatureImg} cache={false} />
+                <Image src={signatureSrc} style={[styles.signatureImg, isInvoice ? { width: 76, height: 76 } : {}]} cache={false} />
               ) : (
                 <Text style={styles.muted}>No signature uploaded</Text>
               )}
             </View>
           </View>
           <View style={styles.colHalf}>
-            <View style={styles.totalBox}>
-              <View style={styles.totalLine}>
+            <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}]}>
+              <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                 <Text style={styles.muted}>Subtotal</Text>
                 <Text>{money(invoice.subtotal, currency)}</Text>
               </View>
               {shippingAmount > 0 ? (
-                <View style={styles.totalLine}>
+                <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                   <Text style={styles.muted}>Shipping</Text>
                   <Text>{money(shippingAmount, currency)}</Text>
                 </View>
               ) : null}
               {discountAmount > 0 ? (
-                <View style={styles.totalLine}>
+                <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                   <Text style={styles.muted}>Discount</Text>
                   <Text style={{ color: colors.accent }}>−{money(discountAmount, currency)}</Text>
                 </View>
               ) : null}
               {taxAmount > 0 ? (
-                <View style={styles.totalLine}>
+                <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                   <Text style={styles.muted}>
                     VAT
                     {Number(invoice.taxRate ?? 0) > 0
@@ -745,11 +746,11 @@ function InvoicePdfBody({
               ) : null}
               {isInvoice ? (
                 <>
-                  <View style={styles.totalLine}>
+                  <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                     <Text style={styles.muted}>Invoice total</Text>
                     <Text>{money(invoice.total, currency)}</Text>
                   </View>
-                  <View style={styles.totalLine}>
+                  <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                     <Text style={styles.muted}>Amount paid</Text>
                     <Text>{money(invoiceAmountPaid(invoice), currency)}</Text>
                   </View>
