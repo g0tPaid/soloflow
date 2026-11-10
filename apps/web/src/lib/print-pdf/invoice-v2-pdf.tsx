@@ -19,6 +19,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     padding: 8,
   },
+  serial: { fontSize: 7, fontWeight: 'bold', marginBottom: 4 },
   photo: {
     width: 70,
     height: 54,
@@ -52,11 +53,12 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors }: {
         <View key={index} wrap={false}>
           {index === 0 ? <Text style={[styles.heading, { color: colors.dark }]}>ITEMS</Text> : null}
           <View style={styles.row}>
-            {row.map((item) => {
+            {row.map((item, column) => {
               const { name, description } = parseStoredLineItem(item);
               const image = resolveImageSrcForPrint(item.imageUrl ?? item.product?.imageUrl, baseUrl);
               return (
                 <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }]}>
+                  <Text style={[styles.serial, { color: colors.dark }]}>S.No. {index * 3 + column + 1}</Text>
                   <View style={[styles.photo, { backgroundColor: colors.softBg }]}>
                     {image ? <Image src={image} style={styles.image} /> : (
                       <Text style={styles.muted}>No photo</Text>
