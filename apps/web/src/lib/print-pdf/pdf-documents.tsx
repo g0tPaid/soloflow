@@ -27,7 +27,7 @@ import {
   paymentMethodLabel,
 } from '@flowbooks/shared';
 
-import { InvoiceV2Pdf } from './invoice-v2-pdf';
+import { InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
@@ -560,6 +560,7 @@ function InvoicePdfBody({
   documentLabel = 'INVOICE',
   numberLabel = 'Invoice #',
   dueDateLabel = 'Due Date',
+  photoLayout = false,
 }: {
   invoice: Invoice;
   org: Organization;
@@ -567,6 +568,7 @@ function InvoicePdfBody({
   documentLabel?: string;
   numberLabel?: string;
   dueDateLabel?: string;
+  photoLayout?: boolean;
 }) {
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
@@ -656,43 +658,49 @@ function InvoicePdfBody({
           colors={colors}
         />
 
-        <View style={[styles.tableHeader, { backgroundColor: colors.accent }, isInvoice ? { paddingVertical: 5 } : {}]} wrap={false}>
-          <Text style={styles.colNo}>#</Text>
-          <Text style={[styles.colImg, { textAlign: 'center' }]}>Image</Text>
-          <Text style={styles.colDesc}>Description</Text>
-          <Text style={styles.colQty}>Qty</Text>
-          <Text style={styles.colPrice}>Unit Price</Text>
-          <Text style={styles.colAmount}>Amount</Text>
-        </View>
-        {(invoice.items ?? []).map((item, index) => {
-          const { name, description } = parseStoredLineItem(item);
-          const imageSrc = resolveImg(item.imageUrl ?? item.product?.imageUrl, baseUrl);
-          return (
-            <View
-              key={item.id}
-              wrap={false}
-              style={[styles.tableRow, isInvoice ? { paddingVertical: 3 } : {}, index % 2 === 1 ? styles.tableRowAlt : {}]}
-            >
-              <Text style={styles.colNo}>{index + 1}</Text>
-              <View style={styles.colImg}>
-                {imageSrc ? (
-                  <Image src={imageSrc} style={[styles.productImg, isInvoice ? { width: 28, height: 28 } : {}]} />
-                ) : (
-                  <Text style={[styles.muted, { fontSize: 6, textAlign: 'center' }]}>—</Text>
-                )}
-              </View>
-              <View style={styles.colDesc}>
-                <Text style={{ fontWeight: 'bold' }}>{name || description || 'Item'}</Text>
-                {description && name ? <Text style={styles.muted}>{description}</Text> : null}
-              </View>
-              <Text style={styles.colQty}>{Number(item.quantity)}</Text>
-              <Text style={styles.colPrice}>{money(item.unitPrice, currency)}</Text>
-              <Text style={[styles.colAmount, { fontWeight: 'bold' }]}>
-                {money(item.amount, currency)}
-              </Text>
+        {photoLayout ? (
+          <InvoicePhotoGrid invoice={invoice} baseUrl={baseUrl} colors={colors} />
+        ) : (
+          <>
+            <View style={[styles.tableHeader, { backgroundColor: colors.accent }, isInvoice ? { paddingVertical: 5 } : {}]} wrap={false}>
+              <Text style={styles.colNo}>#</Text>
+              <Text style={[styles.colImg, { textAlign: 'center' }]}>Image</Text>
+              <Text style={styles.colDesc}>Description</Text>
+              <Text style={styles.colQty}>Qty</Text>
+              <Text style={styles.colPrice}>Unit Price</Text>
+              <Text style={styles.colAmount}>Amount</Text>
             </View>
-          );
-        })}
+            {(invoice.items ?? []).map((item, index) => {
+              const { name, description } = parseStoredLineItem(item);
+              const imageSrc = resolveImg(item.imageUrl ?? item.product?.imageUrl, baseUrl);
+              return (
+                <View
+                  key={item.id}
+                  wrap={false}
+                  style={[styles.tableRow, isInvoice ? { paddingVertical: 3 } : {}, index % 2 === 1 ? styles.tableRowAlt : {}]}
+                >
+                  <Text style={styles.colNo}>{index + 1}</Text>
+                  <View style={styles.colImg}>
+                    {imageSrc ? (
+                      <Image src={imageSrc} style={[styles.productImg, isInvoice ? { width: 28, height: 28 } : {}]} />
+                    ) : (
+                      <Text style={[styles.muted, { fontSize: 6, textAlign: 'center' }]}>—</Text>
+                    )}
+                  </View>
+                  <View style={styles.colDesc}>
+                    <Text style={{ fontWeight: 'bold' }}>{name || description || 'Item'}</Text>
+                    {description && name ? <Text style={styles.muted}>{description}</Text> : null}
+                  </View>
+                  <Text style={styles.colQty}>{Number(item.quantity)}</Text>
+                  <Text style={styles.colPrice}>{money(item.unitPrice, currency)}</Text>
+                  <Text style={[styles.colAmount, { fontWeight: 'bold' }]}>
+                    {money(item.amount, currency)}
+                  </Text>
+                </View>
+              );
+            })}
+          </>
+        )}
 
         {invoice.notes ? (
           <View style={{ marginTop: 8, marginBottom: 4 }} wrap={false}>
@@ -705,18 +713,32 @@ function InvoicePdfBody({
 
         {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
         <View style={[styles.twoCol, { marginTop: 6, marginBottom: 4, alignItems: 'stretch' }]} wrap={false}>
-          <View style={styles.colHalf}>
-            <View style={styles.signatureBox}>
-              <Text style={[styles.sectionLabel, { color: colors.accent, marginBottom: 4 }]}>
-                Authorized signature
-              </Text>
+          {photoLayout ? (
+            <View style={[styles.colHalf, styles.signatureBox, { flexDirection: 'row', alignItems: 'center' }]}>
               {signatureSrc ? (
-                <Image src={signatureSrc} style={[styles.signatureImg, isInvoice ? { width: 76, height: 76 } : {}]} cache={false} />
-              ) : (
-                <Text style={styles.muted}>No signature uploaded</Text>
-              )}
+                <View style={{ flex: 1, alignItems: 'center' }}>
+                  <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center' }]}>
+                    Authorized signature
+                  </Text>
+                  <Image src={signatureSrc} style={{ width: 58, height: 58, objectFit: 'contain' }} cache={false} />
+                </View>
+              ) : null}
+              <InvoiceTrackingQr accent={colors.dark} />
             </View>
-          </View>
+          ) : (
+            <View style={styles.colHalf}>
+              <View style={styles.signatureBox}>
+                <Text style={[styles.sectionLabel, { color: colors.accent, marginBottom: 4 }]}>
+                  Authorized signature
+                </Text>
+                {signatureSrc ? (
+                  <Image src={signatureSrc} style={[styles.signatureImg, isInvoice ? { width: 76, height: 76 } : {}]} cache={false} />
+                ) : (
+                  <Text style={styles.muted}>No signature uploaded</Text>
+                )}
+              </View>
+            </View>
+          )}
           <View style={styles.colHalf}>
             <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}]}>
               <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
@@ -1157,11 +1179,7 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
     case 'invoices':
       return (
         <Document>
-          {version === 2 ? (
-            <InvoiceV2Pdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
-          ) : (
-            <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
-          )}
+          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} photoLayout={version === 2} />
         </Document>
       );
     case 'quotes':
