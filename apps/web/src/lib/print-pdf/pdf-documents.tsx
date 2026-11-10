@@ -595,7 +595,8 @@ function InvoicePdfBody({
   const barcodeLayout = version === 3;
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
-  const colors = invoiceAccentPalette(branding.invoiceAccent);
+  const palette = invoiceAccentPalette(branding.invoiceAccent);
+  const colors = barcodeLayout ? { ...palette, softBg: '#ffffff', softBorder: '#e2e8f0' } : palette;
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const offerSrcs = [
@@ -820,10 +821,10 @@ function InvoicePdfBody({
               <View style={[
                 styles.grandTotal,
                 { borderTopColor: colors.accent },
-                barcodeLayout ? { backgroundColor: colors.dark, color: "#ffffff", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
+                barcodeLayout ? { backgroundColor: "#f8fafc", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
               ]}>
                 <Text>{isInvoice ? 'BALANCE DUE' : 'TOTAL DUE'}</Text>
-                <Text style={{ color: barcodeLayout ? "#ffffff" : colors.accent }}>
+                <Text style={{ color: colors.accent }}>
                   {money(isInvoice ? invoiceBalanceDue(invoice) : invoice.total, currency)}
                 </Text>
               </View>
