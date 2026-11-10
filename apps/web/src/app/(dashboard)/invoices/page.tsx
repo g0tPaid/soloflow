@@ -1,5 +1,6 @@
 'use client';
 
+import { type InvoicePdfVersion, invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -111,7 +112,7 @@ function InvoiceListDownloadButton({
   invoiceId: string;
   organizationId: string;
   number: string;
-  version?: 2;
+  version?: InvoicePdfVersion;
 }) {
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState(false);
@@ -123,7 +124,7 @@ function InvoiceListDownloadButton({
     setBusy(true);
     setError(false);
     try {
-      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}${version === 2 ? '-v2' : ''}.pdf`;
+      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}${version ? `-v${version}` : ''}.pdf`;
       const file = await resolveInvoicePdfFile({
         documentId: invoiceId,
         organizationId,
@@ -132,7 +133,7 @@ function InvoiceListDownloadButton({
       });
       await downloadPdfToDevice(file);
     } catch {
-      if (version === 2) {
+      if (version) {
         setError(true);
         return;
       }
@@ -164,8 +165,8 @@ function InvoiceListDownloadButton({
 
 export default function InvoicesPage() {
   const router = useRouter();
-  const isVersion2 = usePathname() === '/invoices-v2';
-  const invoicePath = isVersion2 ? '/invoices-v2' : '/invoices';
+  const version = invoiceVersionForPath(usePathname());
+  const invoicePath = invoiceBasePath(version);
   const { data: session } = useSession();
   const { organizationId, organization, isReady } = useOrganizationId();
   const timeZone = organization?.settings?.timezone;
@@ -305,7 +306,7 @@ export default function InvoicesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium tracking-tight">{isVersion2 ? 'Invoice 2' : 'Invoice 1'}</h1>
+            <h1 className="text-2xl font-medium tracking-tight">Invoice {version ?? 1}</h1>
             <p className="text-sm text-muted-foreground">Create and manage invoices</p>
           </div>
           {organizationId && (
@@ -571,7 +572,7 @@ export default function InvoicesPage() {
                           invoiceId={invoice.id}
                           organizationId={organizationId}
                           number={invoice.number}
-                          version={isVersion2 ? 2 : undefined}
+                          version={version}
                         />
                       )}
                       {invoice.customerId && (
@@ -631,7 +632,7 @@ export default function InvoicesPage() {
                           invoiceId={invoice.id}
                           organizationId={organizationId}
                           number={invoice.number}
-                          version={isVersion2 ? 2 : undefined}
+                          version={version}
                         />
                       </div>
                     ) : null}

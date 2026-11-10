@@ -37,10 +37,11 @@ const styles = StyleSheet.create({
   tracking: { alignItems: 'center', justifyContent: 'center', textAlign: 'center' },
 });
 
-export function InvoicePhotoGrid({ invoice, baseUrl, colors }: {
+export function InvoicePhotoGrid({ invoice, baseUrl, colors, branded = false }: {
   invoice: Invoice;
   baseUrl: string;
   colors: InvoiceAccentPalette;
+  branded?: boolean;
 }) {
   const items = invoice.items ?? [];
   const money = (amount: string | number) => formatCurrency(Number(amount), invoice.currency);
@@ -52,15 +53,15 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors }: {
     <>
       {rows.map((row, index) => (
         <View key={index} wrap={false}>
-          {index === 0 ? <Text style={[styles.heading, { color: colors.dark }]}>ITEMS</Text> : null}
+          {index === 0 ? <Text style={[styles.heading, { color: colors.dark }, branded ? { color: '#ffffff', backgroundColor: colors.dark, marginBottom: 5, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 4 } : {}]}>{branded ? 'PRODUCTS' : 'ITEMS'}</Text> : null}
           <View style={styles.row}>
             {row.map((item, column) => {
               const { name, description } = parseStoredLineItem(item);
               const image = resolveImageSrcForPrint(item.imageUrl ?? item.product?.imageUrl, baseUrl);
               return (
-                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }]}>
-                  <Text style={[styles.serial, { color: colors.dark }]}>{index * 3 + column + 1}</Text>
-                  <View style={[styles.photo, { backgroundColor: colors.softBg }]}>
+                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: colors.softBg } : {}]}>
+                  <Text style={[styles.serial, { color: colors.dark }, branded ? { backgroundColor: colors.light, right: 6, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 } : {}]}>{index * 3 + column + 1}</Text>
+                  <View style={[styles.photo, { backgroundColor: branded ? '#ffffff' : colors.softBg }]}>
                     {image ? <Image src={image} style={styles.image} /> : (
                       <Text style={styles.muted}>No photo</Text>
                     )}
@@ -79,13 +80,26 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors }: {
   );
 }
 
-export function InvoiceTrackingQr({ accent }: { accent: string }) {
+export function InvoiceTrackingQr({ accent, background, border, branded = false }: { accent: string; background: string; border: string; branded?: boolean }) {
   return (
     <View style={styles.tracking}>
-      <Svg width={58} height={58} viewBox="0 0 37 37">
-        <Path d={trackingQrPath} fill="#000000" />
-      </Svg>
-      <Text style={{ fontSize: 8, fontWeight: 'bold' }}>Track your parcel</Text>
+      {branded ? <>
+      <Text style={{ color: accent, backgroundColor: background, borderRadius: 4, fontSize: 6, fontWeight: 'bold', letterSpacing: 0.8, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 }}>
+        PARCEL TRACKING
+      </Text>
+      <View style={{ borderWidth: 1, borderColor: border, borderRadius: 7, backgroundColor: '#ffffff', padding: 2 }}>
+        <Svg width={62} height={62} viewBox="0 0 37 37">
+          <Path d={trackingQrPath} fill="#000000" />
+        </Svg>
+      </View>
+      </> : (
+        <>
+          <Svg width={58} height={58} viewBox="0 0 37 37">
+            <Path d={trackingQrPath} fill="#000000" />
+          </Svg>
+          <Text style={{ fontSize: 8, fontWeight: 'bold' }}>Track your parcel</Text>
+        </>
+      )}
       <Link src={trackingUrl} style={{ color: accent, fontSize: 7, marginTop: 2 }}>
         www.sourcing.center/track
       </Link>

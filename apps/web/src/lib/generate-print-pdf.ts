@@ -1,3 +1,4 @@
+import { invoicePdfVersion } from '@/lib/invoice-version';
 import 'server-only';
 
 import { renderToBuffer } from '@react-pdf/renderer';
@@ -19,5 +20,5 @@ export async function generatePrintPdf(
 ): Promise<Buffer> {
   const baseUrl = resolveBaseUrl(request);
   const document = await loadPrintDocument(accessToken, type, id, organizationId);
-  return renderToBuffer(buildPdfDocument(document, baseUrl, new URL(request.url).searchParams.get('version') === '2' ? 2 : undefined));
+  return renderToBuffer(buildPdfDocument(document, baseUrl, invoicePdfVersion(new URL(request.url).searchParams.get('version'))));
 }
