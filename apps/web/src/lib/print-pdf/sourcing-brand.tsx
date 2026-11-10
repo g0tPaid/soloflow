@@ -5,8 +5,8 @@ const mark = 'data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAIAAAACACAYAAADDPmHL
 
 export function SourcingBrand() {
   return (
-    <View style={{ flexDirection: 'row', alignItems: 'center', gap: 7 }}>
-      <Image src={mark} style={{ width: 52, height: 52, objectFit: 'contain' }} />
+    <View style={{ alignItems: 'center', gap: 2 }}>
+      <Image src={mark} style={{ width: 45, height: 45, objectFit: 'contain' }} />
       <Text style={{ fontSize: 27, fontWeight: 'bold', letterSpacing: -0.7, color: '#18181b' }}>
         sourcing<Text style={{ color: '#e4001b' }}>.center</Text>
       </Text>
