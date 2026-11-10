@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { Download, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -18,6 +19,7 @@ export function DownloadInvoicePdfButton({
   filename?: string;
   size?: 'default' | 'lg';
 }) {
+  const prefersVersion2 = usePathname().startsWith('/invoices-v2/');
   const { organization } = useOrganizationId();
   const [busy, setBusy] = useState<1 | 2 | null>(null);
   const [error, setError] = useState('');
@@ -57,31 +59,23 @@ export function DownloadInvoicePdfButton({
 
   return (
     <div className="flex flex-col items-stretch gap-2 sm:items-end">
-      <Button
-        type="button"
-        variant="default"
-        size={size}
-        className="gap-2"
-        disabled={busy !== null}
-        onClick={() => void handleDownload(1)}
-      >
-        {busy === 1 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        {busy === 1 ? 'Preparing PDF…' : 'Download PDF (Version 1)'}
-      </Button>
-      <Button
-        type="button"
-        variant="outline"
-        size={size}
-        className="gap-2"
-        disabled={busy !== null}
-        onClick={() => void handleDownload(2)}
-      >
-        {busy === 2 ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-        {busy === 2 ? 'Preparing PDF…' : 'Invoice Version 2'}
-      </Button>
+      {(prefersVersion2 ? [2, 1] as const : [1, 2] as const).map((version, index) => (
+        <Button
+          key={version}
+          type="button"
+          variant={index === 0 ? 'default' : 'outline'}
+          size={size}
+          className="gap-2"
+          disabled={busy !== null}
+          onClick={() => void handleDownload(version)}
+        >
+          {busy === version ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
+          {busy === version ? 'Preparing PDF…' : version === 2 ? 'Invoice Version 2' : 'Download PDF (Version 1)'}
+        </Button>
+      ))}
       {error ? <p className="text-right text-[11px] text-red-600">{error}</p> : null}
       <p className="text-right text-[11px] text-muted-foreground">
-        Saves <strong>{filename}</strong>. Offline uses the copy stored on this device.
+        Offline uses the copy stored on this device.
       </p>
     </div>
   );

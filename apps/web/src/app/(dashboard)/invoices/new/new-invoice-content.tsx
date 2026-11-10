@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
@@ -26,6 +26,7 @@ import type { CreateInvoiceInput } from '@flowbooks/shared';
 
 export function NewInvoicePageContent() {
   const router = useRouter();
+  const pathname = usePathname();
   const searchParams = useSearchParams();
   const fromId = searchParams.get('from');
   const customerFromQuery = searchParams.get('customer');
@@ -144,7 +145,7 @@ export function NewInvoicePageContent() {
 
   function keepDraft() {
     setCopyChoice('keep');
-    router.replace('/invoices/new');
+    router.replace(pathname);
   }
 
   return (

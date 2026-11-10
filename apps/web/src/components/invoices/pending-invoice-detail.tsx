@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
 import { PendingSyncBadge } from '@/components/invoices/pending-sync-badge';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
@@ -21,6 +22,7 @@ export function PendingInvoiceDetail({
   syncError?: string | null;
   organizationId?: string;
 }) {
+  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
   const { requestSync, syncing } = useSyncStatus();
 
   return (
@@ -46,7 +48,7 @@ export function PendingInvoiceDetail({
               filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
             />
           ) : null}
-          <Link href="/invoices" className="text-sm text-primary hover:underline">
+          <Link href={invoicePath} className="text-sm text-primary hover:underline">
             ← Back to invoices
           </Link>
         </div>

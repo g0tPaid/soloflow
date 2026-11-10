@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -106,27 +106,36 @@ function InvoiceListDownloadButton({
   invoiceId,
   organizationId,
   number,
+  version,
 }: {
   invoiceId: string;
   organizationId: string;
   number: string;
+  version?: 2;
 }) {
   const [busy, setBusy] = useState(false);
+  const [error, setError] = useState(false);
 
   async function handleDownload(event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
     if (busy) return;
     setBusy(true);
+    setError(false);
     try {
-      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}${version === 2 ? '-v2' : ''}.pdf`;
       const file = await resolveInvoicePdfFile({
         documentId: invoiceId,
         organizationId,
         filename,
+        version,
       });
       await downloadPdfToDevice(file);
     } catch {
+      if (version === 2) {
+        setError(true);
+        return;
+      }
       if (typeof navigator !== 'undefined' && navigator.onLine === false) return;
       window.open(
         `/print/invoices/${invoiceId}?org=${encodeURIComponent(organizationId)}`,
@@ -148,13 +157,15 @@ function InvoiceListDownloadButton({
       disabled={busy}
     >
       {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Download className="h-3.5 w-3.5" />}
-      {busy ? 'PDF…' : 'Download'}
+      {busy ? 'PDF…' : error ? 'Retry download' : 'Download'}
     </Button>
   );
 }
 
 export default function InvoicesPage() {
   const router = useRouter();
+  const isVersion2 = usePathname() === '/invoices-v2';
+  const invoicePath = isVersion2 ? '/invoices-v2' : '/invoices';
   const { data: session } = useSession();
   const { organizationId, organization, isReady } = useOrganizationId();
   const timeZone = organization?.settings?.timezone;
@@ -294,12 +305,12 @@ export default function InvoicesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium tracking-tight">Invoices</h1>
+            <h1 className="text-2xl font-medium tracking-tight">{isVersion2 ? 'Invoice 2' : 'Invoice 1'}</h1>
             <p className="text-sm text-muted-foreground">Create and manage invoices</p>
           </div>
           {organizationId && (
             <Button asChild>
-              <Link href="/invoices/new">
+              <Link href={`${invoicePath}/new`}>
                 <Plus className="h-4 w-4" />
                 New invoice
               </Link>
@@ -368,7 +379,7 @@ export default function InvoicesPage() {
               Create your first invoice to start billing customers
             </p>
             <Button asChild>
-              <Link href="/invoices/new">Create invoice</Link>
+              <Link href={`${invoicePath}/new`}>Create invoice</Link>
             </Button>
           </CardContent>
         </Card>
@@ -400,7 +411,7 @@ export default function InvoicesPage() {
                     className={cn('border-b last:border-b-0 align-top', invoiceSurfaceClass(invoice, 'row'))}
                   >
                     <td className="px-4 py-3">
-                      <Link href={`/invoices/${invoice.id}`} className="font-medium text-foreground hover:underline">
+                      <Link href={`${invoicePath}/${invoice.id}`} className="font-medium text-foreground hover:underline">
                         {invoice.number}
                       </Link>
                     </td>
@@ -445,13 +456,13 @@ export default function InvoicesPage() {
                       {!unsynced && (
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button asChild size="sm" className="gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c]">
-                          <Link href={`/invoices/${invoice.id}#edit-line-items`}>
+                          <Link href={`${invoicePath}/${invoice.id}#edit-line-items`}>
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
                           </Link>
                         </Button>
                         <Button asChild size="sm" variant="outline">
-                          <Link href={`/invoices/new?from=${invoice.id}`}>Use again</Link>
+                          <Link href={`${invoicePath}/new?from=${invoice.id}`}>Use again</Link>
                         </Button>
                         {canRecordPayment && (
                           <Button
@@ -488,7 +499,7 @@ export default function InvoicesPage() {
               >
                 <CardContent className="flex flex-col gap-4 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <Link href={`/invoices/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
+                  <Link href={`${invoicePath}/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
@@ -531,13 +542,13 @@ export default function InvoicesPage() {
                         size="sm"
                         className="flex-1 gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c] sm:flex-none"
                       >
-                        <Link href={`/invoices/${invoice.id}#edit-line-items`}>
+                        <Link href={`${invoicePath}/${invoice.id}#edit-line-items`}>
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Link>
                       </Button>
                       <Button asChild size="sm" variant="outline" className="flex-1 sm:flex-none">
-                        <Link href={`/invoices/new?from=${invoice.id}`}>Use again</Link>
+                        <Link href={`${invoicePath}/new?from=${invoice.id}`}>Use again</Link>
                       </Button>
                       {canRecordPayment && (
                         <Button
@@ -560,6 +571,7 @@ export default function InvoicesPage() {
                           invoiceId={invoice.id}
                           organizationId={organizationId}
                           number={invoice.number}
+                          version={isVersion2 ? 2 : undefined}
                         />
                       )}
                       {invoice.customerId && (
@@ -619,6 +631,7 @@ export default function InvoicesPage() {
                           invoiceId={invoice.id}
                           organizationId={organizationId}
                           number={invoice.number}
+                          version={isVersion2 ? 2 : undefined}
                         />
                       </div>
                     ) : null}
