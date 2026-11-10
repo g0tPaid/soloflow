@@ -513,12 +513,14 @@ function ShippingSection({
   fromCountry,
   toCountry,
   colors = DEFAULT_INVOICE_COLORS,
+  boxBorderWidth = 1,
 }: {
   method?: string | null;
   terms?: string | null;
   fromCountry?: string | null;
   toCountry?: string | null;
   colors?: InvoiceAccentPalette;
+  boxBorderWidth?: number;
 }) {
   const hasInfo = method || terms || fromCountry || toCountry;
   if (!hasInfo) return null;
@@ -548,6 +550,7 @@ function ShippingSection({
 
   const softCard = {
     borderColor: colors.softBorder,
+    borderWidth: boxBorderWidth,
     backgroundColor: colors.softBg,
   };
 
@@ -596,7 +599,7 @@ function InvoicePdfBody({
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const palette = invoiceAccentPalette(branding.invoiceAccent);
-  const colors = barcodeLayout ? { ...palette, softBg: '#ffffff', softBorder: '#e2e8f0' } : palette;
+  const colors = barcodeLayout ? { ...palette, softBg: '#ffffff', softBorder: '#94a3b8' } : palette;
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const offerSrcs = [
@@ -632,7 +635,7 @@ function InvoicePdfBody({
 
         <View style={styles.twoCol}>
           <View style={styles.colHalf}>
-            <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }, barcodeLayout ? { backgroundColor: colors.softBg, alignItems: 'flex-start', paddingHorizontal: 10 } : {}]}>
+            <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }, barcodeLayout ? { backgroundColor: colors.softBg, borderWidth: 1.5, alignItems: 'flex-start', paddingHorizontal: 10 } : {}]}>
               {!barcodeLayout ? <Text style={[styles.billToInitial, { backgroundColor: colors.accent }, photoLayout ? { width: 22, height: 22, paddingTop: 4, marginBottom: 3 } : {}]}>
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
               </Text> : null}
@@ -662,7 +665,7 @@ function InvoicePdfBody({
               style={[
                 styles.metaBox,
                 isInvoice ? { paddingVertical: 6 } : {},
-                barcodeLayout ? { marginTop: 0, paddingVertical: 6, paddingHorizontal: 10 } : photoLayout ? { marginTop: 3, paddingVertical: 4 } : {},
+                barcodeLayout ? { marginTop: 0, paddingVertical: 6, paddingHorizontal: 10, borderWidth: 1.5 } : photoLayout ? { marginTop: 3, paddingVertical: 4 } : {},
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
@@ -692,6 +695,7 @@ function InvoicePdfBody({
           fromCountry={invoice.shippingFromCountry}
           toCountry={invoice.shippingToCountry}
           colors={colors}
+          boxBorderWidth={barcodeLayout ? 1.5 : undefined}
         />
 
         {photoLayout ? (
@@ -741,7 +745,7 @@ function InvoicePdfBody({
         {invoice.notes ? (
           <View style={{ marginTop: photoLayout ? 3 : 8, marginBottom: 4 }} wrap={false}>
             <Text style={[styles.sectionLabel, { color: colors.accent }]}>Notes</Text>
-            <View style={[styles.notesBox, photoLayout ? { padding: 5 } : {}]}>
+            <View style={[styles.notesBox, photoLayout ? { padding: 5 } : {}, barcodeLayout ? { borderWidth: 1.5, borderColor: colors.softBorder } : {}]}>
               <Text>{invoice.notes}</Text>
             </View>
           </View>
@@ -752,14 +756,14 @@ function InvoicePdfBody({
           {photoLayout ? (
             <>
               {signatureSrc ? (
-                <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 5 }]}>
+                <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 5 }, barcodeLayout ? { borderWidth: 1.5, borderColor: colors.softBorder } : {}]}>
                   <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center', marginBottom: 3 }]}>
                     Authorized signature
                   </Text>
                   <Image src={signatureSrc} style={{ width: 48, height: 48, objectFit: 'contain' }} cache={false} />
                 </View>
               ) : null}
-              <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }]}>
+              <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }, barcodeLayout ? { borderWidth: 1.5, borderColor: colors.softBorder } : {}]}>
                 <InvoiceTrackingQr accent={colors.dark} branded={barcodeLayout} background={colors.softBg} border={colors.softBorder} />
               </View>
             </>
@@ -778,7 +782,7 @@ function InvoicePdfBody({
             </View>
           )}
           <View style={[styles.colHalf, photoLayout ? { flex: 1.65 } : {}]}>
-            <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}, photoLayout ? { flex: 1, padding: 5 } : {}]}>
+            <View style={[styles.totalBox, isInvoice ? { padding: 7 } : {}, photoLayout ? { flex: 1, padding: 5 } : {}, barcodeLayout ? { borderWidth: 1.5, borderColor: colors.softBorder } : {}]}>
               <View style={[styles.totalLine, isInvoice ? { marginBottom: 2 } : {}]}>
                 <Text style={styles.muted}>Subtotal</Text>
                 <Text>{money(invoice.subtotal, currency)}</Text>
