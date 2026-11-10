@@ -59,7 +59,7 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors, branded = false }: 
               const { name, description } = parseStoredLineItem(item);
               const image = resolveImageSrcForPrint(item.imageUrl ?? item.product?.imageUrl, baseUrl);
               return (
-                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: '#ffffff' } : {}]}>
+                <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: '#ffffff', borderWidth: 1.5 } : {}]}>
                   <Text style={[styles.serial, { color: colors.dark }, branded ? { backgroundColor: "#ffffff", right: 6, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 } : {}]}>{index * 3 + column + 1}</Text>
                   <View style={[styles.photo, { backgroundColor: branded ? '#ffffff' : colors.softBg }]}>
                     {image ? <Image src={image} style={styles.image} /> : (
@@ -87,7 +87,7 @@ export function InvoiceTrackingQr({ accent, background, border, branded = false 
       <Text style={{ color: accent, backgroundColor: background, borderRadius: 4, fontSize: 6, fontWeight: 'bold', letterSpacing: 0.8, paddingHorizontal: 6, paddingVertical: 2, marginBottom: 2 }}>
         PARCEL TRACKING
       </Text>
-      <View style={{ borderWidth: 1, borderColor: border, borderRadius: 7, backgroundColor: '#ffffff', padding: 2 }}>
+      <View style={{ borderWidth: 1.5, borderColor: border, borderRadius: 7, backgroundColor: '#ffffff', padding: 2 }}>
         <Svg width={62} height={62} viewBox="0 0 37 37">
           <Path d={trackingQrPath} fill="#000000" />
         </Svg>
