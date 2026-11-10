@@ -5,7 +5,7 @@ export type ServerPdfType = 'invoices' | 'receipts' | 'expenses' | 'quotes';
 export async function fetchServerPdfFile(
   type: ServerPdfType,
   id: string,
-  options?: { organizationId?: string | null; filename?: string },
+  options?: { organizationId?: string | null; filename?: string; version?: 2 },
 ): Promise<File> {
   const filename = options?.filename ?? `${type.slice(0, -1)}-${id}.pdf`;
   const url = buildServerPdfUrl(type, id, { ...options, filename });

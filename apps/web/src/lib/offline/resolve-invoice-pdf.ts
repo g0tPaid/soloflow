@@ -33,9 +33,9 @@ function organizationForPdf(organizationId: string, organization?: Organization 
   };
 }
 
-async function renderOnDevice(invoice: Invoice, org: Organization, filename: string) {
+async function renderOnDevice(invoice: Invoice, org: Organization, filename: string, version?: 2) {
   const { renderInvoicePdfFile } = await import('@/lib/print-pdf/render-pdf-client');
-  return renderInvoicePdfFile(invoice, org, filename);
+  return renderInvoicePdfFile(invoice, org, filename, undefined, version);
 }
 
 /**
@@ -47,6 +47,7 @@ export async function resolveInvoicePdfFile(input: {
   documentId: string;
   organizationId?: string | null;
   filename: string;
+  version?: 2;
   organization?: Organization | null;
   store?: OfflineStorage;
   isOnline?: () => boolean;
@@ -60,11 +61,12 @@ export async function resolveInvoicePdfFile(input: {
   const organizationId = input.organizationId;
   const store = input.store ?? getOfflineStore();
   const isOnline = input.isOnline ?? (() => typeof navigator === 'undefined' || navigator.onLine);
-  const renderLocal = input.renderLocal ?? renderOnDevice;
+  const renderLocal = input.renderLocal ??
+    ((invoice: Invoice, org: Organization, filename: string) => renderOnDevice(invoice, org, filename, input.version));
   const fetchServer =
     input.fetchServer ??
     ((id: string, orgId: string, filename: string) =>
-      fetchServerPdfFile('invoices', id, { organizationId: orgId, filename }));
+      fetchServerPdfFile('invoices', id, { organizationId: orgId, filename, version: input.version }));
 
   const stored = await findStoredInvoice(store, organizationId, input.documentId);
   const pending = !!stored && stored.syncState !== 'synced';

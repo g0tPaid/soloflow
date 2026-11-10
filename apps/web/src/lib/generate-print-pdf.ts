@@ -19,5 +19,5 @@ export async function generatePrintPdf(
 ): Promise<Buffer> {
   const baseUrl = resolveBaseUrl(request);
   const document = await loadPrintDocument(accessToken, type, id, organizationId);
-  return renderToBuffer(buildPdfDocument(document, baseUrl));
+  return renderToBuffer(buildPdfDocument(document, baseUrl, new URL(request.url).searchParams.get('version') === '2' ? 2 : undefined));
 }
