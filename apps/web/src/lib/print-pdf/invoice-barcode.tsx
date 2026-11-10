@@ -19,21 +19,26 @@ export function InvoiceBarcode({ number, id }: { number: string; id: string }) {
   const start = 104;
   const checksum = (start + data.reduce((sum, code, index) => sum + code * (index + 1), 0)) % 103;
   let x = 10;
-  const bars = [start, ...data, checksum, 106].map((code) =>
+  const bars = ['', ''];
+  let barIndex = 0;
+  for (const code of [start, ...data, checksum, 106]) {
     Array.from(patterns[code], (digit, index) => {
       const width = Number(digit);
-      const bar = index % 2 === 0 ? `M${x} 0h${width}v23h-${width}z` : '';
+      if (index % 2 === 0) {
+        bars[barIndex % 2] += `M${x} 0h${width}v23h-${width}z`;
+        barIndex += 1;
+      }
       x += width;
-      return bar;
-    }).join(''),
-  ).join('');
+    });
+  }
   const modules = x + 10;
   const width = Math.max(108, modules * 0.72);
 
   return (
     <View style={{ alignItems: 'center', marginBottom: 3 }}>
       <Svg width={width} height={23} viewBox={`0 0 ${modules} 23`} preserveAspectRatio="none">
-        <Path d={bars} fill="#111827" />
+        <Path d={bars[0]} fill="#111827" />
+        <Path d={bars[1]} fill="#9f0018" />
       </Svg>
       <Text style={{ fontSize: 7, color: '#334155' }}>{value}</Text>
     </View>

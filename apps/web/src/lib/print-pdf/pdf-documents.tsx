@@ -599,7 +599,7 @@ function InvoicePdfBody({
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const palette = invoiceAccentPalette(branding.invoiceAccent);
-  const colors = barcodeLayout ? { ...palette, softBg: '#f6f0e7', softBorder: '#e9e0d3' } : palette;
+  const colors = barcodeLayout ? { ...palette, softBg: '#faf6ef', softBorder: '#e9e0d3' } : palette;
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const offerSrcs = [
@@ -620,7 +620,7 @@ function InvoicePdfBody({
   return (
     <Page size="A4" style={[styles.page, photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-      {barcodeLayout ? <View style={{ height: 7, backgroundColor: colors.dark }} /> : <TopWave colors={colors} compact={photoLayout} />}
+      {barcodeLayout ? <View style={{ height: 7, backgroundColor: "#d6001c" }} /> : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
         {barcodeLayout ? (
           <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
@@ -760,7 +760,7 @@ function InvoicePdfBody({
                   <Text style={[styles.sectionLabel, { color: colors.accent, textAlign: 'center', marginBottom: 3 }]}>
                     Authorized signature
                   </Text>
-                  <Image src={signatureSrc} style={{ width: 48, height: 48, objectFit: 'contain' }} cache={false} />
+                  <Image src={signatureSrc} style={{ width: 66, height: 66, objectFit: 'contain' }} cache={false} />
                 </View>
               ) : null}
               <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }, barcodeLayout ? { borderWidth: 0, backgroundColor: colors.softBg } : {}]}>
@@ -825,7 +825,7 @@ function InvoicePdfBody({
               <View style={[
                 styles.grandTotal,
                 { borderTopColor: colors.accent },
-                barcodeLayout ? { backgroundColor: "#eee4d6", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
+                barcodeLayout ? { backgroundColor: "#f4ece0", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
               ]}>
                 <Text>{isInvoice ? 'BALANCE DUE' : 'TOTAL DUE'}</Text>
                 <Text style={{ color: colors.accent }}>
