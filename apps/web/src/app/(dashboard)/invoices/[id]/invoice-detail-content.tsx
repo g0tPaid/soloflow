@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
@@ -37,6 +37,7 @@ import { formatCurrency } from '@/lib/utils';
 export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();
@@ -103,9 +104,9 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
 
   useEffect(() => {
     if (screen?.aliasId && screen.aliasId !== id) {
-      router.replace(`/invoices/${screen.aliasId}${isNew ? '?new=1' : ''}`);
+      router.replace(`${invoicePath}/${screen.aliasId}${isNew ? '?new=1' : ''}`);
     }
-  }, [screen?.aliasId, id, router, isNew]);
+  }, [screen?.aliasId, id, router, isNew, invoicePath]);
 
   useEffect(() => {
     if (typeof window === 'undefined') return;
@@ -271,7 +272,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                 </>
               )}
               <Button asChild type="button" size="lg" variant="outline">
-                <Link href={`/invoices/new?from=${invoice.id}`}>Use as new invoice</Link>
+                <Link href={`${invoicePath}/new?from=${invoice.id}`}>Use as new invoice</Link>
               </Button>
               {invoice.customerId && (
                 <Button
@@ -301,7 +302,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                   Download receipt
                 </button>
               )}
-          <Link href="/invoices" className="text-sm text-primary hover:underline sm:text-right">
+          <Link href={invoicePath} className="text-sm text-primary hover:underline sm:text-right">
             ← Back to invoices
           </Link>
         </div>

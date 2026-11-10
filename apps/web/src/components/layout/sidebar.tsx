@@ -41,6 +41,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   vendors: Contact,
   products: Package,
   invoices: FileText,
+  invoicesV2: FileText,
   quotes: FileSpreadsheet,
   expenses: Receipt,
   receipts: BadgeCheck,
@@ -53,6 +54,15 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   settings: Settings,
   team: UserPlus,
 };
+
+const sidebarModules = NAV_MODULES.flatMap((item) =>
+  item.key === 'invoices'
+    ? [
+        { ...item, label: 'Invoice 1' },
+        { ...item, key: 'invoicesV2', label: 'Invoice 2', href: '/invoices-v2' },
+      ]
+    : [item],
+);
 
 function SidebarDesktop({ organizationName }: { organizationName?: string }) {
   const pathname = usePathname();
@@ -91,7 +101,7 @@ function SidebarDesktop({ organizationName }: { organizationName?: string }) {
       </div>
 
       <nav className="flex-1 space-y-0.5 overflow-y-auto p-2">
-        {NAV_MODULES.map((item) => {
+        {sidebarModules.map((item) => {
           const Icon = iconMap[item.key] || LayoutDashboard;
           const isActive =
             item.href === '/settings'

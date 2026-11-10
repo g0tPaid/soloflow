@@ -1,6 +1,7 @@
 'use client';
 
 import { useState } from 'react';
+import { usePathname } from 'next/navigation';
 import { MessageCircle, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { formatCurrency, cn } from '@/lib/utils';
@@ -57,6 +58,7 @@ export function ShareInvoiceWhatsAppButton({
   className?: string;
   fullWidth?: boolean;
 }) {
+  const isVersion2 = usePathname().startsWith('/invoices-v2/');
   const [sharing, setSharing] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
 
@@ -75,7 +77,8 @@ export function ShareInvoiceWhatsAppButton({
       const safeName = invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_');
       const file = await fetchServerPdfFile('invoices', invoiceId, {
         organizationId,
-        filename: `${safeName}.pdf`,
+        filename: `${safeName}${isVersion2 ? '-v2' : ''}.pdf`,
+        version: isVersion2 ? 2 : undefined,
       });
       const message = buildWhatsAppMessage(invoice);
 
@@ -90,6 +93,10 @@ export function ShareInvoiceWhatsAppButton({
         setStatus(null);
       }
     } catch {
+      if (isVersion2) {
+        setStatus('Could not share Invoice Version 2. Try again or download it first.');
+        return;
+      }
       setStatus(null);
       const params = new URLSearchParams({
         org: organizationId,

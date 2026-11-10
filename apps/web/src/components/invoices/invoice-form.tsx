@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -211,6 +211,7 @@ function InvoiceFormEditor(
   },
 ) {
   const router = useRouter();
+  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
   const isEdit = props.mode === 'edit';
   const invoice = isEdit ? props.invoice : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';
@@ -370,10 +371,10 @@ function InvoiceFormEditor(
       }
       await props.onSaved?.();
       if (created.offlinePending) {
-        router.push('/invoices');
+        router.push(invoicePath);
         return;
       }
-      router.push(`/invoices/${created.id}?new=1`);
+      router.push(`${invoicePath}/${created.id}?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create invoice');
     } finally {
