@@ -147,7 +147,7 @@ export function InvoicePrintView({
   ].filter(Boolean) as { icon: typeof Globe; text: string }[];
 
   return (
-    <div className="invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800">
+    <div className={`invoice-print mx-auto min-h-screen w-full max-w-[820px] overflow-x-hidden bg-white text-slate-800 ${isInvoice ? "print:min-h-0 [&_th]:print:py-1 [&_td]:print:py-1" : ""}`}>
       <div id="invoice-capture-root" className="max-w-full overflow-x-hidden bg-white">
         <TopWave colors={colors} />
 
@@ -216,7 +216,7 @@ export function InvoicePrintView({
 
           <SectionWave colors={colors} />
 
-          <div className="mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-start">
+          <div className={`mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-start ${isInvoice ? "print:mb-3" : ""}`}>
             <div className="min-w-0">
               <div
                 className="bill-to-celebrate relative overflow-hidden border px-4 py-3 text-center shadow-sm"
@@ -378,7 +378,7 @@ export function InvoicePrintView({
             </section>
           )}
 
-          <div className="mb-8 max-w-full overflow-hidden rounded-xl shadow-sm ring-1 ring-slate-100">
+          <div className={`mb-8 max-w-full overflow-hidden rounded-xl shadow-sm ring-1 ring-slate-100 ${isInvoice ? "print:mb-3" : ""}`}>
             <table className="w-full table-fixed border-collapse text-sm">
               <colgroup>
                 <col className="w-[8%]" />
@@ -431,10 +431,10 @@ export function InvoicePrintView({
                             <img
                               src={imageSrc}
                               alt=""
-                              className="invoice-product-image h-11 w-11 rounded-lg border border-slate-200 object-cover"
+                              className={`invoice-product-image h-11 w-11 rounded-lg border border-slate-200 object-cover ${isInvoice ? "print:h-7 print:w-7" : ""}`}
                             />
                           ) : (
-                            <div className="flex h-11 w-11 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400">
+                            <div className={`flex h-11 w-11 items-center justify-center rounded-lg border border-dashed border-slate-200 bg-slate-50 text-[10px] text-slate-400 ${isInvoice ? "print:h-7 print:w-7" : ""}`}>
                               —
                             </div>
                           )}
@@ -496,7 +496,7 @@ export function InvoicePrintView({
                   <img
                     src={signatureSrc}
                     alt="Authorized signature"
-                    className="h-[140px] w-[140px] max-w-full bg-white object-contain"
+                    className={`h-[140px] w-[140px] max-w-full bg-white object-contain ${isInvoice ? "print:h-[85px] print:w-[85px]" : ""}`}
                     width={140}
                     height={140}
                   />
@@ -507,7 +507,7 @@ export function InvoicePrintView({
             </div>
 
             <div className="flex min-h-0 flex-col justify-center rounded-xl border border-slate-100 bg-white p-4 shadow-sm">
-              <div className="space-y-2.5 text-sm">
+              <div className={`space-y-2.5 text-sm ${isInvoice ? "print:space-y-1" : ""}`}>
                 <div className="flex justify-between py-1">
                   <span className="text-slate-600">Subtotal</span>
                   <span className="font-medium tabular-nums text-slate-900">
