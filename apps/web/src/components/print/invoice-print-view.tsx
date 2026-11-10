@@ -1,6 +1,6 @@
 import { Globe, Mail, Phone, Plane, Ship, Truck } from 'lucide-react';
 import type { Invoice, Organization } from '@/lib/api';
-import { SHIPPING_TERMS } from '@flowbooks/shared';
+import { invoiceAmountPaid, invoiceBalanceDue, SHIPPING_TERMS } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
 import {
@@ -129,6 +129,7 @@ export function InvoicePrintView({
   const bannerSrc =
     offerSrcs.length === 0 ? resolveImage(branding.invoiceBanner) : undefined;
   const currency = invoice.currency;
+  const isInvoice = documentLabel === 'INVOICE';
   const customer = invoice.customer;
   const taxAmount = Number(invoice.taxAmount ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
@@ -545,13 +546,29 @@ export function InvoicePrintView({
                     </span>
                   </div>
                 )}
+                {isInvoice && (
+                  <>
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span className="text-slate-600">Invoice total</span>
+                      <span className="font-medium tabular-nums text-slate-900">
+                        {formatCurrency(Number(invoice.total), currency)}
+                      </span>
+                    </div>
+                    <div className="flex justify-between gap-3 text-sm">
+                      <span className="text-slate-600">Amount paid</span>
+                      <span className="font-medium tabular-nums text-slate-900">
+                        {formatCurrency(invoiceAmountPaid(invoice), currency)}
+                      </span>
+                    </div>
+                  </>
+                )}
                 <div
                   className="mt-2 flex justify-between border-t-2 pt-3 text-base font-bold"
                   style={{ borderColor: colors.accent }}
                 >
-                  <span className="uppercase tracking-wide text-slate-900">Total Due</span>
+                  <span className="uppercase tracking-wide text-slate-900">{isInvoice ? 'Balance Due' : 'Total Due'}</span>
                   <span className="tabular-nums" style={{ color: colors.accent }}>
-                    {formatCurrency(Number(invoice.total), currency)}
+                    {formatCurrency(isInvoice ? invoiceBalanceDue(invoice) : Number(invoice.total), currency)}
                   </span>
                 </div>
               </div>
