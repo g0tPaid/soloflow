@@ -1,3 +1,4 @@
+import { type InvoicePdfVersion } from '@/lib/invoice-version';
 import type { Invoice, Organization } from '@/lib/api';
 import { fetchServerPdfFile } from '@/lib/fetch-server-pdf';
 import { isLikelyOfflineError } from '@/lib/offline/network';
@@ -33,7 +34,7 @@ function organizationForPdf(organizationId: string, organization?: Organization 
   };
 }
 
-async function renderOnDevice(invoice: Invoice, org: Organization, filename: string, version?: 2) {
+async function renderOnDevice(invoice: Invoice, org: Organization, filename: string, version?: InvoicePdfVersion) {
   const { renderInvoicePdfFile } = await import('@/lib/print-pdf/render-pdf-client');
   return renderInvoicePdfFile(invoice, org, filename, undefined, version);
 }
@@ -47,7 +48,7 @@ export async function resolveInvoicePdfFile(input: {
   documentId: string;
   organizationId?: string | null;
   filename: string;
-  version?: 2;
+  version?: InvoicePdfVersion;
   organization?: Organization | null;
   store?: OfflineStorage;
   isOnline?: () => boolean;

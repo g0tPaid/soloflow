@@ -1,5 +1,6 @@
 'use client';
 
+import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
@@ -37,7 +38,7 @@ import { formatCurrency } from '@/lib/utils';
 export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
+  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();

@@ -1,5 +1,6 @@
 'use client';
 
+import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -211,7 +212,7 @@ function InvoiceFormEditor(
   },
 ) {
   const router = useRouter();
-  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
+  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
   const isEdit = props.mode === 'edit';
   const invoice = isEdit ? props.invoice : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';

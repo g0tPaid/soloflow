@@ -1,5 +1,6 @@
 'use client';
 
+import { invoiceVersionForPath, type InvoicePdfVersion } from '@/lib/invoice-version';
 import { useState } from 'react';
 import { usePathname } from 'next/navigation';
 import { Download, Loader2 } from 'lucide-react';
@@ -19,18 +20,19 @@ export function DownloadInvoicePdfButton({
   filename?: string;
   size?: 'default' | 'lg';
 }) {
-  const prefersVersion2 = usePathname().startsWith('/invoices-v2/');
+  const preferredVersion = invoiceVersionForPath(usePathname()) ?? 1;
+  const versions = [preferredVersion, ...([1, 2, 3] as const).filter((version) => version !== preferredVersion)];
   const { organization } = useOrganizationId();
-  const [busy, setBusy] = useState<1 | 2 | null>(null);
+  const [busy, setBusy] = useState<1 | InvoicePdfVersion | null>(null);
   const [error, setError] = useState('');
   const printUrl = organizationId
     ? `/print/invoices/${invoiceId}?org=${encodeURIComponent(organizationId)}`
     : `/print/invoices/${invoiceId}`;
 
-  async function handleDownload(version: 1 | 2) {
+  async function handleDownload(version: 1 | InvoicePdfVersion) {
     if (!organizationId || busy) {
       if (!organizationId && version === 1) window.location.href = printUrl;
-      if (!organizationId && version === 2) setError('Select an organization to download this invoice.');
+      if (!organizationId && version !== 1) setError('Select an organization to download this invoice.');
       return;
     }
     setBusy(version);
@@ -40,8 +42,8 @@ export function DownloadInvoicePdfButton({
         documentId: invoiceId,
         organizationId,
         organization,
-        filename: version === 2 ? filename.replace(/(?:\.pdf)?$/i, '-v2.pdf') : filename,
-        version: version === 2 ? 2 : undefined,
+        filename: version === 1 ? filename : filename.replace(/(?:\.pdf)?$/i, `-v${version}.pdf`),
+        version: version === 1 ? undefined : version,
       });
       const saved = await downloadPdfToDevice(file);
       if (saved === 'cancelled') setError('');
@@ -59,7 +61,7 @@ export function DownloadInvoicePdfButton({
 
   return (
     <div className="flex flex-col items-stretch gap-2 sm:items-end">
-      {(prefersVersion2 ? [2, 1] as const : [1, 2] as const).map((version, index) => (
+      {versions.map((version, index) => (
         <Button
           key={version}
           type="button"
@@ -70,7 +72,7 @@ export function DownloadInvoicePdfButton({
           onClick={() => void handleDownload(version)}
         >
           {busy === version ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {busy === version ? 'Preparing PDF…' : version === 2 ? 'Invoice Version 2' : 'Download PDF (Version 1)'}
+          {busy === version ? 'Preparing PDF…' : version === 1 ? 'Download PDF (Version 1)' : `Invoice Version ${version}`}
         </Button>
       ))}
       {error ? <p className="text-right text-[11px] text-red-600">{error}</p> : null}

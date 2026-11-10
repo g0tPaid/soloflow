@@ -1,5 +1,6 @@
 'use client';
 
+import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
@@ -22,7 +23,7 @@ export function PendingInvoiceDetail({
   syncError?: string | null;
   organizationId?: string;
 }) {
-  const invoicePath = usePathname().startsWith('/invoices-v2/') ? '/invoices-v2' : '/invoices';
+  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
   const { requestSync, syncing } = useSyncStatus();
 
   return (

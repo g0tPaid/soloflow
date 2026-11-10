@@ -1,3 +1,4 @@
+import { type InvoicePdfVersion } from '@/lib/invoice-version';
 import {
   Document,
   Image,
@@ -27,6 +28,7 @@ import {
   paymentMethodLabel,
 } from '@flowbooks/shared';
 
+import { InvoiceBarcode } from './invoice-barcode';
 import { InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
 const RED = '#DC2626';
@@ -455,11 +457,13 @@ function CompanyHeader({
   baseUrl,
   accent = RED,
   compact = false,
+  barcode,
 }: {
   org: Organization;
   baseUrl: string;
   accent?: string;
   compact?: boolean;
+  barcode?: { number: string; id: string };
 }) {
   const branding = parseBranding(org.settings?.branding);
   const logo = shouldShowInvoiceLogo(branding, org.logo)
@@ -468,14 +472,9 @@ function CompanyHeader({
   const address = formatAddressLines(branding.address).join(' · ');
   const initial = (org.name ?? 'C').charAt(0).toUpperCase();
 
-  return (
-    <View style={styles.center}>
-      {logo ? (
-        <Image src={logo} style={[styles.logo, compact ? { width: 49, height: 49, marginBottom: 3 } : {}]} />
-      ) : (
-        <Text style={[styles.logoFallback, { backgroundColor: accent }, compact ? { width: 42, height: 42, fontSize: 19, paddingTop: 8, marginBottom: 3 } : {}]}>{initial}</Text>
-      )}
-      <Text style={styles.brandName}>{org.name}</Text>
+  const details = (
+    <>
+      <Text style={[styles.brandName, barcode ? { fontSize: 17 } : {}]}>{org.name}</Text>
       {branding.tagline ? (
         <Text style={[styles.tagline, { color: accent }]}>{branding.tagline}</Text>
       ) : null}
@@ -488,6 +487,21 @@ function CompanyHeader({
       <Text style={[styles.muted, { marginTop: 4 }]}>
         {[branding.phone, branding.email, branding.website].filter(Boolean).join(' · ')}
       </Text>
+    </>
+  );
+  return (
+    <View style={barcode ? { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: 14 } : styles.center}>
+      {logo ? (
+        <Image src={logo} style={[styles.logo, barcode ? { width: 95, height: 66, marginBottom: 0 } : compact ? { width: 49, height: 49, marginBottom: 3 } : {}]} />
+      ) : (
+        <Text style={[styles.logoFallback, { backgroundColor: accent }, barcode ? { width: 66, height: 66, fontSize: 27, paddingTop: 15, marginBottom: 0 } : compact ? { width: 42, height: 42, fontSize: 19, paddingTop: 8, marginBottom: 3 } : {}]}>{initial}</Text>
+      )}
+      {barcode ? (
+        <View style={{ flex: 1, alignItems: 'flex-end', textAlign: 'right' }}>
+          <InvoiceBarcode number={barcode.number} id={barcode.id} />
+          {details}
+        </View>
+      ) : details}
     </View>
   );
 }
@@ -564,7 +578,7 @@ function InvoicePdfBody({
   documentLabel = 'INVOICE',
   numberLabel = 'Invoice #',
   dueDateLabel = 'Due Date',
-  photoLayout = false,
+  version,
 }: {
   invoice: Invoice;
   org: Organization;
@@ -572,10 +586,12 @@ function InvoicePdfBody({
   documentLabel?: string;
   numberLabel?: string;
   dueDateLabel?: string;
-  photoLayout?: boolean;
+  version?: InvoicePdfVersion;
 }) {
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
+  const photoLayout = version !== undefined;
+  const barcodeLayout = version === 3;
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const colors = invoiceAccentPalette(branding.invoiceAccent);
@@ -599,22 +615,33 @@ function InvoicePdfBody({
   return (
     <Page size="A4" style={[styles.page, photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-      <TopWave colors={colors} compact={photoLayout} />
+      {barcodeLayout ? <View style={{ height: 7, backgroundColor: colors.dark }} /> : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
-        <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact={photoLayout} />
-        <SectionWave colors={colors} compact={photoLayout} />
+        {barcodeLayout ? (
+          <View style={{ paddingVertical: 6, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
+            <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact barcode={{ number: invoice.number, id: invoice.id }} />
+          </View>
+        ) : (
+          <>
+            <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact={photoLayout} />
+            <SectionWave colors={colors} compact={photoLayout} />
+          </>
+        )}
 
         <View style={styles.twoCol}>
           <View style={styles.colHalf}>
-            <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }]}>
-              <Text style={[styles.billToInitial, { backgroundColor: colors.accent }, photoLayout ? { width: 22, height: 22, paddingTop: 4, marginBottom: 3 } : {}]}>
+            <View style={[styles.billToCard, isInvoice ? { paddingVertical: 6 } : {}, { borderColor: colors.softBorder }, barcodeLayout ? { backgroundColor: colors.softBg, alignItems: 'flex-start', paddingHorizontal: 10 } : {}]}>
+              {!barcodeLayout ? <Text style={[styles.billToInitial, { backgroundColor: colors.accent }, photoLayout ? { width: 22, height: 22, paddingTop: 4, marginBottom: 3 } : {}]}>
                 {(customer?.name ?? 'C').charAt(0).toUpperCase()}
-              </Text>
+              </Text> : null}
+              {barcodeLayout ? (
+                <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 2 }}>BILL TO</Text>
+              ) : null}
               <Text style={styles.billToName}>{customer?.name}</Text>
               {customer?.taxId?.trim() ? (
                 <Text style={styles.billToTrn}>TRN : {customer.taxId.trim()}</Text>
               ) : null}
-              <Text style={[styles.billToThanks, photoLayout ? { marginBottom: 2 } : {}]}>Thank you for being a valued partner</Text>
+              {!barcodeLayout ? <Text style={[styles.billToThanks, photoLayout ? { marginBottom: 2 } : {}]}>Thank you for being a valued partner</Text> : null}
               {customerAddress.length > 0 ? (
                 <Text style={[styles.muted, { textAlign: 'center', marginBottom: 3 }]}>
                   {customerAddress.join(' · ')}
@@ -628,19 +655,21 @@ function InvoicePdfBody({
             </View>
           </View>
           <View style={styles.colHalf}>
-            <Text style={[styles.invoiceTitle, { color: colors.accent }, photoLayout ? { fontSize: 21 } : {}]}>{documentLabel}</Text>
+            {!barcodeLayout ? <Text style={[styles.invoiceTitle, { color: colors.accent }, photoLayout ? { fontSize: 21 } : {}]}>{documentLabel}</Text> : null}
             <View
               style={[
                 styles.metaBox,
                 isInvoice ? { paddingVertical: 6 } : {},
-                photoLayout ? { marginTop: 3, paddingVertical: 4 } : {},
+                barcodeLayout ? { marginTop: 0, paddingVertical: 6, paddingHorizontal: 10 } : photoLayout ? { marginTop: 3, paddingVertical: 4 } : {},
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
-              <View style={styles.row}>
-                <Text style={styles.muted}>{numberLabel}</Text>
-                <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>
-              </View>
+              {barcodeLayout ? <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 4 }}>INVOICE · {invoice.number}</Text> : (
+                <View style={styles.row}>
+                  <Text style={styles.muted}>{numberLabel}</Text>
+                  <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>
+                </View>
+              )}
               <View style={styles.row}>
                 <Text style={styles.muted}>Issue Date</Text>
                 <Text style={{ fontWeight: 'bold' }}>{fmtDate(invoice.issueDate)}</Text>
@@ -664,7 +693,7 @@ function InvoicePdfBody({
         />
 
         {photoLayout ? (
-          <InvoicePhotoGrid invoice={invoice} baseUrl={baseUrl} colors={colors} />
+          <InvoicePhotoGrid invoice={invoice} baseUrl={baseUrl} colors={colors} branded={barcodeLayout} />
         ) : (
           <>
             <View style={[styles.tableHeader, { backgroundColor: colors.accent }, isInvoice ? { paddingVertical: 5 } : {}]} wrap={false}>
@@ -729,7 +758,7 @@ function InvoicePdfBody({
                 </View>
               ) : null}
               <View style={[styles.signatureBox, { width: 'auto', flex: 1, padding: 4 }]}>
-                <InvoiceTrackingQr accent={colors.dark} />
+                <InvoiceTrackingQr accent={colors.dark} branded={barcodeLayout} background={colors.softBg} border={colors.softBorder} />
               </View>
             </>
           ) : (
@@ -787,9 +816,13 @@ function InvoicePdfBody({
                   </View>
                 </>
               ) : null}
-              <View style={[styles.grandTotal, { borderTopColor: colors.accent }]}>
+              <View style={[
+                styles.grandTotal,
+                { borderTopColor: colors.accent },
+                barcodeLayout ? { backgroundColor: colors.dark, color: "#ffffff", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
+              ]}>
                 <Text>{isInvoice ? 'BALANCE DUE' : 'TOTAL DUE'}</Text>
-                <Text style={{ color: colors.accent }}>
+                <Text style={{ color: barcodeLayout ? "#ffffff" : colors.accent }}>
                   {money(isInvoice ? invoiceBalanceDue(invoice) : invoice.total, currency)}
                 </Text>
               </View>
@@ -1181,12 +1214,12 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: 2) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion) {
   switch (document.type) {
     case 'invoices':
       return (
         <Document>
-          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} photoLayout={version === 2} />
+          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
         </Document>
       );
     case 'quotes':
