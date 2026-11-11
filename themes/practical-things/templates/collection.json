@@ -1,0 +1,17 @@
+{
+  "sections": {
+    "filters": {
+      "type": "collection-filters"
+    },
+    "products": {
+      "type": "featured-products",
+      "settings": {
+        "heading": "Collection"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["filters", "products", "newsletter"]
+}

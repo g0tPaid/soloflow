@@ -1,0 +1,14 @@
+{
+  "sections": {
+    "story": {
+      "type": "why-exists",
+      "settings": {
+        "heading": "Practical things, made to last"
+      }
+    },
+    "newsletter": {
+      "type": "newsletter"
+    }
+  },
+  "order": ["story", "newsletter"]
+}

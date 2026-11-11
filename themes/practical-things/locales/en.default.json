@@ -1,0 +1,17 @@
+{
+  "sections": {
+    "header": {
+      "cart": "Cart"
+    },
+    "newsletter": {
+      "email": "Email address",
+      "success": "You are on the list. Own less. Own better."
+    }
+  },
+  "products": {
+    "product": {
+      "add_to_cart": "Add to cart",
+      "sold_out": "Sold out"
+    }
+  }
+}
