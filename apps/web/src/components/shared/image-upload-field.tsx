@@ -1,7 +1,7 @@
 'use client';
 
 import { useRef, useState } from 'react';
-import { Camera, X } from 'lucide-react';
+import { Camera, ImagePlus, X } from 'lucide-react';
 import { INVOICE_BANNER_SIZE } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -60,7 +60,8 @@ export function ImageUploadField({
   compact = false,
   variant = 'square',
 }: Props) {
-  const inputRef = useRef<HTMLInputElement>(null);
+  const galleryRef = useRef<HTMLInputElement>(null);
+  const cameraRef = useRef<HTMLInputElement>(null);
   const [uploading, setUploading] = useState(false);
   const isBanner = variant === 'banner';
   const isSignature = variant === 'signature';
@@ -147,10 +148,10 @@ export function ImageUploadField({
         )}
         <div className="flex flex-col gap-2">
           <input
-            ref={inputRef}
+            ref={galleryRef}
             type="file"
             accept="image/jpeg,image/png,image/webp,image/gif"
-            capture="environment"
+            data-source="gallery"
             className="hidden"
             onChange={(e) => {
               const file = e.target.files?.[0];
@@ -158,15 +159,41 @@ export function ImageUploadField({
               e.target.value = '';
             }}
           />
-          <Button
-            type="button"
-            variant="outline"
-            size="sm"
-            disabled={uploading}
-            onClick={() => inputRef.current?.click()}
-          >
-            {uploading ? 'Uploading...' : value ? 'Change image' : 'Add image'}
-          </Button>
+          <input
+            ref={cameraRef}
+            type="file"
+            accept="image/jpeg,image/png,image/webp,image/gif"
+            capture="environment"
+            data-source="camera"
+            className="hidden"
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) void handleFile(file);
+              e.target.value = '';
+            }}
+          />
+          <div className="flex flex-wrap gap-2">
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploading}
+              onClick={() => galleryRef.current?.click()}
+            >
+              <ImagePlus className="h-4 w-4" />
+              {uploading ? 'Uploading...' : 'Gallery'}
+            </Button>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              disabled={uploading}
+              onClick={() => cameraRef.current?.click()}
+            >
+              <Camera className="h-4 w-4" />
+              Camera
+            </Button>
+          </div>
           <p className="text-xs text-muted-foreground">
             {isSignature
               ? 'PNG or JPG · saved as sharp 300×300 (fits invoice save limit)'
