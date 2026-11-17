@@ -10,8 +10,8 @@ const RECEIPT_WIDTH = (80 / 25.4) * 72;
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 12, paddingVertical: 14, color: '#121212', fontFamily: 'Helvetica', fontSize: 9 },
   center: { alignItems: 'center', textAlign: 'center' },
-  brand: { fontSize: 9, fontWeight: 'bold', marginTop: 4 },
-  heading: { fontSize: 17, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
+  brand: { fontSize: 8, color: '#64646d', marginTop: 4 },
+  heading: { fontSize: 12, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
   detail: { fontSize: 8, marginTop: 3, color: '#3f3f46' },
   divider: { borderTopWidth: 1, borderTopColor: '#8b8b91', borderStyle: 'dashed', marginVertical: 8 },
   row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#a1a1aa', borderStyle: 'dotted' },
@@ -39,7 +39,11 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
         <Text style={styles.label}>{invoice.number}</Text>
         <Text style={styles.detail}>{data.date}</Text>
         {invoice.customer?.name ? <Text style={styles.detail}>Bill to: {invoice.customer.name}</Text> : null}
+        {data.customerAddress.length ? <Text style={styles.detail}>{data.customerAddress.join('\n')}</Text> : null}
         {data.status ? <Text style={styles.label}>{data.status}</Text> : null}
+        <View style={{ marginTop: 7 }}>
+          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={144} height={15} />
+        </View>
       </View>
       <View style={styles.divider} />
       {data.items.map((item) => {
@@ -50,7 +54,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
             <View style={styles.item}>
               <Text style={styles.label}>{item.title}</Text>
               {item.description ? <Text style={styles.detail}>{item.description}</Text> : null}
-              <Text style={styles.detail}>{item.quantity}</Text>
+              <Text style={[styles.detail, styles.label]}>{item.quantity}</Text>
             </View>
             <Text style={styles.amount}>{item.amount}</Text>
           </View>
@@ -62,7 +66,6 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
       <View style={styles.footer}>
-        <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={RECEIPT_WIDTH - 24} />
         <InvoiceTrackingQr accent="#18181b" background="#ffffff" />
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
       </View>

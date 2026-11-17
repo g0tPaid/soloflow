@@ -12,20 +12,29 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
   return (
     <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label="Mobile invoice">
       <header className="space-y-1 text-center">
-        <div className="mb-2 flex items-center justify-center gap-1.5">
+        <div className="mb-2 flex items-center justify-center gap-1.5 text-[clamp(1.25rem,6.7vw,1.75rem)]">
           {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={sevenColorMark} alt="" className="h-10 w-10 shrink-0 object-contain" />
-          <p className="text-[clamp(1.25rem,6.7vw,1.75rem)] font-extrabold tracking-tight">sourcing<span className="text-[#e4001b]">.center</span></p>
+          <img src={sevenColorMark} alt="" className="h-[1.1em] w-[1.1em] shrink-0 object-contain" />
+          <p className="font-extrabold tracking-tight">sourcing<span className="text-[#e4001b]">.center</span></p>
         </div>
-        <p className="text-xs font-semibold">{data.organizationName}</p>
+        <p className="text-xs text-zinc-500">{data.organizationName}</p>
         {data.address ? <p className="text-xs">{data.address}</p> : null}
         {data.contact ? <p className="break-words text-xs">{data.contact}</p> : null}
         {data.taxId ? <p className="text-xs">TRN {data.taxId}</p> : null}
-        <h1 className="pt-2 text-2xl font-extrabold">INVOICE</h1>
+        <h1 className="pt-2 text-base font-bold">INVOICE</h1>
         <p className="break-words font-mono font-semibold">{invoice.number}</p>
         <p>{data.date}</p>
         {invoice.customer?.name ? <p>Bill to: {invoice.customer.name}</p> : null}
+        {data.customerAddress.length ? (
+          <p className="whitespace-pre-line break-words text-xs text-zinc-700">{data.customerAddress.join('\n')}</p>
+        ) : null}
         {data.status ? <p className="font-semibold">{data.status}</p> : null}
+        <div className="pt-2">
+          <svg width={Math.min(barcode.width, 144)} height={18} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`Invoice barcode for ${barcode.value}`}>
+            {barcode.bands.map(({ fill, path }) => <path key={fill} fill={fill} d={path} />)}
+          </svg>
+          <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
+        </div>
       </header>
       <ul className="my-4 space-y-3 border-t border-dashed border-zinc-400 pt-4">
         {data.items.map((item) => {
@@ -37,7 +46,7 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
               <div className="min-w-0 flex-1 break-words">
                 <p className="font-bold">{item.title}</p>
                 {item.description ? <p className="text-xs text-zinc-600">{item.description}</p> : null}
-                <p className="text-xs tabular-nums text-zinc-700">{item.quantity}</p>
+                <p className="text-xs font-bold tabular-nums text-zinc-800">{item.quantity}</p>
               </div>
               <p className="shrink-0 text-right text-sm font-semibold tabular-nums">{item.amount}</p>
             </li>
@@ -54,12 +63,6 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
       </dl>
       {invoice.notes ? <p className="mt-3 whitespace-pre-wrap break-words text-xs">{invoice.notes}</p> : null}
       <footer className="mt-5 grid justify-items-center gap-3 text-center">
-        <div>
-          <svg width={barcode.width} height={27} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`Invoice barcode for ${barcode.value}`}>
-            {barcode.bands.map(({ fill, path }) => <path key={fill} fill={fill} d={path} />)}
-          </svg>
-          <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
-        </div>
         <a href={trackingUrl} className="flex items-center gap-2 rounded-lg border border-zinc-300 px-2 py-1.5 text-left">
           <svg width={47} height={47} viewBox="0 0 37 37" aria-hidden="true">
             <path fill="#000" d={trackingQrPath} />

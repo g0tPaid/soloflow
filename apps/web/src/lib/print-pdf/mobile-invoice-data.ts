@@ -18,6 +18,7 @@ export function getMobileInvoiceData(invoice: Invoice, organization?: Organizati
     date,
     organizationName: organization?.name ?? 'Your Company',
     address: formatAddressLines(branding.address).join(' · '),
+    customerAddress: formatAddressLines(invoice.customer?.address ?? undefined),
     contact: [branding.phone, branding.email].filter(Boolean).join(' · '),
     taxId: branding.trn,
     website: branding.website,
