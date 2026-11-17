@@ -35,7 +35,24 @@ import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invo
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
-const INVOICE_FRAME = { position: 'absolute', top: 6, right: 6, bottom: 6, left: 6, borderWidth: 9, borderRadius: 17, borderColor: BRANDED_INVOICE_RED } as const;
+const INVOICE_FRAME_WIDTH = 2.25;
+const INVOICE_FRAME = {
+  position: 'absolute',
+  top: 0,
+  right: 0,
+  bottom: 0,
+  left: 0,
+  backgroundColor: BRANDED_INVOICE_RED,
+} as const;
+const INVOICE_FRAME_INTERIOR = {
+  position: 'absolute',
+  top: INVOICE_FRAME_WIDTH,
+  right: INVOICE_FRAME_WIDTH,
+  bottom: INVOICE_FRAME_WIDTH,
+  left: INVOICE_FRAME_WIDTH,
+  backgroundColor: '#ffffff',
+  borderRadius: 5,
+} as const;
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
 const GREEN_DARK = '#065F46';
@@ -628,7 +645,11 @@ function InvoicePdfBody({
 
   return (
     <Page size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
-      {barcodeLayout ? <View style={INVOICE_FRAME} fixed /> : null}
+      {barcodeLayout ? (
+        <View style={INVOICE_FRAME} fixed>
+          <View style={INVOICE_FRAME_INTERIOR} />
+        </View>
+      ) : null}
       <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} framed={barcodeLayout} />
       {barcodeLayout ? <View style={{ height: 15 }} /> : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
