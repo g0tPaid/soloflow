@@ -1,6 +1,6 @@
 'use client';
 
-import { type InvoicePdfVersion } from '@/lib/invoice-version';
+import { type InvoicePdfVersion, usesBrandedInvoiceLayout } from '@/lib/invoice-version';
 import { pdf } from '@react-pdf/renderer';
 import type { Invoice, Organization } from '@/lib/api';
 import { embedInvoiceImages } from '@/lib/print-pdf/embed-print-images';
@@ -37,7 +37,7 @@ export async function renderInvoicePdfFile(
 ): Promise<File> {
   const origin = baseUrl ?? (typeof window !== 'undefined' ? window.location.origin : '');
   const prepared = await embedInvoiceImages(invoice, org, origin);
-  const printOrg = version === 3
+  const printOrg = usesBrandedInvoiceLayout(version)
     ? await prepareTransparentSignature(prepared.org, transparentSignature)
     : prepared.org;
   const blob = await pdf(

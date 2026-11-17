@@ -1,4 +1,4 @@
-import { invoicePdfVersion } from '@/lib/invoice-version';
+import { invoicePdfVersion, usesBrandedInvoiceLayout } from '@/lib/invoice-version';
 import 'server-only';
 
 import sharp from 'sharp';
@@ -50,7 +50,7 @@ export async function generatePrintPdf(
   const baseUrl = resolveBaseUrl(request);
   const document = await loadPrintDocument(accessToken, type, id, organizationId);
   const version = invoicePdfVersion(new URL(request.url).searchParams.get('version'));
-  if (version === 3 && document.type === 'invoices') {
+  if (usesBrandedInvoiceLayout(version) && document.type === 'invoices') {
     const org = await prepareTransparentSignature(document.org, (source) => transparentSignature(source, baseUrl));
     return renderToBuffer(buildPdfDocument({ ...document, org }, baseUrl, version));
   }

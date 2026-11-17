@@ -1,4 +1,4 @@
-import { DROPSHIPPER_INVOICE_PDF_TITLE, type InvoicePdfVersion } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_PDF_TITLE, type InvoicePdfVersion, usesBrandedInvoiceLayout } from '@/lib/invoice-version';
 import {
   Document,
   Image,
@@ -595,14 +595,15 @@ function InvoicePdfBody({
 }) {
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
+  const highlightDropshipper = isInvoice && version === 4;
   const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
-  const title = dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
-  const photoLayout = version === 2 || version === 3;
-  const barcodeLayout = version === 3;
+  const title = highlightDropshipper || dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
+  const barcodeLayout = usesBrandedInvoiceLayout(version);
+  const photoLayout = version === 2 || barcodeLayout;
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);
   const palette = invoiceAccentPalette(branding.invoiceAccent);
-  const colors = barcodeLayout ? { ...palette, softBg: '#faf6ef', softBorder: '#e9e0d3' } : palette;
+  const colors = barcodeLayout ? { ...palette, softBg: '#fdfbf7', softBorder: '#f2ece1' } : palette;
   const customerAddress = formatAddressLines(customer?.address ?? undefined);
   const signatureSrc = resolveImg(branding.invoiceSignature, baseUrl);
   const offerSrcs = [
@@ -685,7 +686,12 @@ function InvoicePdfBody({
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
-              {barcodeLayout ? <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 4 }}>{title} · {invoice.number}</Text> : (
+              {highlightDropshipper ? (
+                <Text style={{ alignSelf: 'flex-start', backgroundColor: '#fce8e9', color: '#9f1326', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, marginBottom: 4 }}>
+                  {title}
+                </Text>
+              ) : null}
+              {barcodeLayout ? <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 4 }}>{highlightDropshipper ? documentLabel : title} · {invoice.number}</Text> : (
                 <View style={styles.row}>
                   <Text style={styles.muted}>{numberLabel}</Text>
                   <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>
@@ -841,7 +847,7 @@ function InvoicePdfBody({
               <View style={[
                 styles.grandTotal,
                 { borderTopColor: colors.accent },
-                barcodeLayout ? { backgroundColor: "#f4ece0", borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
+                barcodeLayout ? { backgroundColor: '#fbf8f2', borderTopWidth: 0, borderRadius: 5, padding: 6, marginTop: 3 } : {},
               ]}>
                 <Text>{isInvoice ? 'BALANCE DUE' : 'TOTAL DUE'}</Text>
                 <Text style={{ color: colors.accent }}>

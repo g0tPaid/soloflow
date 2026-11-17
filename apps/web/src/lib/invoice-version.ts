@@ -2,7 +2,11 @@ export type InvoicePdfVersion = 2 | 3 | 4;
 
 export const DROPSHIPPER_INVOICE_PATH = '/invoices-v4';
 export const DROPSHIPPER_INVOICE_DRAFT_ID = '/dropshipper-invoices';
-export const DROPSHIPPER_INVOICE_PDF_TITLE = 'Dropshippers Invoice';
+export const DROPSHIPPER_INVOICE_PDF_TITLE = 'Dropshipper Invoice';
+
+export function usesBrandedInvoiceLayout(version?: InvoicePdfVersion) {
+  return version === 3 || version === 4;
+}
 
 export function invoicePdfVersion(value: string | null): InvoicePdfVersion | undefined {
   if (value === '2') return 2;
