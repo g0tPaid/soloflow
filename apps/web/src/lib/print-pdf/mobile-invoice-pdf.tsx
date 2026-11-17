@@ -73,8 +73,14 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
-      <View style={{ alignItems: "center", marginTop: 10 }}><Link src="https://wise.com/pay/me/ajmala214" style={{ fontSize: 10, fontWeight: "bold", color: "#166534", textDecoration: "underline" }}>Pay with Wise</Link></View>
-      <View style={{ alignItems: "center", marginTop: 6 }}><Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ fontSize: 10, fontWeight: "bold", color: "#1d4ed8", textDecoration: "underline" }}>Download Official Invoice</Link></View>
+      <View style={{ marginTop: 12, alignItems: 'center' }} wrap={false}>
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#163300', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 8, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 190, textDecoration: 'none' }}>
+          Pay with Wise
+        </Link>
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#1d4ed8', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 8, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 190, marginTop: 8, textDecoration: 'none' }}>
+          Download Official Invoice
+        </Link>
+      </View>
       <View style={styles.footer}>
         <InvoiceTrackingQr accent="#18181b" background="#ffffff" />
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
