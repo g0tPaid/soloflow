@@ -72,15 +72,16 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
-      {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
-      <View style={{ marginTop: 12, alignItems: 'center' }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#163300', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 8, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 190, textDecoration: 'none' }}>
+      <View style={{ marginTop: 10, alignItems: 'center', paddingTop: 10, borderTopWidth: 1, borderTopColor: '#d4d4d8' }} wrap={false}>
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#163300', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 18, borderRadius: 5, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 194, textDecoration: 'none' }}>
           Pay with Wise
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#1d4ed8', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 8, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 190, marginTop: 8, textDecoration: 'none' }}>
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#1d4ed8', color: '#ffffff', paddingVertical: 11, paddingHorizontal: 12, borderRadius: 5, fontSize: 10, fontWeight: 'bold', textAlign: 'center', width: 194, marginTop: 8, textDecoration: 'none' }}>
           Download Official Invoice
         </Link>
       </View>
+
+      {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
       <View style={styles.footer}>
         <InvoiceTrackingQr accent="#18181b" background="#ffffff" />
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
