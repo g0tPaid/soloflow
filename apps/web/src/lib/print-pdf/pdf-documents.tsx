@@ -39,7 +39,7 @@ import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invo
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
-const INVOICE_FRAME_WIDTH = 2.8125;
+const INVOICE_FRAME_WIDTH = 3.65625;
 const INVOICE_FRAME = {
   position: 'absolute',
   top: 0,
