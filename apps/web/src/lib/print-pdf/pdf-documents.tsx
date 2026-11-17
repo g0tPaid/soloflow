@@ -31,12 +31,11 @@ import {
 
 import { InvoiceBarcode } from './invoice-barcode';
 import { SourcingBrand } from './sourcing-brand';
-import { InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
+import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
-const INVOICE_EDGE_ROSE = '#b97980';
-const INVOICE_FOOTER_ROSE = '#965961';
+const INVOICE_FRAME = { position: 'absolute', top: 6, right: 6, bottom: 6, left: 6, borderWidth: 9, borderRadius: 17, borderColor: BRANDED_INVOICE_RED } as const;
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
 const GREEN_DARK = '#065F46';
@@ -391,10 +390,12 @@ function ContinuedPageHeader({
   org,
   baseUrl,
   accent = RED,
+  framed = false,
 }: {
   org: Organization;
   baseUrl: string;
   accent?: string;
+  framed?: boolean;
 }) {
   const branding = parseBranding(org.settings?.branding);
   const logo = shouldShowInvoiceLogo(branding, org.logo)
@@ -407,7 +408,7 @@ function ContinuedPageHeader({
       fixed
       render={({ pageNumber }) =>
         pageNumber > 1 ? (
-          <View style={styles.continuedHeader}>
+          <View style={[styles.continuedHeader, framed ? { marginHorizontal: 28, paddingHorizontal: 0, paddingTop: 22 } : {}]}>
             {logo ? (
               <Image src={logo} style={styles.continuedLogo} />
             ) : (
@@ -439,9 +440,9 @@ function PageFooter({
   const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
 
   return (
-    <View style={[styles.fixedFooter, compact ? { height: 44 } : {}, rounded ? { left: 28, right: 28, bottom: 12, height: 28 } : {}]} fixed>
+    <View style={[styles.fixedFooter, compact ? { height: 44 } : {}, rounded ? { left: 28, right: 28, bottom: 22, height: 24 } : {}]} fixed>
       {!rounded ? <BottomWave colors={colors} compact={compact} /> : null}
-      <View style={[styles.footerBar, { backgroundColor: colors.dark }, rounded ? { backgroundColor: INVOICE_FOOTER_ROSE, borderRadius: 10 } : {}]}>
+      <View style={[styles.footerBar, { backgroundColor: colors.dark }, rounded ? { backgroundColor: BRANDED_INVOICE_RED, borderRadius: 10 } : {}]}>
         <Text style={styles.footerText}>{line || ' '}</Text>
       </View>
     </View>
@@ -451,7 +452,7 @@ function PageFooter({
 function PageNumber({ rounded = false }: { rounded?: boolean }) {
   return (
     <Text
-      style={[styles.pageNumber, rounded ? { right: 40, bottom: 22, color: '#ffffff' } : {}]}
+      style={[styles.pageNumber, rounded ? { right: 40, bottom: 30, color: '#ffffff' } : {}]}
       fixed
       render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
     />
@@ -626,11 +627,10 @@ function InvoicePdfBody({
   const footerContacts = [branding.website, branding.phone, branding.email].filter(Boolean);
 
   return (
-    <Page size="A4" style={[styles.page, photoLayout ? { paddingBottom: 48 } : {}]} wrap>
-      <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-      {barcodeLayout ? (
-        <View style={{ marginHorizontal: 28, marginTop: 10, height: 5, borderRadius: 3, backgroundColor: INVOICE_EDGE_ROSE }} />
-      ) : <TopWave colors={colors} compact={photoLayout} />}
+    <Page size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
+      {barcodeLayout ? <View style={INVOICE_FRAME} fixed /> : null}
+      <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} framed={barcodeLayout} />
+      {barcodeLayout ? <View style={{ height: 15 }} /> : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
         {barcodeLayout ? (
           <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
@@ -785,7 +785,7 @@ function InvoicePdfBody({
         ) : null}
 
         {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
-        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}, barcodeLayout ? { borderTopWidth: 1, borderTopColor: '#dbb9bb', borderTopLeftRadius: 4, borderTopRightRadius: 4, paddingTop: 5 } : {}]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}, barcodeLayout ? { borderTopWidth: 1, borderTopColor: '#e57384', borderTopLeftRadius: 4, borderTopRightRadius: 4, paddingTop: 5 } : {}]} wrap={false}>
           {photoLayout ? (
             <>
               {signatureSrc ? (
