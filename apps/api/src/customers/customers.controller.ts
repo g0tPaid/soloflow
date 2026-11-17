@@ -25,6 +25,11 @@ export class CustomersController {
     return this.customersService.findAll(orgId, page, limit);
   }
 
+  @Get('next-dropshipper-number')
+  suggestDropshipperNumber(@Headers(TENANT_HEADER) orgId: string) {
+    return this.customersService.suggestDropshipperNumber(orgId);
+  }
+
   @Get(':id/activity')
   @ApiOperation({ summary: 'Customer balances by currency and their quotes' })
   activity(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {

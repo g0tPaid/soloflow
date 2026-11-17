@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useQuery } from '@tanstack/react-query';
 import { Plus } from 'lucide-react';
+import { customerDropshipperId } from '@/lib/dropshipper-id';
 import { loadCustomers } from '@/lib/offline/catalog';
 import { offlineQueryOptions } from '@/lib/offline/network';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -119,6 +120,9 @@ export default function CustomersPage() {
             >
               <div>
                 <p className="font-medium">{customer.name}</p>
+                {customerDropshipperId(customer) ? (
+                  <p className="text-sm text-muted-foreground">Dropshipper ID {customerDropshipperId(customer)}</p>
+                ) : null}
                 <p className="text-sm text-muted-foreground">
                   {[customer.email, customer.phone].filter(Boolean).join(' · ') || 'No contact info'}
                 </p>

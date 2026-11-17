@@ -234,6 +234,8 @@ model Customer {
   customFields   Json     @default("{}")
   isActive       Boolean  @default(true)
   isDropshipper  Boolean  @default(false)
+  dropshipperNumber String?
+  dropshipperPrefix String?
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 
@@ -244,6 +246,7 @@ model Customer {
 
   @@index([organizationId])
   @@index([organizationId, email])
+  @@unique([organizationId, dropshipperNumber])
   @@map("customers")
 }
 

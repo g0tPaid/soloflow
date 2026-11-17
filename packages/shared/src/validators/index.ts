@@ -168,6 +168,8 @@ export const updateMemberRoleSchema = z.object({
 
 export const createCustomerSchema = z.object({
   isDropshipper: z.boolean().optional(),
+  dropshipperNumber: z.string().regex(/^(?:[0-9]{4})?$/, 'Enter exactly four digits').optional(),
+  dropshipperPrefix: z.string().regex(/^[a-z0-9]{0,12}$/i, 'Use up to 12 letters or numbers').optional(),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -190,7 +192,7 @@ export const updateCustomerSchema = createCustomerSchema.partial();
 
 // ─── Vendor ──────────────────────────────────────────────────────────────────
 
-export const createVendorSchema = createCustomerSchema.omit({ isDropshipper: true });
+export const createVendorSchema = createCustomerSchema.omit({ isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true });
 export const updateVendorSchema = createVendorSchema.partial();
 
 // ─── Product ─────────────────────────────────────────────────────────────────

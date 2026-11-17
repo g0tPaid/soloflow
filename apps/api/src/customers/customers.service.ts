@@ -1,5 +1,5 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
-import { InvoiceStatus } from '@flowbooks/database';
+import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma, InvoiceStatus } from '@flowbooks/database';
 import { BALANCE_EXCLUDED_STATUSES, balanceGroupsFromSums } from '@flowbooks/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
@@ -90,22 +90,82 @@ export class CustomersService {
     return customer;
   }
 
-  async create(organizationId: string, dto: CreateCustomerDto) {
-    return this.prisma.customer.create({
-      data: { ...dto, isDropshipper: dto.isDropshipper === true, organizationId, address: dto.address || {} },
+  async suggestDropshipperNumber(organizationId: string) {
+    const assigned = await this.prisma.customer.findMany({
+      where: { organizationId, dropshipperNumber: { not: null } },
+      select: { dropshipperNumber: true },
     });
+    const numbers = new Set(assigned.map((customer) => customer.dropshipperNumber));
+    for (let index = 1; index <= 10000; index++) {
+      const candidate = String(index % 10000).padStart(4, '0');
+      if (!numbers.has(candidate)) return { number: candidate };
+    }
+    return { number: null };
+  }
+
+  private requireDropshipperNumber(number: string | null | undefined) {
+    if (!number || !/^[0-9]{4}$/.test(number)) {
+      throw new BadRequestException('Enter a four-digit dropshipper number.');
+    }
+  }
+
+  private rethrowCustomerError(error: unknown): never {
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2002') {
+      throw new ConflictException('That dropshipper number is already in use in your organization.');
+    }
+    throw error;
+  }
+
+  async create(organizationId: string, dto: CreateCustomerDto) {
+    const { dropshipperNumber, dropshipperPrefix, ...fields } = dto;
+    if (dto.isDropshipper) this.requireDropshipperNumber(dropshipperNumber);
+    try {
+      return await this.prisma.customer.create({
+        data: {
+          ...fields,
+          organizationId,
+          address: dto.address || {},
+          isDropshipper: dto.isDropshipper === true,
+          dropshipperNumber: dto.isDropshipper ? dropshipperNumber : null,
+          dropshipperPrefix: dto.isDropshipper ? dropshipperPrefix?.toUpperCase() || null : null,
+        },
+      });
+    } catch (error) {
+      this.rethrowCustomerError(error);
+    }
   }
 
   async update(organizationId: string, id: string, dto: UpdateCustomerDto) {
     await this.findOne(organizationId, id);
-    return this.prisma.$transaction(async (tx) => {
-      const customer = await tx.customer.update({
-        where: { id },
-        data: { ...dto, isDropshipper: dto.isDropshipper ?? undefined },
+    const { dropshipperNumber, dropshipperPrefix, ...fields } = dto;
+    try {
+      return await this.prisma.$transaction(async (tx) => {
+        const result = await tx.$queryRaw<{
+          isDropshipper: boolean;
+          dropshipperNumber: string | null;
+        }[]>`SELECT "isDropshipper", "dropshipperNumber" FROM "customers"
+          WHERE "id" = ${id} AND "organizationId" = ${organizationId} FOR UPDATE`;
+        const existing = result[0];
+        if (!existing) throw new NotFoundException('Customer not found');
+        const isDropshipper = dto.isDropshipper ?? existing.isDropshipper;
+        const number = dropshipperNumber ?? existing.dropshipperNumber;
+        if (isDropshipper) this.requireDropshipperNumber(number);
+        const customer = await tx.customer.update({
+          where: { id },
+          data: {
+            ...fields,
+            isDropshipper,
+            dropshipperNumber: isDropshipper ? number : undefined,
+            dropshipperPrefix: isDropshipper && dropshipperPrefix !== undefined
+              ? dropshipperPrefix?.toUpperCase() || null : undefined,
+          },
+        });
+        if (dto.isDropshipper === false) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
+        return customer;
       });
-      if (dto.isDropshipper === false) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
-      return customer;
-    });
+    } catch (error) {
+      this.rethrowCustomerError(error);
+    }
   }
 
   async remove(organizationId: string, id: string) {

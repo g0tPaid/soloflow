@@ -1,4 +1,4 @@
-import { IsBoolean, IsString, IsEmail, IsOptional, IsObject } from 'class-validator';
+import { Matches, IsBoolean, IsString, IsEmail, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
@@ -6,6 +6,14 @@ export class CreateCustomerDto {
   @IsOptional()
   @IsBoolean()
   isDropshipper?: boolean;
+
+  @IsOptional()
+  @Matches(/^[0-9]{4}$/, { message: 'Dropshipper number must be exactly four digits' })
+  dropshipperNumber?: string;
+
+  @IsOptional()
+  @Matches(/^[a-z0-9]{0,12}$/i, { message: 'Use up to 12 letters or numbers for the prefix' })
+  dropshipperPrefix?: string;
 
   @ApiProperty()
   @IsString()

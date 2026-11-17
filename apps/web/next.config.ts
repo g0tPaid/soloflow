@@ -32,7 +32,8 @@ const nextConfig: NextConfig = {
     if (!apiOrigin) return [];
     return [
       {
-        source: '/api/v1/:path*',
+        // The partner portal is rendered by a dynamic Next route, before the API proxy.
+        source: '/api/v1/:path((?!partner-shipments/).*)',
         destination: `${apiOrigin}/api/v1/:path*`,
       },
     ];

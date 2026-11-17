@@ -1,6 +1,7 @@
 'use client';
 
 import Link from 'next/link';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
 import { createCustomerSchema, type CreateCustomerInput, CURRENCIES } from '@flowbooks/shared';
@@ -18,6 +19,8 @@ const selectClassName = cn(
 );
 
 const customerFormSchema = createCustomerSchema.extend({
+  dropshipperNumber: z.string().optional(),
+  dropshipperPrefix: z.string().optional(),
   email: z
     .string()
     .optional()
@@ -41,6 +44,18 @@ const customerFormSchema = createCustomerSchema.extend({
     .optional()
     .nullable()
     .transform((value) => (value?.trim() ? value.trim() : null)),
+}).superRefine((data, context) => {
+  if (!data.isDropshipper) return;
+  if (!/^[0-9]{4}$/.test(data.dropshipperNumber ?? '')) {
+    context.addIssue({
+      code: 'custom',
+      path: ['dropshipperNumber'],
+      message: 'Enter a four-digit dropshipper number.',
+    });
+  }
+  if (!/^[a-z0-9]{0,12}$/i.test(data.dropshipperPrefix ?? '')) {
+    context.addIssue({ code: 'custom', path: ['dropshipperPrefix'], message: 'Use up to 12 letters or numbers.' });
+  }
 });
 
 export type CustomerFormInput = z.input<typeof customerFormSchema>;
@@ -48,6 +63,7 @@ export type CustomerFormInput = z.input<typeof customerFormSchema>;
 type Props = {
   businessCurrency: string;
   customer?: Customer;
+  suggestDropshipperNumber?: () => Promise<{ number: string | null }>;
   loading?: boolean;
   errorMessage?: string | null;
   onSubmit: (data: CreateCustomerInput) => void;
@@ -60,21 +76,28 @@ function addressValue(customer: Customer | undefined, key: keyof NonNullable<Cus
 export function CustomerForm({
   businessCurrency,
   customer,
+  suggestDropshipperNumber,
   loading = false,
   errorMessage,
   onSubmit,
 }: Props) {
   const isEdit = Boolean(customer);
+  const [numberMessage, setNumberMessage] = useState('');
 
   const {
     register,
     handleSubmit,
+    watch,
+    getValues,
+    setValue,
     formState: { errors },
   } = useForm<CustomerFormInput>({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
       name: customer?.name ?? '',
       isDropshipper: customer?.isDropshipper === true,
+      dropshipperNumber: customer?.dropshipperNumber ?? '',
+      dropshipperPrefix: customer?.dropshipperPrefix ?? '',
       email: customer?.email ?? '',
       phone: customer?.phone ?? '',
       currency: customer?.currency ?? businessCurrency,
@@ -91,6 +114,24 @@ export function CustomerForm({
     },
   });
 
+  const isDropshipper = watch('isDropshipper');
+
+  async function fillSuggestedNumber(checked: boolean) {
+    if (!checked || getValues('dropshipperNumber') || !suggestDropshipperNumber) return;
+    setNumberMessage('');
+    try {
+      const { number } = await suggestDropshipperNumber();
+      if (!getValues('isDropshipper') || getValues('dropshipperNumber')) return;
+      if (number) {
+        setValue('dropshipperNumber', number, { shouldValidate: true });
+      } else {
+        setNumberMessage('All four-digit numbers are in use.');
+      }
+    } catch {
+      setNumberMessage('Enter an available four-digit number.');
+    }
+  }
+
   return (
     <Card>
       <CardHeader>
@@ -101,7 +142,13 @@ export function CustomerForm({
       </CardHeader>
       <CardContent>
         <form
-          onSubmit={handleSubmit((data) => onSubmit(data as CreateCustomerInput))}
+          onSubmit={handleSubmit((data) => {
+            const { dropshipperNumber, dropshipperPrefix, ...fields } = data;
+            onSubmit({
+              ...fields,
+              ...(data.isDropshipper ? { dropshipperNumber, dropshipperPrefix } : {}),
+            } as CreateCustomerInput);
+          })}
           className="space-y-6"
         >
           <div className="grid gap-4 sm:grid-cols-2">
@@ -111,9 +158,29 @@ export function CustomerForm({
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <label className="flex items-center gap-2 rounded-md border p-3 text-sm font-medium sm:col-span-2">
-              <input type="checkbox" className="size-4 accent-[#E40046]" {...register('isDropshipper')} />
+              <input type="checkbox" className="size-4 accent-[#E40046]" {...register('isDropshipper', { onChange: (event) => void fillSuggestedNumber(event.target.checked) })} />
               This customer is a dropshipper
             </label>
+            {isDropshipper ? (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="dropshipperNumber">Dropshipper number *</Label>
+                  <Input id="dropshipperNumber" inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
+                    placeholder="0001" required aria-invalid={Boolean(errors.dropshipperNumber)}
+                    {...register('dropshipperNumber')} />
+                  <p className={errors.dropshipperNumber ? 'text-sm text-destructive' : 'text-xs text-muted-foreground'}>
+                    {errors.dropshipperNumber?.message ?? (numberMessage || 'Four digits, including leading zeros.')}
+                  </p>
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="dropshipperPrefix">ID prefix</Label>
+                  <Input id="dropshipperPrefix" maxLength={12} placeholder="AJ" {...register('dropshipperPrefix')} />
+                  <p className={errors.dropshipperPrefix ? 'text-sm text-destructive' : 'text-xs text-muted-foreground'}>
+                    {errors.dropshipperPrefix?.message ?? 'Optional letters or numbers.'}
+                  </p>
+                </div>
+              </>
+            ) : null}
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="billing@acme.com" {...register('email')} />

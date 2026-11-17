@@ -59,6 +59,7 @@ export default function NewCustomerPage() {
 
       <CustomerForm
         businessCurrency={businessCurrency}
+        suggestDropshipperNumber={() => api.customers.suggestDropshipperNumber(session!.accessToken!, organizationId)}
         loading={mutation.isPending}
         errorMessage={mutation.isError && mutation.error instanceof Error ? mutation.error.message : null}
         onSubmit={(data) => mutation.mutate(data)}

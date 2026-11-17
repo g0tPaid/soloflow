@@ -163,6 +163,8 @@ export interface WorkspaceSearchResponse {
 
 export interface Customer {
   isDropshipper?: boolean;
+  dropshipperNumber?: string | null;
+  dropshipperPrefix?: string | null;
   id: string;
   name: string;
   email?: string | null;
@@ -761,6 +763,8 @@ export const api = {
       ),
   },
   customers: {
+    suggestDropshipperNumber: (token: string, organizationId: string) =>
+      apiFetch<{ number: string | null }>('/customers/next-dropshipper-number', { token, organizationId }),
     list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
       apiFetch<PaginatedResult<Customer>>(
         `/customers${buildQuery(params)}`,
@@ -788,6 +792,8 @@ export const api = {
       data: {
         name: string;
         isDropshipper?: boolean;
+        dropshipperNumber?: string;
+        dropshipperPrefix?: string;
         email?: string | null;
         phone?: string | null;
         currency?: string;
@@ -809,6 +815,8 @@ export const api = {
       data: Partial<{
         name: string;
         isDropshipper?: boolean;
+        dropshipperNumber?: string;
+        dropshipperPrefix?: string;
         email?: string | null;
         phone?: string | null;
         currency?: string;

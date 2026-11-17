@@ -5,6 +5,7 @@ import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { customerDropshipperId } from '@/lib/dropshipper-id';
 import type { Customer, Invoice, QuoteStatus } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 
@@ -20,6 +21,7 @@ function formatAddress(address?: Customer['address'] | null): string {
 function contactRows(customer: Customer): Array<[string, string]> {
   const address = formatAddress(customer.address);
   const rows: Array<[string, string | null | undefined]> = [
+    ['Dropshipper ID', customerDropshipperId(customer)],
     ['Email', customer.email],
     ['Phone', customer.phone],
     ['TRN', customer.taxId],
