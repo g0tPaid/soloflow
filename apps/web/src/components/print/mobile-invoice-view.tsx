@@ -1,21 +1,23 @@
 import type { Invoice, Organization } from '@/lib/api';
 import { resolveImageSrc } from '@/lib/organization-branding';
 import { buildInvoiceBarcode } from '@/lib/print-pdf/invoice-barcode-data';
+import { sevenColorMark } from '@/lib/print-pdf/sourcing-brand-mark';
 import { trackingQrPath, trackingUrl } from '@/lib/print-pdf/invoice-tracking-qr-data';
 import { getMobileInvoiceData } from '@/lib/print-pdf/mobile-invoice-data';
 
 export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice; organization?: Organization | null }) {
   const data = getMobileInvoiceData(invoice, organization);
   const barcode = buildInvoiceBarcode(invoice.number, invoice.id);
-  const logo = resolveImageSrc(data.logo);
 
   return (
     <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label="Mobile invoice">
       <header className="space-y-1 text-center">
-        {/* Images may be stored on the organization server or on this device. */}
-        {/* eslint-disable-next-line @next/next/no-img-element */}
-        {logo ? <img src={logo} alt="" className="mx-auto mb-2 h-12 max-w-full object-contain" /> : null}
-        <p className="text-lg font-bold">{data.organizationName}</p>
+        <div className="mb-2 flex items-center justify-center gap-1.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src={sevenColorMark} alt="" className="h-10 w-10 shrink-0 object-contain" />
+          <p className="text-[clamp(1.25rem,6.7vw,1.75rem)] font-extrabold tracking-tight">sourcing<span className="text-[#e4001b]">.center</span></p>
+        </div>
+        <p className="text-xs font-semibold">{data.organizationName}</p>
         {data.address ? <p className="text-xs">{data.address}</p> : null}
         {data.contact ? <p className="break-words text-xs">{data.contact}</p> : null}
         {data.taxId ? <p className="text-xs">TRN {data.taxId}</p> : null}
@@ -25,11 +27,11 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
         {invoice.customer?.name ? <p>Bill to: {invoice.customer.name}</p> : null}
         {data.status ? <p className="font-semibold">{data.status}</p> : null}
       </header>
-      <ul className="my-4 space-y-3 border-y border-dashed border-zinc-400 py-4">
+      <ul className="my-4 space-y-3 border-t border-dashed border-zinc-400 pt-4">
         {data.items.map((item) => {
           const image = resolveImageSrc(item.image);
           return (
-            <li key={item.id} className="flex items-start gap-2.5">
+            <li key={item.id} className="flex items-start gap-2.5 border-b border-dotted border-zinc-400 pb-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               {image ? <img src={image} alt="" className="h-10 w-10 shrink-0 rounded object-cover" /> : null}
               <div className="min-w-0 flex-1 break-words">

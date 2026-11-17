@@ -4,17 +4,17 @@ import { resolveImageSrcForPrint } from '@/lib/organization-branding';
 import { InvoiceBarcode } from './invoice-barcode';
 import { InvoiceTrackingQr } from './invoice-v2-pdf';
 import { getMobileInvoiceData } from './mobile-invoice-data';
+import { SourcingBrand } from './sourcing-brand';
 
 const RECEIPT_WIDTH = (80 / 25.4) * 72;
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 12, paddingVertical: 14, color: '#121212', fontFamily: 'Helvetica', fontSize: 9 },
   center: { alignItems: 'center', textAlign: 'center' },
-  logo: { width: 98, height: 34, objectFit: 'contain', marginBottom: 5 },
-  brand: { fontSize: 13, fontWeight: 'bold' },
+  brand: { fontSize: 9, fontWeight: 'bold', marginTop: 4 },
   heading: { fontSize: 17, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
   detail: { fontSize: 8, marginTop: 3, color: '#3f3f46' },
   divider: { borderTopWidth: 1, borderTopColor: '#8b8b91', borderStyle: 'dashed', marginVertical: 8 },
-  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 8 },
+  row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#a1a1aa', borderStyle: 'dotted' },
   photo: { width: 28, height: 28, borderRadius: 3, marginRight: 6, objectFit: 'cover' },
   item: { flex: 1, paddingRight: 4 },
   label: { fontWeight: 'bold' },
@@ -26,12 +26,11 @@ const styles = StyleSheet.create({
 
 export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; org: Organization; baseUrl: string }) {
   const data = getMobileInvoiceData(invoice, org);
-  const logo = resolveImageSrcForPrint(data.logo, baseUrl);
 
   return (
     <Page size={{ width: RECEIPT_WIDTH }} style={styles.page} wrap={false}>
       <View style={styles.center}>
-        {logo ? <Image src={logo} style={styles.logo} /> : null}
+        <SourcingBrand horizontal />
         <Text style={styles.brand}>{data.organizationName}</Text>
         {data.address ? <Text style={styles.detail}>{data.address}</Text> : null}
         {data.contact ? <Text style={styles.detail}>{data.contact}</Text> : null}
@@ -57,7 +56,6 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
           </View>
         );
       })}
-      <View style={styles.divider} />
       {data.totals.map(({ label, amount }) => (
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}

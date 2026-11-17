@@ -1,7 +1,7 @@
 import { invoiceAmountPaid, invoiceBalanceDue } from '@flowbooks/shared';
 import type { Invoice, Organization } from '@/lib/api';
 import { parseStoredLineItem } from '@/lib/line-items';
-import { formatAddressLines, parseBranding, shouldShowInvoiceLogo } from '@/lib/organization-branding';
+import { formatAddressLines, parseBranding } from '@/lib/organization-branding';
 import { formatCurrency } from '@/lib/utils';
 
 export function getMobileInvoiceData(invoice: Invoice, organization?: Organization | null) {
@@ -17,7 +17,6 @@ export function getMobileInvoiceData(invoice: Invoice, organization?: Organizati
   return {
     date,
     organizationName: organization?.name ?? 'Your Company',
-    logo: shouldShowInvoiceLogo(branding, organization?.logo) ? organization?.logo : undefined,
     address: formatAddressLines(branding.address).join(' · '),
     contact: [branding.phone, branding.email].filter(Boolean).join(' · '),
     taxId: branding.trn,
