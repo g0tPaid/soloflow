@@ -128,7 +128,7 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
                   href={`/invoices/${quote.convertedInvoiceId}`}
                   className="text-sm text-primary hover:underline"
                 >
-                  View invoice →
+                  View latest invoice →
                 </Link>
               )}
             </div>
@@ -169,11 +169,11 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
                   className="gap-2"
                 >
                   <FileInput className="h-4 w-4" />
-                  {converting ? 'Converting…' : 'Convert to invoice'}
+                  {converting ? 'Converting…' : quote.convertedInvoiceId ? 'Create new invoice' : 'Convert to invoice'}
                 </Button>
               )}
               {convertError && (
-                <p className="text-sm text-destructive sm:text-right">{convertError}</p>
+                <p role="alert" className="text-sm text-destructive sm:text-right">{convertError}</p>
               )}
             </>
           )}
@@ -207,7 +207,10 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
       )}
 
       {quote && organizationId && (
-        <div id="edit-quote" className="scroll-mt-20">
+        <div id="edit-quote" className="scroll-mt-20 space-y-3">
+          {quote.status === 'CONVERTED' ? (
+            <p className="text-sm text-muted-foreground">Save your changes to create a new draft invoice from this quote.</p>
+          ) : null}
           <QuoteForm
             mode="edit"
             quote={quote}

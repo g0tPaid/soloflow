@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ConflictException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuoteDto, UpdateQuoteDto } from './dto/quote.dto';
 import { InvoiceStatus, Prisma, QuoteStatus } from '@flowbooks/database';
@@ -166,8 +166,10 @@ export class QuotesService {
 
   async update(organizationId: string, id: string, dto: UpdateQuoteDto) {
     const existing = await this.findOne(organizationId, id);
-    if (existing.status === QuoteStatus.CONVERTED) {
-      throw new BadRequestException('This quote was already converted to an invoice');
+    const wasConverted = existing.status === QuoteStatus.CONVERTED;
+    const hasQuoteEdits = Object.entries(dto).some(([key, value]) => key !== 'status' && value !== undefined);
+    if (wasConverted && !hasQuoteEdits) {
+      throw new BadRequestException('Save edits to this quote before creating another invoice.');
     }
 
     const discount = dto.discount !== undefined ? dto.discount : Number(existing.discount);
@@ -199,7 +201,11 @@ export class QuotesService {
     };
 
     if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();
-    if (dto.status) updateData.status = dto.status as QuoteStatus;
+    if (wasConverted && (!dto.status || dto.status === QuoteStatus.CONVERTED)) {
+      updateData.status = QuoteStatus.DRAFT;
+    } else if (dto.status && dto.status !== QuoteStatus.CONVERTED) {
+      updateData.status = dto.status as QuoteStatus;
+    }
     if (dto.validUntil !== undefined) {
       updateData.validUntil = dto.validUntil ? new Date(dto.validUntil) : null;
     }
@@ -256,18 +262,25 @@ export class QuotesService {
       };
     }
 
-    return this.prisma.quote.update({
-      where: { id },
-      data: updateData,
-      include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
-    });
+    try {
+      return await this.prisma.quote.update({
+        where: { id, organizationId, updatedAt: existing.updatedAt },
+        data: updateData,
+        include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
+      });
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new ConflictException('This quote changed while you were editing it. Reload the quote and try again.');
+      }
+      throw error;
+    }
   }
 
   /** Create a draft invoice from this quote and mark the quote CONVERTED. */
   async convertToInvoice(organizationId: string, id: string) {
     const quote = await this.findOne(organizationId, id);
-    if (quote.status === QuoteStatus.CONVERTED || quote.convertedInvoiceId) {
-      throw new BadRequestException('This quote was already converted to an invoice');
+    if (quote.status === QuoteStatus.CONVERTED) {
+      throw new BadRequestException('Save edits to this quote before creating another invoice.');
     }
     if (quote.items.length === 0) {
       throw new BadRequestException('Quote has no line items');
@@ -279,6 +292,14 @@ export class QuotesService {
     const invoiceNumber = `${settings?.invoicePrefix || 'INV'}-${String(settings?.invoiceNextNum || 1).padStart(5, '0')}`;
 
     return this.prisma.$transaction(async (tx) => {
+      const claimed = await tx.quote.updateMany({
+        where: { id, organizationId, updatedAt: quote.updatedAt, status: { not: QuoteStatus.CONVERTED } },
+        data: { status: QuoteStatus.CONVERTED },
+      });
+      if (claimed.count !== 1) {
+        throw new ConflictException('This quote changed or was already invoiced. Reload it and try again.');
+      }
+
       const invoice = await tx.invoice.create({
         data: {
           organizationId,

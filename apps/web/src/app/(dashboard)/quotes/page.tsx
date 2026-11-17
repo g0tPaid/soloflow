@@ -78,6 +78,7 @@ export default function QuotesPage() {
   const { organizationId, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
+  const [convertError, setConvertError] = useState('');
 
   const {
     data,
@@ -119,12 +120,14 @@ export default function QuotesPage() {
     event.stopPropagation();
     if (!session?.accessToken || !organizationId || convertingId) return;
     setConvertingId(id);
+    setConvertError('');
     try {
       const { invoice } = await api.quotes.convert(session.accessToken, organizationId, id);
       await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
       await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
       router.push(`/invoices/${invoice.id}`);
-    } catch {
+    } catch (error) {
+      setConvertError(error instanceof Error ? error.message : 'Failed to convert quote');
       setConvertingId(null);
     }
   }
@@ -198,6 +201,7 @@ export default function QuotesPage() {
         </Card>
       )}
 
+      {convertError ? <p role="alert" className="text-sm text-destructive">{convertError}</p> : null}
       {quotes.length > 0 && (
         <div className="space-y-3">
           {quotes.map((quote) => {
@@ -270,7 +274,7 @@ export default function QuotesPage() {
                           onClick={(e) => void convertToInvoice(quote.id, e)}
                         >
                           <FileInput className="h-3.5 w-3.5" />
-                          {convertingId === quote.id ? 'Converting…' : 'To invoice'}
+{convertingId === quote.id ? 'Converting…' : quote.convertedInvoiceId ? 'New invoice' : 'To invoice'}
                         </Button>
                       )}
                       {quote.status === 'DRAFT' && (

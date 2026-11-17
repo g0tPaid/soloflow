@@ -435,7 +435,7 @@ function QuoteFormEditor(
             <div className="space-y-2">
               <Label htmlFor="status">Status</Label>
               <select id="status" className={selectClassName} {...editForm.register('status')}>
-                {QUOTE_STATUSES.map((status) => (
+                {QUOTE_STATUSES.filter((status) => status !== 'CONVERTED' || quote?.status === 'CONVERTED').map((status) => (
                   <option key={status} value={status}>
                     {status}
                   </option>
