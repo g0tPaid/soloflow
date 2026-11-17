@@ -124,7 +124,7 @@ export function NewInvoicePageContent() {
     return createInvoiceWithOfflineFallback({
       token: session!.accessToken!,
       organizationId: organizationId!,
-      data: dropshippingPartner ? { ...data, dropshippingPartner: true } : data,
+      data,
       customer,
     });
   }

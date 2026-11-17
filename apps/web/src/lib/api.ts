@@ -162,6 +162,7 @@ export interface WorkspaceSearchResponse {
 }
 
 export interface Customer {
+  isDropshipper?: boolean;
   id: string;
   name: string;
   email?: string | null;
@@ -270,6 +271,10 @@ export interface InvoiceFulfillmentEvent {
 }
 
 export interface Invoice {
+  partnerOrderNumber?: string | null;
+  endRecipientName?: string | null;
+  endRecipientAddress?: string | null;
+  shipmentCarrier?: string | null;
   id: string;
   organizationId: string;
   customerId?: string | null;
@@ -782,6 +787,7 @@ export const api = {
       organizationId: string,
       data: {
         name: string;
+        isDropshipper?: boolean;
         email?: string | null;
         phone?: string | null;
         currency?: string;
@@ -802,6 +808,7 @@ export const api = {
       id: string,
       data: Partial<{
         name: string;
+        isDropshipper?: boolean;
         email?: string | null;
         phone?: string | null;
         currency?: string;

@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
 import { FilePlus, Pencil } from 'lucide-react';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
@@ -57,6 +58,7 @@ type BalanceGroup = {
 
 type Props = {
   customer: Customer;
+  portalOrganizationId?: string;
   invoices: Invoice[];
   invoicesLoading?: boolean;
   invoicesError?: string | null;
@@ -70,6 +72,7 @@ type Props = {
 
 export function CustomerView({
   customer,
+  portalOrganizationId,
   invoices,
   invoicesLoading = false,
   invoicesError = null,
@@ -87,7 +90,7 @@ export function CustomerView({
     <div className="mx-auto max-w-2xl space-y-6">
       <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
         <div>
-          <p className="text-sm text-muted-foreground">Customer</p>
+          <p className="text-sm text-muted-foreground">{customer.isDropshipper ? 'Dropshipping partner' : 'Customer'}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
@@ -105,6 +108,10 @@ export function CustomerView({
           </Button>
         </div>
       </div>
+
+      {customer.isDropshipper && portalOrganizationId ? (
+        <DropshipPortalControls key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
+      ) : null}
 
       <Card>
         <CardHeader>

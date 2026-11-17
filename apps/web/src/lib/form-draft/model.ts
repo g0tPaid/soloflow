@@ -39,6 +39,11 @@ export interface FormDraftLine {
 
 export interface FormDraftContent {
   customerId: string;
+  dropshippingPartner: boolean;
+  partnerOrderNumber: string;
+  endRecipientName: string;
+  endRecipientAddress: string;
+  shipmentCarrier: string;
   number: string;
   issueDate: string;
   dueDate: string;
@@ -80,6 +85,11 @@ export function blankDraftLine(): FormDraftLine {
 export function emptyFormDraftContent(): FormDraftContent {
   return {
     customerId: '',
+    dropshippingPartner: false,
+    partnerOrderNumber: '',
+    endRecipientName: '',
+    endRecipientAddress: '',
+    shipmentCarrier: '',
     number: '',
     issueDate: '',
     dueDate: '',
@@ -144,6 +154,11 @@ export function normalizeFormDraftContent(content: Partial<FormDraftContent> | n
   const items = Array.isArray(source.items) && source.items.length > 0 ? source.items : [blankDraftLine()];
   return {
     customerId: cleanText(source.customerId),
+    dropshippingPartner: source.dropshippingPartner === true,
+    partnerOrderNumber: cleanText(source.partnerOrderNumber),
+    endRecipientName: cleanText(source.endRecipientName),
+    endRecipientAddress: cleanText(source.endRecipientAddress),
+    shipmentCarrier: cleanText(source.shipmentCarrier),
     number: cleanText(source.number),
     issueDate: cleanText(source.issueDate),
     dueDate: cleanText(source.dueDate),
@@ -196,6 +211,11 @@ export function sameFormDraftScope(left: FormDraftScope, right: FormDraftScope) 
 
 const SCALAR_KEYS = [
   'customerId',
+  'dropshippingPartner',
+  'partnerOrderNumber',
+  'endRecipientName',
+  'endRecipientAddress',
+  'shipmentCarrier',
   'number',
   'issueDate',
   'dueDate',

@@ -74,6 +74,7 @@ export function CustomerForm({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
       name: customer?.name ?? '',
+      isDropshipper: customer?.isDropshipper === true,
       email: customer?.email ?? '',
       phone: customer?.phone ?? '',
       currency: customer?.currency ?? businessCurrency,
@@ -109,6 +110,10 @@ export function CustomerForm({
               <Input id="name" placeholder="Acme Corp" {...register('name')} />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
+            <label className="flex items-center gap-2 rounded-md border p-3 text-sm font-medium sm:col-span-2">
+              <input type="checkbox" className="size-4 accent-[#E40046]" {...register('isDropshipper')} />
+              This customer is a dropshipper
+            </label>
             <div className="space-y-2">
               <Label htmlFor="email">Email</Label>
               <Input id="email" type="email" placeholder="billing@acme.com" {...register('email')} />

@@ -1,17 +1,19 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Headers, Req, Header } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiHeader } from '@nestjs/swagger';
+import { DropshipPortalService } from './dropship-portal.service';
 import { CustomersService } from './customers.service';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
+import { TenantMemberGuard } from '../common/tenant-member.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
 @ApiTags('Customers')
 @Controller('customers')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantMemberGuard)
 @ApiBearerAuth()
 @ApiHeader({ name: TENANT_HEADER, required: true })
 export class CustomersController {
-  constructor(private customersService: CustomersService) {}
+  constructor(private customersService: CustomersService, private portals: DropshipPortalService) {}
 
   @Get()
   @ApiOperation({ summary: 'List customers' })
@@ -27,6 +29,17 @@ export class CustomersController {
   @ApiOperation({ summary: 'Customer balances by currency and their quotes' })
   activity(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.customersService.activity(orgId, id);
+  }
+
+  @Post(':id/dropship-portal')
+  @Header('Cache-Control', 'private, no-store')
+  issuePortal(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } }) {
+    return this.portals.issue(orgId, req.user.sub, id);
+  }
+
+  @Delete(':id/dropship-portal')
+  revokePortal(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } }) {
+    return this.portals.revoke(orgId, req.user.sub, id);
   }
 
   @Get(':id')

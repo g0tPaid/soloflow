@@ -10,6 +10,7 @@ import {
   createInvoiceSchema,
   updateInvoiceSchema,
   isProvisionalInvoiceNumber,
+  isDropshippingPartnerInvoice,
   PROVISIONAL_INVOICE_NUMBER,
   type CreateInvoiceInput,
   type UpdateInvoiceInput,
@@ -21,6 +22,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { CurrencySelect } from '@/components/currency-select';
+import { DropshipInvoiceFields } from '@/components/invoices/dropship-invoice-fields';
 import { DraftStatus } from '@/components/invoices/draft-status';
 import { LineItemsEditor } from '@/components/invoices/line-items-editor';
 import { ShippingFields } from '@/components/invoices/shipping-fields';
@@ -117,11 +119,16 @@ interface EditInvoiceFormProps extends DraftFormExtras {
 
 type InvoiceFormProps = CreateInvoiceFormProps | EditInvoiceFormProps;
 
-function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraftContent {
+function buildInvoiceBaseline(props: InvoiceFormProps, today: string, dedicatedDropshipForm: boolean): FormDraftContent {
   if (props.mode === 'edit') {
     const invoice = props.invoice;
     return formDraftContent({
       customerId: invoice.customerId ?? '',
+      dropshippingPartner: isDropshippingPartnerInvoice(invoice),
+      partnerOrderNumber: invoice.partnerOrderNumber ?? '',
+      endRecipientName: invoice.endRecipientName ?? '',
+      endRecipientAddress: invoice.endRecipientAddress ?? '',
+      shipmentCarrier: invoice.shipmentCarrier ?? '',
       number: invoice.number ?? '',
       issueDate: toDateInput(invoice.issueDate) || today,
       dueDate: toDateInput(invoice.dueDate),
@@ -142,6 +149,7 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraft
   if (props.initialDraft) {
     return formDraftContent({
       ...props.initialDraft,
+      dropshippingPartner: dedicatedDropshipForm || props.initialDraft.dropshippingPartner,
       number: props.initialDraft.number || props.suggestedNumber || '',
       issueDate: props.initialDraft.issueDate || today,
     });
@@ -149,6 +157,7 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraft
   const prefilled = props.customers.find((customer) => customer.id === props.initialCustomerId);
   return formDraftContent({
     customerId: props.initialCustomerId ?? '',
+    dropshippingPartner: dedicatedDropshipForm || prefilled?.isDropshipper === true,
     number: props.suggestedNumber ?? '',
     issueDate: today,
     currency: prefilled?.currency || props.defaultCurrency || 'INR',
@@ -157,9 +166,11 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string): FormDraft
 }
 
 export function InvoiceForm(props: InvoiceFormProps) {
+  const pathname = usePathname();
+  const dedicatedDropshipForm = isDropshipperInvoicePath(pathname);
   const today = useRef(toDateInput(new Date())).current;
   const baseline = useMemo(
-    () => buildInvoiceBaseline(props, today),
+    () => buildInvoiceBaseline(props, today, dedicatedDropshipForm),
     // Suggested numbers and saved invoices update the baseline for a new session.
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [
@@ -169,10 +180,10 @@ export function InvoiceForm(props: InvoiceFormProps) {
       'initialCustomerId' in props ? props.initialCustomerId ?? '' : '',
       'initialDraft' in props ? formDraftFingerprint(props.initialDraft ?? formDraftContent({})) : '',
       today,
+      dedicatedDropshipForm,
     ],
   );
-  const pathname = usePathname();
-  const draftId = isDropshipperInvoicePath(pathname) ? DROPSHIPPER_INVOICE_DRAFT_ID : NEW_DOCUMENT_DRAFT_ID;
+  const draftId = dedicatedDropshipForm ? DROPSHIPPER_INVOICE_DRAFT_ID : NEW_DOCUMENT_DRAFT_ID;
   const identity = props.draftIdentity;
   const scope =
     identity?.userId && identity.organizationId
@@ -202,7 +213,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
       key={draft.generation}
       {...props}
       invoicePath={invoicePathForRoute(pathname)}
-      initialContent={scope ? draft.initialContent : undefined}
+      initialContent={scope ? draft.initialContent : baseline}
       draft={draft.controller}
     />
   );
@@ -241,6 +252,11 @@ function InvoiceFormEditor(
     resolver: zodResolver(createInvoiceFormSchema),
     defaultValues: {
       customerId: seed?.customerId ?? '',
+      dropshippingPartner: seed?.dropshippingPartner ?? false,
+      partnerOrderNumber: seed?.partnerOrderNumber ?? '',
+      endRecipientName: seed?.endRecipientName ?? '',
+      endRecipientAddress: seed?.endRecipientAddress ?? '',
+      shipmentCarrier: seed?.shipmentCarrier ?? '',
       number: seed?.number ?? (props.mode === 'create' ? props.suggestedNumber ?? '' : ''),
       issueDate: seed?.issueDate || toDateInput(new Date()),
       dueDate: seed?.dueDate ?? '',
@@ -260,6 +276,11 @@ function InvoiceFormEditor(
     resolver: zodResolver(updateInvoiceSchema),
     defaultValues: {
       number: seed?.number ?? invoice?.number ?? '',
+      dropshippingPartner: seed?.dropshippingPartner ?? (invoice ? isDropshippingPartnerInvoice(invoice) : false),
+      partnerOrderNumber: seed?.partnerOrderNumber ?? invoice?.partnerOrderNumber ?? '',
+      endRecipientName: seed?.endRecipientName ?? invoice?.endRecipientName ?? '',
+      endRecipientAddress: seed?.endRecipientAddress ?? invoice?.endRecipientAddress ?? '',
+      shipmentCarrier: seed?.shipmentCarrier ?? invoice?.shipmentCarrier ?? '',
       status: (seed?.status || invoice?.status || 'DRAFT') as UpdateInvoiceInput['status'],
       dueDate: seed ? seed.dueDate || null : toDateInput(invoice?.dueDate) || null,
       notes: seed?.notes ?? invoice?.notes ?? '',
@@ -286,6 +307,11 @@ function InvoiceFormEditor(
   const draftContent = isEdit
     ? formDraftContent({
         customerId: invoice?.customerId ?? '',
+        dropshippingPartner: editValues.dropshippingPartner ?? false,
+        partnerOrderNumber: editValues.partnerOrderNumber ?? '',
+        endRecipientName: editValues.endRecipientName ?? '',
+        endRecipientAddress: editValues.endRecipientAddress ?? '',
+        shipmentCarrier: editValues.shipmentCarrier ?? '',
         number: editValues.number ?? '',
         issueDate: toDateInput(invoice?.issueDate),
         dueDate: editValues.dueDate ?? '',
@@ -304,6 +330,11 @@ function InvoiceFormEditor(
       })
     : formDraftContent({
         customerId: createValues.customerId ?? '',
+        dropshippingPartner: createValues.dropshippingPartner ?? false,
+        partnerOrderNumber: createValues.partnerOrderNumber ?? '',
+        endRecipientName: createValues.endRecipientName ?? '',
+        endRecipientAddress: createValues.endRecipientAddress ?? '',
+        shipmentCarrier: createValues.shipmentCarrier ?? '',
         number: createValues.number ?? '',
         issueDate: createValues.issueDate ?? '',
         dueDate: createValues.dueDate ?? '',
@@ -435,6 +466,14 @@ function InvoiceFormEditor(
   if (isEdit) {
     return (
       <form onSubmit={editForm.handleSubmit(handleEditSubmit)} className="space-y-6">
+        <DropshipInvoiceFields
+          checked={editForm.watch('dropshippingPartner') === true}
+          checkbox={editForm.register('dropshippingPartner')}
+          orderNumber={editForm.register('partnerOrderNumber')}
+          recipient={editForm.register('endRecipientName')}
+          address={editForm.register('endRecipientAddress')}
+          carrier={editForm.register('shipmentCarrier')}
+        />
         <Card id="edit-line-items" className="scroll-mt-20 border-[#E40046]/40">
           <CardHeader>
             <CardTitle>Line items</CardTitle>
@@ -619,6 +658,10 @@ function InvoiceFormEditor(
               {...createForm.register('customerId', {
                 onChange: (e) => {
                   const customer = props.customers.find((c) => c.id === e.target.value);
+                  createForm.setValue('dropshippingPartner', isDropshipperInvoicePath(invoicePath) || customer?.isDropshipper === true);
+                  for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
+                    createForm.setValue(field, '');
+                  }
                   if (customer?.currency && !currencyTouched.current) {
                     setInvoiceCurrency(customer.currency);
                     createForm.setValue('currency', customer.currency);
@@ -648,6 +691,15 @@ function InvoiceFormEditor(
               </p>
             ) : null}
           </div>
+
+          <DropshipInvoiceFields
+            checked={createForm.watch('dropshippingPartner') === true}
+            checkbox={createForm.register('dropshippingPartner')}
+            orderNumber={createForm.register('partnerOrderNumber')}
+            recipient={createForm.register('endRecipientName')}
+            address={createForm.register('endRecipientAddress')}
+            carrier={createForm.register('shipmentCarrier')}
+          />
 
           <CurrencySelect
             id="currency"

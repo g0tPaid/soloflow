@@ -12,7 +12,7 @@ export default function CustomerViewPage() {
   const params = useParams();
   const id = params.id as string;
   const { data: session, status } = useSession();
-  const { organizationId, isReady } = useOrganizationId();
+  const { organizationId, organization, isReady } = useOrganizationId();
 
   const token = session?.accessToken;
   const canFetch = status === 'authenticated' && !!token && !!organizationId;
@@ -78,6 +78,7 @@ export default function CustomerViewPage() {
   return (
     <CustomerView
       customer={customerQuery.data}
+      portalOrganizationId={organization?.role === 'ADMIN' || organization?.role === 'OWNER' ? organizationId : undefined}
       invoices={invoicesQuery.data?.data ?? []}
       invoicesLoading={invoicesQuery.isLoading}
       balances={activityQuery.data?.balances ?? []}

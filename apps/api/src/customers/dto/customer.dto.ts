@@ -1,8 +1,12 @@
-import { IsString, IsEmail, IsOptional, IsObject } from 'class-validator';
+import { IsBoolean, IsString, IsEmail, IsOptional, IsObject } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
 export class CreateCustomerDto {
+  @IsOptional()
+  @IsBoolean()
+  isDropshipper?: boolean;
+
   @ApiProperty()
   @IsString()
   name!: string;

@@ -167,6 +167,7 @@ export const updateMemberRoleSchema = z.object({
 // ─── Customer ────────────────────────────────────────────────────────────────
 
 export const createCustomerSchema = z.object({
+  isDropshipper: z.boolean().optional(),
   name: z.string().min(1, 'Name is required'),
   email: z.string().email().optional().nullable(),
   phone: z.string().optional().nullable(),
@@ -189,7 +190,7 @@ export const updateCustomerSchema = createCustomerSchema.partial();
 
 // ─── Vendor ──────────────────────────────────────────────────────────────────
 
-export const createVendorSchema = createCustomerSchema;
+export const createVendorSchema = createCustomerSchema.omit({ isDropshipper: true });
 export const updateVendorSchema = createVendorSchema.partial();
 
 // ─── Product ─────────────────────────────────────────────────────────────────
@@ -230,8 +231,16 @@ const optionalDateField = z
   .union([dateStringSchema, z.literal(''), z.null(), z.undefined()])
   .transform((value) => (value && value !== '' ? value : null));
 
-export const createInvoiceSchema = z.object({
+const dropshipInvoiceFields = {
   dropshippingPartner: z.boolean().optional(),
+  partnerOrderNumber: z.string().trim().max(120).nullable().optional(),
+  endRecipientName: z.string().trim().max(160).nullable().optional(),
+  endRecipientAddress: z.string().trim().max(500).nullable().optional(),
+  shipmentCarrier: z.string().trim().max(120).nullable().optional(),
+};
+
+export const createInvoiceSchema = z.object({
+  ...dropshipInvoiceFields,
   customerId: z.string().min(1, 'Customer is required'),
   number: z.string().min(1, 'Invoice number is required').max(50).optional(),
   issueDate: dateStringSchema.optional(),
@@ -269,6 +278,7 @@ export const fulfillmentStatusSchema = z.enum(FULFILLMENT_STATUS_VALUES);
 
 export const updateInvoiceSchema = z
   .object({
+    ...dropshipInvoiceFields,
     number: z.string().min(1, 'Invoice number is required').max(50).optional(),
     status: z.enum(['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'PAID', 'OVERDUE', 'CANCELLED', 'VOID']).optional(),
     dueDate: optionalDateField.optional(),

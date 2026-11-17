@@ -2,12 +2,13 @@ import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } 
 import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
+import { TenantMemberGuard } from '../common/tenant-member.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
 @ApiTags('Invoices')
 @Controller('invoices')
-@UseGuards(JwtAuthGuard)
+@UseGuards(JwtAuthGuard, TenantMemberGuard)
 @ApiBearerAuth()
 @ApiHeader({ name: TENANT_HEADER, required: true })
 export class InvoicesController {

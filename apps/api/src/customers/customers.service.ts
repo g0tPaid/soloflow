@@ -92,23 +92,28 @@ export class CustomersService {
 
   async create(organizationId: string, dto: CreateCustomerDto) {
     return this.prisma.customer.create({
-      data: { ...dto, organizationId, address: dto.address || {} },
+      data: { ...dto, isDropshipper: dto.isDropshipper === true, organizationId, address: dto.address || {} },
     });
   }
 
   async update(organizationId: string, id: string, dto: UpdateCustomerDto) {
     await this.findOne(organizationId, id);
-    return this.prisma.customer.update({
-      where: { id },
-      data: dto,
+    return this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.update({
+        where: { id },
+        data: { ...dto, isDropshipper: dto.isDropshipper ?? undefined },
+      });
+      if (dto.isDropshipper === false) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
+      return customer;
     });
   }
 
   async remove(organizationId: string, id: string) {
     await this.findOne(organizationId, id);
-    return this.prisma.customer.update({
-      where: { id },
-      data: { isActive: false },
+    return this.prisma.$transaction(async (tx) => {
+      const customer = await tx.customer.update({ where: { id }, data: { isActive: false } });
+      await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
+      return customer;
     });
   }
 }

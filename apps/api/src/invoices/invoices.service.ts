@@ -372,6 +372,10 @@ export class InvoicesService {
             shippingTerms: dto.shippingTerms ?? null,
             shippingFromCountry: dto.shippingFromCountry?.trim() || null,
             shippingToCountry: dto.shippingToCountry?.trim() || null,
+            partnerOrderNumber: dto.partnerOrderNumber?.trim() || null,
+            endRecipientName: dto.endRecipientName?.trim() || null,
+            endRecipientAddress: dto.endRecipientAddress?.trim() || null,
+            shipmentCarrier: dto.shipmentCarrier?.trim() || null,
             subtotal,
             taxRate,
             taxAmount,
@@ -507,6 +511,20 @@ export class InvoicesService {
       updateData.status = dto.status as InvoiceStatus;
     } else if (!dto.status && nextStatusFromLedger) {
       updateData.status = nextStatusFromLedger;
+    }
+
+    if (typeof dto.dropshippingPartner === 'boolean') {
+      const customFields = existing.customFields;
+      const current = customFields && typeof customFields === 'object' && !Array.isArray(customFields)
+        ? customFields as Prisma.InputJsonObject
+        : {};
+      updateData.customFields = {
+        ...current,
+        [DROPSHIPPING_PARTNER_INVOICE_FIELD]: dto.dropshippingPartner,
+      };
+    }
+    for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
+      if (dto[field] !== undefined) updateData[field] = dto[field]?.trim() || null;
     }
 
     if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();

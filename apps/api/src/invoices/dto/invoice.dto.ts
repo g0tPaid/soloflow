@@ -41,6 +41,26 @@ export class InvoiceItemDto {
 }
 
 export class CreateInvoiceDto {
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  partnerOrderNumber?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  endRecipientName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  endRecipientAddress?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  shipmentCarrier?: string | null;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsBoolean()
@@ -131,6 +151,30 @@ export class CreateInvoiceDto {
 }
 
 export class UpdateInvoiceDto {
+  @IsOptional()
+  @IsBoolean()
+  dropshippingPartner?: boolean;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  partnerOrderNumber?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(160)
+  endRecipientName?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(500)
+  endRecipientAddress?: string | null;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(120)
+  shipmentCarrier?: string | null;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsString()
