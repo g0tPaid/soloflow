@@ -123,14 +123,46 @@ function inventory(rows: Stock[]) {
 
 type ImportedShipment = { order: string; tracking: string; recipient: string; carrier: string; origin: string; destination: string; postcode: string };
 
-function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid') {
+function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid', photos: string[][]) {
   if (!rows.length) return '';
   return '<section aria-label="Imported shipment history"><h2>Imported shipment history</h2><div class="shipments ' + view + '">' +
-    rows.map((row) => '<article><header><h2>' + escapeHtml(row.order ? 'Order ' + row.order : 'Shipment') +
+    rows.map((row, index) => '<article><header><h2>' + escapeHtml(row.order ? 'Order ' + row.order : 'Shipment') +
       '</h2><span class="badge">' + (row.tracking ? 'Tracking recorded' : 'Tracking pending') + '</span></header>' +
       '<dl class="details">' + detail('Recipient', row.recipient) + detail('Origin', row.origin) +
       detail('Destination', row.destination) + detail('Postcode', row.postcode) + detail('Carrier', row.carrier) +
-      detail('Tracking number', row.tracking) + '</dl></article>').join('') + '</div></section>';
+      detail('Tracking number', row.tracking) + '</dl>' + shipmentPhotos(photos[index] ?? []) + '</article>').join('') + '</div></section>';
+}
+
+const sourcingOrigin = 'https://sourcing.center';
+
+type SourceCustomer = { id: string; number: string | null; prefix: string | null };
+
+async function loadShipmentPhotos(customer: SourceCustomer | undefined, rows: ImportedShipment[]): Promise<string[][]> {
+  const key = process.env.PARTNER_SHIPMENT_PHOTO_KEY;
+  const customerId = process.env.PARTNER_SHIPMENT_PHOTO_CUSTOMER_ID;
+  if (!key || !customerId || customer?.id !== customerId || !customer.number || !rows.length) return [];
+  try {
+    const response = await fetch(sourcingOrigin + '/api/partner-shipment-photos', {
+      method: 'POST', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(3000),
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({ number: customer.number, prefix: customer.prefix ?? '', orders: rows.map(({ order, tracking }) => ({ order, tracking })) }),
+    });
+    if (!response.ok) return [];
+    const { photos } = await response.json();
+    return Array.isArray(photos) ? photos.map((group: unknown) => Array.isArray(group) ? group.filter((value): value is string =>
+      typeof value === 'string' && /^\/api\/partner-shipment-photos\/[a-z0-9-]+\/[a-z0-9-]+\?expires=\d{10}&signature=[A-Za-z0-9_-]{43}$/.test(value)) : []) : [];
+  } catch {
+    return [];
+  }
+}
+
+function shipmentPhotos(paths: string[]) {
+  if (!paths.length) return '';
+  return '<div class="shipment-photos" aria-label="Shipment photos">' + paths.map((path, index) => {
+    const url = escapeHtml(sourcingOrigin + path);
+    return '<a href="' + url + '" target="_blank" rel="noreferrer"><img src="' + url + '" alt="Shipment photo ' +
+      (index + 1) + '" loading="lazy" referrerpolicy="no-referrer"></a>';
+  }).join('') + '</div>';
 }
 
 const styles = `
@@ -143,7 +175,7 @@ nav a[aria-current=true]{background:#8e1744;color:#fff}.shipments{display:grid;g
 article,.empty,.inventory{background:#fff;border:1px solid #ece4e7;border-radius:18px;padding:clamp(14px,3vw,24px);min-width:0}article header{margin-bottom:16px}.badge{font-size:12px;font-weight:700;color:#176145;background:#e7f6ed;border-radius:999px;padding:5px 10px}
 .details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px 16px}dt,small{color:#695c63;font-size:12px}dd{overflow-wrap:anywhere;white-space:pre-line;font-weight:600}
 ul{padding:0;margin:16px 0;list-style:none;border-top:1px solid #efe9eb}li{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #efe9eb}li strong{overflow-wrap:anywhere}small{display:block}
-img,.photo{width:48px;height:48px;object-fit:cover;border-radius:8px;background:#f4edf0}.totals{display:flex;flex-wrap:wrap;gap:8px 20px}.totals div:last-child dd{color:#8e1744}.pagination{margin-top:16px}.inventory{margin-top:20px}.inventory ul{margin-bottom:0}.inventory li{grid-template-columns:48px minmax(0,1fr) minmax(90px,auto)}.inventory .totals{gap:5px 12px}.inventory li:last-child{border-bottom:0}
+img,.photo{width:48px;height:48px;object-fit:cover;border-radius:8px;background:#f4edf0}.totals{display:flex;flex-wrap:wrap;gap:8px 20px}.totals div:last-child dd{color:#8e1744}.pagination{margin-top:16px}.inventory{margin-top:20px}.inventory ul{margin-bottom:0}.inventory li{grid-template-columns:48px minmax(0,1fr) minmax(90px,auto)}.inventory .totals{gap:5px 12px}.inventory li:last-child{border-bottom:0}.shipment-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:16px}.shipment-photos img{width:100%;height:100px;object-fit:cover}
 `;
 
 function documentBody(content: string, status = 200) {
@@ -171,14 +203,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     });
     if (upstream.status === 404) return documentBody(unavailable, 404);
     if (!upstream.ok) throw new Error('Shipment service unavailable');
-    const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; hasMore: boolean } = await upstream.json();
+    const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean } = await upstream.json();
+    const history = data.importedShipments ?? [];
+    const photos = await loadShipmentPhotos(data.sourceCustomer, history);
     const href = (mode: 'list' | 'grid', number: number) => '?view=' + mode + '&amp;page=' + number;
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list', page) +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid', page) + '">Grid</a></nav>';
     const previous = page > 1 ? '<a href="' + href(view, page - 1) + '">Previous</a>' : '';
     const next = data.hasMore && page < 9999 ? '<a href="' + href(view, page + 1) + '">Next</a>' : '';
     return documentBody('<div class="top"><div><p class="eyebrow">SoloFlow · Sourcing Center</p><h1>Your shipments</h1>' +
-      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) + importedHistory(data.importedShipments ?? [], view) +
+      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) + importedHistory(history, view, photos) +
       '<section aria-label="Shipped orders" class="shipments ' + view + '">' +
       (data.shipments.length ? data.shipments.map(shipmentCard).join('') : (data.importedShipments?.length ? '' : '<p class="empty">No shipments on this page.</p>')) +
       '</section>' + (previous || next ? '<nav class="pagination" aria-label="Shipment pages">' + previous + next + '</nav>' : ''));
