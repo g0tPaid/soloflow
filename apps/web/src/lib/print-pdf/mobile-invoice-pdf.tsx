@@ -1,4 +1,4 @@
-import { Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
+import { Image, Link, Page, Path, StyleSheet, Svg, Text, View } from '@react-pdf/renderer';
 import type { Invoice, Organization } from '@/lib/api';
 import { resolveImageSrcForPrint } from '@/lib/organization-branding';
 import { InvoiceBarcode } from './invoice-barcode';
@@ -73,11 +73,21 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#163300', color: '#ffffff', paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7, fontSize: 8, fontWeight: 'bold', textAlign: 'center', textDecoration: 'none' }}>
-          Pay with Wise
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#edf7e9', borderWidth: 1, borderColor: '#b9d6aa', paddingVertical: 7, paddingHorizontal: 9, borderRadius: 7, textDecoration: 'none' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Svg width={13} height={13} viewBox="0 0 24 24">
+              <Path d="M3 6h18v12H3zM3 10h18M7 15h4" stroke="#23651c" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold' }}>Pay with Wise</Text>
+          </View>
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#1d4ed8', color: '#ffffff', paddingVertical: 7, paddingHorizontal: 10, borderRadius: 7, fontSize: 8, fontWeight: 'bold', textAlign: 'center', textDecoration: 'none' }}>
-          Download Official Invoice
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#eff5ff', borderWidth: 1, borderColor: '#bed4f9', paddingVertical: 7, paddingHorizontal: 9, borderRadius: 7, textDecoration: 'none' }}>
+          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
+            <Svg width={13} height={13} viewBox="0 0 24 24">
+              <Path d="M6 2h8l4 4v16H6zM14 2v5h5M12 10v8m-3-3 3 3 3-3" stroke="#1d4ed8" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+            <Text style={{ color: '#1d4ed8', fontSize: 8, fontWeight: 'bold' }}>Download Official Invoice</Text>
+          </View>
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
