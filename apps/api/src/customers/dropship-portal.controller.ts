@@ -11,8 +11,8 @@ export class DropshipPortalController {
   @HttpCode(200)
   @Header('Cache-Control', 'private, no-store')
   @Header('X-Robots-Tag', 'noindex, nofollow')
-  shipments(@Body('token') token: unknown, @Query('page') page?: string) {
+  shipments(@Body('token') token: unknown, @Query('page') page?: string, @Query('status') status?: string) {
     const number = typeof page === 'string' && /^\d{1,4}$/.test(page) ? Math.max(1, Number(page)) : 1;
-    return this.portals.shipments(token, (number - 1) * 20);
+    return this.portals.shipments(token, (number - 1) * 20, status === 'awaiting');
   }
 }

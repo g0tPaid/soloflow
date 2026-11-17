@@ -5,18 +5,20 @@ import { DROPSHIPPING_PARTNER_INVOICE_FIELD, FULFILLMENT_STATUS_VALUES, INTERNAT
 import { mergeImportedShipments, parsePartnerShipments, type ImportedShipment } from './dropship-shipment-import';
 import { PrismaService } from '../prisma/prisma.service';
 
-function shippedInvoices(organizationId: string, customerId: string): Prisma.InvoiceWhereInput {
-  const stages = FULFILLMENT_STATUS_VALUES.slice(FULFILLMENT_STATUS_VALUES.indexOf(INTERNATIONAL_TRACKING_STATUS));
+function partnerInvoices(organizationId: string, customerId: string): Prisma.InvoiceWhereInput {
   return {
     organizationId, customerId, vendorId: null,
     customFields: { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true },
     status: { notIn: ['CANCELLED', 'VOID'] },
-    OR: [
-      { fulfillmentStatus: { in: stages } },
-      { fulfillmentStatus: 'SHIPPED_TO_CHINA_CENTER', shippingMethod: 'LOCAL', localTrackingNumber: { not: null } },
-    ],
   };
 }
+
+const shippedFilter: Prisma.InvoiceWhereInput = {
+  OR: [
+    { fulfillmentStatus: { not: null, in: FULFILLMENT_STATUS_VALUES.slice(FULFILLMENT_STATUS_VALUES.indexOf(INTERNATIONAL_TRACKING_STATUS)) } },
+    { fulfillmentStatus: { equals: 'SHIPPED_TO_CHINA_CENTER', not: null }, shippingMethod: { equals: 'LOCAL', not: null }, localTrackingNumber: { not: null } },
+  ],
+};
 @Injectable()
 export class DropshipPortalService {
   constructor(private readonly prisma: PrismaService) {}
@@ -100,7 +102,7 @@ export class DropshipPortalService {
         orderBy: { product: { name: 'asc' } },
       }),
       this.prisma.invoiceItem.groupBy({
-        by: ['productId'], where: { productId: { not: null }, invoice: { ...shippedInvoices(organizationId, customerId), customer } },
+        by: ['productId'], where: { productId: { not: null }, invoice: { ...partnerInvoices(organizationId, customerId), ...shippedFilter, customer } },
         _sum: { quantity: true },
       }),
     ]);
@@ -141,7 +143,7 @@ export class DropshipPortalService {
     return { revoked: true };
   }
 
-  async shipments(token: unknown, offset: number) {
+  async shipments(token: unknown, offset: number, awaiting = false) {
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
       throw new NotFoundException();
     }
@@ -157,9 +159,12 @@ export class DropshipPortalService {
       where: { id: anchorId, organizationId: customer.organizationId }, select: { id: true },
     })) : false;
     const pageSize = 20;
+    const stock = await this.stockRows(customer.organizationId, customer.id, tokenHash);
+    const stockByProduct = new Map(stock.map((row) => [row.id, row]));
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        ...shippedInvoices(customer.organizationId, customer.id),
+        ...partnerInvoices(customer.organizationId, customer.id),
+        ...(awaiting ? { NOT: shippedFilter } : shippedFilter),
         customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
       },
       orderBy: [{ issueDate: 'desc' }, { id: 'desc' }],
@@ -178,7 +183,11 @@ export class DropshipPortalService {
         },
         items: {
           orderBy: { sortOrder: 'asc' },
-          select: { id: true, name: true, description: true, imageUrl: true, quantity: true, unitPrice: true, amount: true },
+          select: {
+            id: true, productId: true, name: true, description: true, imageUrl: true,
+            quantity: true, unitPrice: true, amount: true,
+            product: { select: { organizationId: true, imageUrl: true } },
+          },
         },
       },
     });
@@ -189,10 +198,16 @@ export class DropshipPortalService {
         where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
         select: { rows: true },
       }))?.rows ?? [],
-      stock: await this.stockRows(customer.organizationId, customer.id, tokenHash),
+      stock,
       hasMore: invoices.length > pageSize,
-      shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, shipmentContact, ...invoice }) => ({
+      shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
         ...invoice,
+        awaiting,
+        items: items.map(({ productId, product, ...item }) => ({
+          ...item,
+          imageUrl: item.imageUrl || (productId ? stockByProduct.get(productId)?.imageUrl : null) ||
+            (product?.organizationId === customer.organizationId ? product.imageUrl : null),
+        })),
         shipmentContact: shipmentContact && typeof shipmentContact === 'object' && !Array.isArray(shipmentContact)
           ? Object.fromEntries(['addressLine2', 'city', 'region', 'postcode', 'country'].map((key) => [key, shipmentContact[key]]))
           : null,

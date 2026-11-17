@@ -13,6 +13,8 @@ type Props = {
   onChange: (url: string | undefined) => void;
   label?: string;
   compact?: boolean;
+  dropzone?: boolean;
+  onProcessingChange?: (processing: boolean) => void;
   variant?: 'square' | 'banner' | 'signature';
 };
 
@@ -58,6 +60,8 @@ export function ImageUploadField({
   onChange,
   label = 'Photo',
   compact = false,
+  dropzone = false,
+  onProcessingChange,
   variant = 'square',
 }: Props) {
   const inputRef = useRef<HTMLInputElement>(null);
@@ -69,6 +73,11 @@ export function ImageUploadField({
   const [uploadError, setUploadError] = useState('');
 
   async function handleFile(file: File) {
+    if (uploading) return;
+    if (!/^image\/(jpeg|png|webp|gif)$/.test(file.type)) {
+      setUploadError('Choose a JPG, PNG, WebP or GIF image.');
+      return;
+    }
     const maxBytes = isSignature || isBanner ? 8 * 1024 * 1024 : 3 * 1024 * 1024;
     if (file.size > maxBytes) {
       setUploadError(isSignature ? 'Image must be under 8 MB' : 'Image must be under 3 MB');
@@ -76,6 +85,7 @@ export function ImageUploadField({
     }
 
     setUploading(true);
+    onProcessingChange?.(true);
     setUploadError('');
     try {
       const dataUrl = await prepareImageDataUrl(file, variant);
@@ -84,11 +94,25 @@ export function ImageUploadField({
       setUploadError('Could not process image. Try a smaller PNG or JPG.');
     } finally {
       setUploading(false);
+      onProcessingChange?.(false);
     }
   }
 
   return (
-    <div className="space-y-2">
+    <div
+      className={dropzone ? 'space-y-2 rounded-xl border border-dashed bg-muted/30 p-3' : 'space-y-2'}
+      onDragOver={dropzone ? (event) => {
+        if (event.dataTransfer.types.includes('Files')) {
+          event.preventDefault();
+          event.dataTransfer.dropEffect = uploading ? 'none' : 'copy';
+        }
+      } : undefined}
+      onDrop={dropzone ? (event) => {
+        event.preventDefault();
+        const file = event.dataTransfer.files[0];
+        if (file) void handleFile(file);
+      } : undefined}
+    >
       {label && <Label>{label}</Label>}
       <div className={isBanner ? 'space-y-3' : 'flex items-center gap-3'}>
         {value ? (
@@ -172,7 +196,8 @@ export function ImageUploadField({
               ? 'PNG or JPG · saved as sharp 300×300 (fits invoice save limit)'
               : isBanner
                 ? `PNG or JPG · recommended ${INVOICE_BANNER_SIZE.label}`
-                : 'JPG, PNG or WebP · max 3 MB · auto-compressed for save'}
+                : (dropzone ? 'Drop an image here, or use the button. JPG, PNG, WebP or GIF · max 3 MB' :
+                  'JPG, PNG or WebP · max 3 MB · auto-compressed for save')}
           </p>
           {uploadError ? <p className="text-xs text-destructive">{uploadError}</p> : null}
         </div>

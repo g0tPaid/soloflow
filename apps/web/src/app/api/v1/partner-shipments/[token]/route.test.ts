@@ -22,15 +22,15 @@ describe('private partner shipment view', () => {
       }],
     }));
     vi.stubGlobal('fetch', upstream);
-    const response = await GET(new Request(path + '?view=grid&page=2'), params);
+    const response = await GET(new Request(path + '?view=grid&page=2&status=shipped'), params);
     const html = await response.text();
     expect(response.status).toBe(200);
     expect(response.headers.get('cache-control')).toBe('private, no-store');
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     expect(response.headers.get('x-robots-tag')).toContain('noindex');
     expect(html).toContain('class="shipments grid"');
-    expect(html).toContain('href="?view=list&amp;page=2"');
-    expect(html).toContain('href="?view=grid&amp;page=3"');
+    expect(html).toContain('href="?view=list&amp;page=2&amp;status=shipped"');
+    expect(html).toContain('href="?view=grid&amp;page=3&amp;status=shipped"');
     for (const text of ['ORDER-200', 'Pat Example', 'TRACK-300', '1.25 kg', 'Warehouse product', 'In stock', 'product.png', '14.00', '6.00', '20.00']) {
       expect(html).toContain(text);
     }
@@ -38,6 +38,26 @@ describe('private partner shipment view', () => {
     expect(html).not.toContain(token);
     expect(upstream).toHaveBeenCalledWith(expect.stringContaining('/dropship-portal/shipments?page=2'),
       expect.objectContaining({ method: 'POST', cache: 'no-store', body: JSON.stringify({ token }) }));
+  });
+
+  it('opens on awaiting orders and displays the saved item description', async () => {
+    const upstream = vi.fn().mockResolvedValue(Response.json({
+      partner: 'Javier Example',
+      hasMore: false,
+      shipments: [{
+        number: 'INV-100', awaiting: true, partnerOrderNumber: '1007', fulfillmentStatus: 'SHIPPED_TO_CHINA_CENTER',
+        currency: 'USD', subtotal: '14', shipping: '6', total: '20', discount: '0', taxAmount: '0',
+        items: [{ name: 'Chair', description: 'Color: <Blue>', imageUrl: 'https://example.com/chair.png',
+          quantity: '1', unitPrice: '14', amount: '14' }],
+      }],
+    }));
+    vi.stubGlobal('fetch', upstream);
+    const response = await GET(new Request(path), params);
+    const html = await response.text();
+    for (const label of ['Welcome, Javier Example', 'Awaiting shipments', 'Awaiting shipment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
+      expect(html).toContain(label);
+    }
+    expect(upstream).toHaveBeenCalledWith(expect.stringContaining('page=1&status=awaiting'), expect.anything());
   });
 
   it('returns 404 for a revoked link', async () => {

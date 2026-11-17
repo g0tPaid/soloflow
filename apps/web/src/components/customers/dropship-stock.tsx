@@ -29,6 +29,7 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
   const [productId, setProductId] = useState('');
   const [allocated, setAllocated] = useState('');
   const [photo, setPhoto] = useState<string | null | undefined>(undefined);
+  const [processingPhoto, setProcessingPhoto] = useState(false);
   const stock = useQuery({
     queryKey,
     enabled: Boolean(token),
@@ -67,10 +68,10 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
             </table>
           </div>
         ) : <p className="text-sm text-muted-foreground">{stock.isPending ? 'Loading stock…' : 'No stock allocated yet.'}</p>}
-        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); if (productId && allocated) save.mutate(); }}>
+        <form className="flex flex-wrap items-end gap-2" onSubmit={(event) => { event.preventDefault(); if (productId && allocated && !processingPhoto && !save.isPending) save.mutate(); }}>
           <label className="grid min-w-40 flex-1 gap-1 text-sm">
             Product
-            <select required className="h-9 rounded-md border bg-background px-2" value={productId} onChange={(event) => {
+            <select required disabled={processingPhoto || save.isPending} className="h-9 rounded-md border bg-background px-2" value={productId} onChange={(event) => {
               const value = event.target.value;
               setProductId(value);
               setPhoto(undefined);
@@ -86,11 +87,11 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
           </label>
           {productId ? (
             <div className="basis-full">
-              <ImageUploadField key={productId} compact label="Product photo" value={photo === undefined ? savedPhoto : photo}
-                onChange={(value) => setPhoto(value ?? null)} />
+              <ImageUploadField key={productId} compact dropzone label="Product photo" value={photo === undefined ? savedPhoto : photo}
+                onProcessingChange={setProcessingPhoto} onChange={(value) => setPhoto(value ?? null)} />
             </div>
-          ) : null}
-          <Button type="submit" disabled={!productId || !allocated || save.isPending}>Save stock</Button>
+          ) : <p className="basis-full text-xs text-muted-foreground">Choose a product to add its photo.</p>}
+          <Button type="submit" disabled={!productId || !allocated || processingPhoto || save.isPending}>Save stock</Button>
         </form>
         {save.isSuccess ? <p role="status" className="text-sm text-muted-foreground">Stock saved.</p> : null}
         {stock.error || products.error || save.error ? <p role="alert" className="text-sm text-destructive">{(stock.error ?? products.error ?? save.error)?.message}</p> : null}
