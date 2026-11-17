@@ -676,6 +676,7 @@ export function InvoicePrintView({
           </footer>
         )}
 
+        {documentLabel === 'INVOICE' && <div className="px-6 py-4 text-center text-sm"><a href="https://wise.com/pay/me/ajmala214" target="_blank" rel="noopener noreferrer" className="font-semibold underline" style={{ color: colors.accent }}>Pay with Wise — wise.com/pay/me/ajmala214</a></div>}
         {!footerContacts.length && <div className="pb-6" />}
       </div>
     </div>
