@@ -43,6 +43,11 @@ export class InvoiceItemDto {
 export class CreateInvoiceDto {
   @IsOptional()
   @IsString()
+  @MaxLength(80)
+  shipmentTrackingCode?: string;
+
+  @IsOptional()
+  @IsString()
   @MaxLength(120)
   partnerOrderNumber?: string | null;
 
@@ -60,6 +65,11 @@ export class CreateInvoiceDto {
   @IsString()
   @MaxLength(120)
   shipmentCarrier?: string | null;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
+  shipmentWeightKg?: number | null;
 
   @ApiProperty({ required: false })
   @IsOptional()
@@ -174,6 +184,11 @@ export class UpdateInvoiceDto {
   @IsString()
   @MaxLength(120)
   shipmentCarrier?: string | null;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 3 })
+  @Min(0)
+  shipmentWeightKg?: number | null;
 
   @ApiProperty({ required: false })
   @IsOptional()

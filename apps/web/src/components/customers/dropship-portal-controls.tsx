@@ -1,10 +1,9 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 
 export function DropshipPortalControls({ customerId, organizationId }: { customerId: string; organizationId: string }) {
@@ -12,6 +11,20 @@ export function DropshipPortalControls({ customerId, organizationId }: { custome
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+
+  useEffect(() => {
+    const token = session?.accessToken;
+    if (!token) return;
+    let active = true;
+    void apiFetch<{ token: string | null }>('/customers/' + customerId + '/dropship-portal', {
+      token, organizationId,
+    }).then((result) => {
+      if (active && result.token) setUrl(new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href);
+    }).catch(() => {
+      if (active) setMessage('Could not load the private link.');
+    });
+    return () => { active = false; };
+  }, [session?.accessToken, customerId, organizationId]);
 
   async function changeLink(method: 'POST' | 'DELETE') {
     const token = session?.accessToken;
@@ -32,19 +45,11 @@ export function DropshipPortalControls({ customerId, organizationId }: { custome
   }
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Dropshipping partner portal</CardTitle>
-        <CardDescription>Share this link directly with the partner. Anyone with it can view this partner’s shipped orders.</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-3">
-        <div className="flex flex-wrap gap-2">
-          <Button type="button" disabled={busy} onClick={() => void changeLink('POST')}>Create or replace link</Button>
-          <Button type="button" variant="outline" disabled={busy} onClick={() => void changeLink('DELETE')}>Disable link</Button>
-        </div>
+    <div className="mt-3 space-y-2">
+      <p className="text-xs text-muted-foreground">Private shipment and stock link. Anyone with the link can view it.</p>
         {url ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Input aria-label="Private partner link" className="min-w-48 flex-1" readOnly value={url} onFocus={(event) => event.target.select()} />
+            <Input aria-label="Private partner link" className="min-w-36 flex-1" readOnly value={url} onFocus={(event) => event.target.select()} />
             <Button type="button" variant="outline" onClick={async () => {
               try {
                 await navigator.clipboard.writeText(url);
@@ -56,8 +61,11 @@ export function DropshipPortalControls({ customerId, organizationId }: { custome
             <Button variant="outline" asChild><a href={url} target="_blank" rel="noreferrer">Open portal</a></Button>
           </div>
         ) : null}
-        <p role="status" className="text-sm text-muted-foreground">{message}</p>
-      </CardContent>
-    </Card>
+        <div className="flex flex-wrap gap-2">
+          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void changeLink('POST')}>{url ? 'Replace link' : 'Create or recover link'}</Button>
+          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void changeLink('DELETE')}>Disable link</Button>
+        </div>
+        {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
+    </div>
   );
 }

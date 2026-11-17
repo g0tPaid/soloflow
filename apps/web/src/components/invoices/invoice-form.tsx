@@ -129,6 +129,7 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string, dedicatedD
       endRecipientName: invoice.endRecipientName ?? '',
       endRecipientAddress: invoice.endRecipientAddress ?? '',
       shipmentCarrier: invoice.shipmentCarrier ?? '',
+      shipmentWeightKg: invoice.shipmentWeightKg == null ? null : Number(invoice.shipmentWeightKg),
       number: invoice.number ?? '',
       issueDate: toDateInput(invoice.issueDate) || today,
       dueDate: toDateInput(invoice.dueDate),
@@ -257,6 +258,8 @@ function InvoiceFormEditor(
       endRecipientName: seed?.endRecipientName ?? '',
       endRecipientAddress: seed?.endRecipientAddress ?? '',
       shipmentCarrier: seed?.shipmentCarrier ?? '',
+      shipmentWeightKg: seed?.shipmentWeightKg ?? null,
+      shipmentTrackingCode: seed?.shipmentTrackingCode ?? '',
       number: seed?.number ?? (props.mode === 'create' ? props.suggestedNumber ?? '' : ''),
       issueDate: seed?.issueDate || toDateInput(new Date()),
       dueDate: seed?.dueDate ?? '',
@@ -281,6 +284,7 @@ function InvoiceFormEditor(
       endRecipientName: seed?.endRecipientName ?? invoice?.endRecipientName ?? '',
       endRecipientAddress: seed?.endRecipientAddress ?? invoice?.endRecipientAddress ?? '',
       shipmentCarrier: seed?.shipmentCarrier ?? invoice?.shipmentCarrier ?? '',
+      shipmentWeightKg: seed?.shipmentWeightKg ?? null,
       status: (seed?.status || invoice?.status || 'DRAFT') as UpdateInvoiceInput['status'],
       dueDate: seed ? seed.dueDate || null : toDateInput(invoice?.dueDate) || null,
       notes: seed?.notes ?? invoice?.notes ?? '',
@@ -312,6 +316,7 @@ function InvoiceFormEditor(
         endRecipientName: editValues.endRecipientName ?? '',
         endRecipientAddress: editValues.endRecipientAddress ?? '',
         shipmentCarrier: editValues.shipmentCarrier ?? '',
+        shipmentWeightKg: editValues.shipmentWeightKg ?? null,
         number: editValues.number ?? '',
         issueDate: toDateInput(invoice?.issueDate),
         dueDate: editValues.dueDate ?? '',
@@ -335,6 +340,8 @@ function InvoiceFormEditor(
         endRecipientName: createValues.endRecipientName ?? '',
         endRecipientAddress: createValues.endRecipientAddress ?? '',
         shipmentCarrier: createValues.shipmentCarrier ?? '',
+        shipmentWeightKg: createValues.shipmentWeightKg ?? null,
+        shipmentTrackingCode: createValues.shipmentTrackingCode ?? '',
         number: createValues.number ?? '',
         issueDate: createValues.issueDate ?? '',
         dueDate: createValues.dueDate ?? '',
@@ -473,6 +480,7 @@ function InvoiceFormEditor(
           recipient={editForm.register('endRecipientName')}
           address={editForm.register('endRecipientAddress')}
           carrier={editForm.register('shipmentCarrier')}
+          weight={editForm.register('shipmentWeightKg', { setValueAs: (value) => value === '' ? null : Number(value) })}
         />
         <Card id="edit-line-items" className="scroll-mt-20 border-[#E40046]/40">
           <CardHeader>
@@ -662,6 +670,8 @@ function InvoiceFormEditor(
                   for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
                     createForm.setValue(field, '');
                   }
+                  createForm.setValue('shipmentWeightKg', null);
+                  createForm.setValue('shipmentTrackingCode', '');
                   if (customer?.currency && !currencyTouched.current) {
                     setInvoiceCurrency(customer.currency);
                     createForm.setValue('currency', customer.currency);
@@ -699,6 +709,8 @@ function InvoiceFormEditor(
             recipient={createForm.register('endRecipientName')}
             address={createForm.register('endRecipientAddress')}
             carrier={createForm.register('shipmentCarrier')}
+            weight={createForm.register('shipmentWeightKg', { setValueAs: (value) => value === '' ? null : Number(value) })}
+            tracking={createForm.register('shipmentTrackingCode')}
           />
 
           <CurrencySelect

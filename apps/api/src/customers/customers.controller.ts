@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Headers, Req, Header } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Headers, Req, Header, Put } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiOperation, ApiHeader } from '@nestjs/swagger';
 import { DropshipPortalService } from './dropship-portal.service';
 import { CustomersService } from './customers.service';
@@ -34,6 +34,23 @@ export class CustomersController {
   @ApiOperation({ summary: 'Customer balances by currency and their quotes' })
   activity(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
     return this.customersService.activity(orgId, id);
+  }
+
+  @Get(':id/dropship-portal')
+  @Header('Cache-Control', 'private, no-store')
+  currentPortal(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } }) {
+    return this.portals.current(orgId, req.user.sub, id);
+  }
+
+  @Get(':id/dropship-stock')
+  getStock(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } }) {
+    return this.portals.stock(orgId, req.user.sub, id);
+  }
+
+  @Put(':id/dropship-stock')
+  setStock(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } },
+    @Body('productId') productId: unknown, @Body('allocated') allocated: unknown) {
+    return this.portals.setStock(orgId, req.user.sub, id, productId, allocated);
   }
 
   @Post(':id/dropship-portal')

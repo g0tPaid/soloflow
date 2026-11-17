@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
 import { Prisma, InvoiceStatus } from '@flowbooks/database';
 import { BALANCE_EXCLUDED_STATUSES, balanceGroupsFromSums } from '@flowbooks/shared';
+import { newPortalLink } from './dropship-portal-token';
 import { PrismaService } from '../prisma/prisma.service';
 import { CreateCustomerDto, UpdateCustomerDto } from './dto/customer.dto';
 import { normalizePagination } from '../common/pagination';
@@ -119,6 +120,7 @@ export class CustomersService {
   async create(organizationId: string, dto: CreateCustomerDto) {
     const { dropshipperNumber, dropshipperPrefix, ...fields } = dto;
     if (dto.isDropshipper) this.requireDropshipperNumber(dropshipperNumber);
+    const { linkNonce, tokenHash } = dto.isDropshipper ? newPortalLink() : {};
     try {
       return await this.prisma.customer.create({
         data: {
@@ -126,6 +128,7 @@ export class CustomersService {
           organizationId,
           address: dto.address || {},
           isDropshipper: dto.isDropshipper === true,
+          ...(linkNonce && tokenHash ? { dropshipPortal: { create: { linkNonce, tokenHash } } } : {}),
           dropshipperNumber: dto.isDropshipper ? dropshipperNumber : null,
           dropshipperPrefix: dto.isDropshipper ? dropshipperPrefix?.toUpperCase() || null : null,
         },
@@ -161,6 +164,10 @@ export class CustomersService {
           },
         });
         if (dto.isDropshipper === false) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
+        if (isDropshipper && !existing.isDropshipper) {
+          const { linkNonce, tokenHash } = newPortalLink();
+          await tx.dropshipPortal.create({ data: { customerId: id, linkNonce, tokenHash } });
+        }
         return customer;
       });
     } catch (error) {

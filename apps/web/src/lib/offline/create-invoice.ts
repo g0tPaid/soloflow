@@ -62,6 +62,7 @@ export function buildPendingInvoice(input: {
     endRecipientName: data.endRecipientName ?? null,
     endRecipientAddress: data.endRecipientAddress ?? null,
     shipmentCarrier: data.shipmentCarrier ?? null,
+    shipmentWeightKg: data.shipmentWeightKg ?? null,
     notes: data.notes ?? null,
     ...(data.dropshippingPartner ? { customFields: { [DROPSHIPPING_PARTNER_INVOICE_FIELD]: true } } : {}),
     createdAt: now,

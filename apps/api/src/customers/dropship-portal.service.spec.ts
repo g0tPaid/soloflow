@@ -1,4 +1,5 @@
 import { createHash } from 'node:crypto';
+import { Prisma } from '@flowbooks/database';
 import { ForbiddenException, NotFoundException } from '@nestjs/common';
 import { DropshipPortalService } from './dropship-portal.service';
 import type { PrismaService } from '../prisma/prisma.service';
@@ -11,6 +12,8 @@ describe('DropshipPortalService', () => {
     customer: { updateMany: jest.fn() },
     dropshipPortal: { upsert: jest.fn(), findFirst: jest.fn(), deleteMany: jest.fn() },
     invoice: { findMany: jest.fn() },
+    invoiceItem: { groupBy: jest.fn() },
+    dropshipStock: { findMany: jest.fn() },
     $transaction: jest.fn(),
   };
   const service = new DropshipPortalService(prisma as unknown as PrismaService);
@@ -32,7 +35,7 @@ describe('DropshipPortalService', () => {
     const digest = createHash('sha256').update(issued.token).digest('hex');
     expect(prisma.dropshipPortal.upsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { customerId: 'partner' },
-      create: { customerId: 'partner', tokenHash: digest },
+      create: expect.objectContaining({ customerId: 'partner', tokenHash: digest }),
       update: expect.objectContaining({ tokenHash: digest }),
     }));
     expect(prisma.customer.updateMany).toHaveBeenCalledWith(expect.objectContaining({
@@ -52,7 +55,9 @@ describe('DropshipPortalService', () => {
       customer: { id: 'partner', organizationId: 'org', name: 'Partner' },
     });
     prisma.invoice.findMany.mockResolvedValue([]);
-    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', hasMore: false, shipments: [] });
+    prisma.invoiceItem.groupBy.mockResolvedValue([]);
+    prisma.dropshipStock.findMany.mockResolvedValue([]);
+    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', hasMore: false, shipments: [], stock: [] });
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query.where).toMatchObject({
       organizationId: 'org',
@@ -67,5 +72,18 @@ describe('DropshipPortalService', () => {
     expect(query.take).toBe(21);
     expect(query.select).not.toHaveProperty('shippingCost');
     expect(query.select.items.select).not.toHaveProperty('unitCost');
+  });
+  it('deducts this partner’s shipped units from the allocated stock for the selected product', async () => {
+    prisma.organizationMember.findUnique.mockResolvedValue({ role: 'ADMIN' });
+    prisma.dropshipStock.findMany.mockResolvedValue([{
+      allocated: new Prisma.Decimal('20'),
+      product: { id: 'product-1', name: 'T-shirt', sku: 'TS', imageUrl: null },
+    }]);
+    prisma.invoiceItem.groupBy.mockResolvedValue([{ productId: 'product-1', _sum: { quantity: new Prisma.Decimal('6') } }]);
+    await expect(service.stock('org', 'admin', 'partner')).resolves.toEqual([
+      { id: 'product-1', name: 'T-shirt', sku: 'TS', imageUrl: null, allocated: '20', shipped: '6', remaining: '14' },
+    ]);
+    const query = prisma.invoiceItem.groupBy.mock.calls[0][0];
+    expect(query.where.invoice).toMatchObject({ organizationId: 'org', customerId: 'partner' });
   });
 });

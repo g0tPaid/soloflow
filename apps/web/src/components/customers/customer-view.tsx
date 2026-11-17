@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DropshipStock } from '@/components/customers/dropship-stock';
 import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
 import { FilePlus, Pencil } from 'lucide-react';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
@@ -94,12 +95,15 @@ export function CustomerView({
         <div>
           <p className="text-sm text-muted-foreground">{customer.isDropshipper ? 'Dropshipping partner' : 'Customer'}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
+          {customer.isDropshipper && portalOrganizationId ? (
+            <DropshipPortalControls key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
+          ) : null}
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
           <Button asChild className="gap-2 bg-[#E40046] text-white hover:bg-[#c4003c]">
-            <Link href={`/invoices/new?customer=${customer.id}`}>
+            <Link href={`${customer.isDropshipper ? "/dropshipper-invoices" : "/invoices"}/new?customer=${customer.id}`}>
               <FilePlus className="h-4 w-4" />
-              New invoice
+              {customer.isDropshipper ? 'Add shipment invoice' : 'New invoice'}
             </Link>
           </Button>
           <Button asChild variant="outline" className="gap-2">
@@ -112,7 +116,7 @@ export function CustomerView({
       </div>
 
       {customer.isDropshipper && portalOrganizationId ? (
-        <DropshipPortalControls key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
+        <DropshipStock key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
       ) : null}
 
       <Card>

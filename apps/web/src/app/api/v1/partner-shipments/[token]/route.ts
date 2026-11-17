@@ -24,6 +24,7 @@ type Item = {
 type Shipment = {
   number: string;
   shippedAt: string | null;
+  shipmentWeightKg: string | null;
   partnerOrderNumber: string | null;
   endRecipientName: string | null;
   endRecipientAddress: string | null;
@@ -100,11 +101,24 @@ function shipmentCard(shipment: Shipment) {
     '<dl class="details">' + detail('Recipient', shipment.endRecipientName || 'Not provided') +
     detail('Delivery address', shipment.endRecipientAddress) + detail('Destination', shipment.shippingToCountry) +
     detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || 'Pending') +
-    detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
+    detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
     (Number(shipment.discount) > 0 ? detail('Discount', price(shipment.discount)) : '') +
     (Number(shipment.taxAmount) > 0 ? detail('Tax', price(shipment.taxAmount)) : '') +
     detail('Total', price(shipment.total)) + '</dl></article>';
+}
+
+type Stock = { name: string; sku: string | null; imageUrl: string | null; allocated: string; shipped: string; remaining: string };
+
+function inventory(rows: Stock[]) {
+  if (!rows.length) return '';
+  return '<section class="inventory" aria-label="Partner stock"><h2>Your stock</h2><ul>' + rows.map((row) => {
+    const image = imageUrl(row.imageUrl);
+    const thumb = image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<div class="photo" aria-hidden="true"></div>';
+    return '<li>' + thumb + '<div><strong>' + escapeHtml(row.name) + '</strong>' +
+      (row.sku ? '<small>' + escapeHtml(row.sku) + '</small>' : '') + '</div><dl class="totals">' +
+      detail('Allocated', row.allocated) + detail('Shipped', row.shipped) + detail('In stock', row.remaining) + '</dl></li>';
+  }).join('') + '</ul></section>';
 }
 
 const styles = `
@@ -114,10 +128,10 @@ h1,h2,p,dl,dd{margin:0}h1{font-size:clamp(28px,6vw,45px);letter-spacing:-.04em;l
 .eyebrow{color:#774356;font-size:12px;font-weight:700;margin-bottom:5px}.partner{color:#695c63;margin-top:6px}nav{display:flex;gap:8px;flex-wrap:wrap}
 nav a{color:#781538;border:1px solid #e6d7dd;background:#fff;border-radius:999px;padding:8px 14px;text-decoration:none;font-weight:600}
 nav a[aria-current=true]{background:#8e1744;color:#fff}.shipments{display:grid;gap:14px;margin:22px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
-article,.empty{background:#fff;border:1px solid #ece4e7;border-radius:18px;padding:clamp(14px,3vw,24px);min-width:0}article header{margin-bottom:16px}.badge{font-size:12px;font-weight:700;color:#176145;background:#e7f6ed;border-radius:999px;padding:5px 10px}
+article,.empty,.inventory{background:#fff;border:1px solid #ece4e7;border-radius:18px;padding:clamp(14px,3vw,24px);min-width:0}article header{margin-bottom:16px}.badge{font-size:12px;font-weight:700;color:#176145;background:#e7f6ed;border-radius:999px;padding:5px 10px}
 .details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px 16px}dt,small{color:#695c63;font-size:12px}dd{overflow-wrap:anywhere;white-space:pre-line;font-weight:600}
 ul{padding:0;margin:16px 0;list-style:none;border-top:1px solid #efe9eb}li{display:grid;grid-template-columns:48px minmax(0,1fr) auto;gap:10px;align-items:center;padding:9px 0;border-bottom:1px solid #efe9eb}li strong{overflow-wrap:anywhere}small{display:block}
-img,.photo{width:48px;height:48px;object-fit:cover;border-radius:8px;background:#f4edf0}.totals{display:flex;flex-wrap:wrap;gap:8px 20px}.totals div:last-child dd{color:#8e1744}.pagination{margin-top:16px}
+img,.photo{width:48px;height:48px;object-fit:cover;border-radius:8px;background:#f4edf0}.totals{display:flex;flex-wrap:wrap;gap:8px 20px}.totals div:last-child dd{color:#8e1744}.pagination{margin-top:16px}.inventory{margin-top:20px}.inventory ul{margin-bottom:0}.inventory li{grid-template-columns:48px minmax(0,1fr) minmax(90px,auto)}.inventory .totals{gap:5px 12px}.inventory li:last-child{border-bottom:0}
 `;
 
 function documentBody(content: string, status = 200) {
@@ -145,14 +159,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     });
     if (upstream.status === 404) return documentBody(unavailable, 404);
     if (!upstream.ok) throw new Error('Shipment service unavailable');
-    const data: { partner: string; shipments: Shipment[]; hasMore: boolean } = await upstream.json();
+    const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; hasMore: boolean } = await upstream.json();
     const href = (mode: 'list' | 'grid', number: number) => '?view=' + mode + '&amp;page=' + number;
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list', page) +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid', page) + '">Grid</a></nav>';
     const previous = page > 1 ? '<a href="' + href(view, page - 1) + '">Previous</a>' : '';
     const next = data.hasMore && page < 9999 ? '<a href="' + href(view, page + 1) + '">Next</a>' : '';
     return documentBody('<div class="top"><div><p class="eyebrow">SoloFlow · Sourcing Center</p><h1>Your shipments</h1>' +
-      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' +
+      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) +
       '<section aria-label="Shipped orders" class="shipments ' + view + '">' +
       (data.shipments.length ? data.shipments.map(shipmentCard).join('') : '<p class="empty">No shipments on this page.</p>') +
       '</section>' + (previous || next ? '<nav class="pagination" aria-label="Shipment pages">' + previous + next + '</nav>' : ''));

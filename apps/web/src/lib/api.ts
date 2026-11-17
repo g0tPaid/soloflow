@@ -277,6 +277,7 @@ export interface Invoice {
   endRecipientName?: string | null;
   endRecipientAddress?: string | null;
   shipmentCarrier?: string | null;
+  shipmentWeightKg?: number | string | null;
   id: string;
   organizationId: string;
   customerId?: string | null;

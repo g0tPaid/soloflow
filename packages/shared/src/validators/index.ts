@@ -239,10 +239,12 @@ const dropshipInvoiceFields = {
   endRecipientName: z.string().trim().max(160).nullable().optional(),
   endRecipientAddress: z.string().trim().max(500).nullable().optional(),
   shipmentCarrier: z.string().trim().max(120).nullable().optional(),
+  shipmentWeightKg: z.number().nonnegative().max(9_999_999).nullable().optional(),
 };
 
 export const createInvoiceSchema = z.object({
   ...dropshipInvoiceFields,
+  shipmentTrackingCode: z.string().trim().max(80).optional(),
   customerId: z.string().min(1, 'Customer is required'),
   number: z.string().min(1, 'Invoice number is required').max(50).optional(),
   issueDate: dateStringSchema.optional(),

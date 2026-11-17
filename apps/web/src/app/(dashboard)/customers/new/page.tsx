@@ -18,9 +18,9 @@ export default function NewCustomerPage() {
   const mutation = useMutation({
     mutationFn: (data: CreateCustomerInput) =>
       api.customers.create(session!.accessToken!, organizationId!, data),
-    onSuccess: async () => {
+    onSuccess: async (customer) => {
       await queryClient.invalidateQueries({ queryKey: ['customers', organizationId] });
-      router.push('/customers');
+      router.push(customer.isDropshipper ? '/customers/' + customer.id : '/customers');
     },
   });
 

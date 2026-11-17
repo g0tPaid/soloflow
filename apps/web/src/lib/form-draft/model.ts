@@ -44,6 +44,8 @@ export interface FormDraftContent {
   endRecipientName: string;
   endRecipientAddress: string;
   shipmentCarrier: string;
+  shipmentWeightKg: number | null;
+  shipmentTrackingCode: string;
   number: string;
   issueDate: string;
   dueDate: string;
@@ -90,6 +92,8 @@ export function emptyFormDraftContent(): FormDraftContent {
     endRecipientName: '',
     endRecipientAddress: '',
     shipmentCarrier: '',
+    shipmentWeightKg: null,
+    shipmentTrackingCode: '',
     number: '',
     issueDate: '',
     dueDate: '',
@@ -159,6 +163,8 @@ export function normalizeFormDraftContent(content: Partial<FormDraftContent> | n
     endRecipientName: cleanText(source.endRecipientName),
     endRecipientAddress: cleanText(source.endRecipientAddress),
     shipmentCarrier: cleanText(source.shipmentCarrier),
+    shipmentWeightKg: source.shipmentWeightKg ?? null,
+    shipmentTrackingCode: cleanText(source.shipmentTrackingCode),
     number: cleanText(source.number),
     issueDate: cleanText(source.issueDate),
     dueDate: cleanText(source.dueDate),
@@ -216,6 +222,8 @@ const SCALAR_KEYS = [
   'endRecipientName',
   'endRecipientAddress',
   'shipmentCarrier',
+  'shipmentWeightKg',
+  'shipmentTrackingCode',
   'number',
   'issueDate',
   'dueDate',

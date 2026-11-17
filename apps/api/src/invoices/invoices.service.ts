@@ -311,6 +311,9 @@ export class InvoicesService {
 
   async create(organizationId: string, dto: CreateInvoiceDto) {
     const clientRequestId = dto.clientRequestId?.trim() || null;
+    const tracking = dto.dropshippingPartner ? normalizeTrackingNumber(dto.shipmentTrackingCode) : null;
+    const initialFulfillment = dto.shippingMethod === 'LOCAL'
+      ? FulfillmentStatus.SHIPPED_TO_CHINA_CENTER : FulfillmentStatus.SHIPPED_INTERNATIONAL;
     if (clientRequestId) {
       const replay = await this.findByClientRequestId(organizationId, clientRequestId);
       if (replay) return replay;
@@ -376,6 +379,12 @@ export class InvoicesService {
             endRecipientName: dto.endRecipientName?.trim() || null,
             endRecipientAddress: dto.endRecipientAddress?.trim() || null,
             shipmentCarrier: dto.shipmentCarrier?.trim() || null,
+            shipmentWeightKg: dto.shipmentWeightKg ?? null,
+            ...(tracking ? {
+              fulfillmentStatus: initialFulfillment,
+              ...(dto.shippingMethod === 'LOCAL' ? { localTrackingNumber: tracking } : { internationalTrackingNumber: tracking }),
+              fulfillmentEvents: { create: { organizationId, status: initialFulfillment, action: 'ON' } },
+            } : {}),
             subtotal,
             taxRate,
             taxAmount,
@@ -526,6 +535,8 @@ export class InvoicesService {
     for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
       if (dto[field] !== undefined) updateData[field] = dto[field]?.trim() || null;
     }
+
+    if (dto.shipmentWeightKg !== undefined) updateData.shipmentWeightKg = dto.shipmentWeightKg;
 
     if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();
 

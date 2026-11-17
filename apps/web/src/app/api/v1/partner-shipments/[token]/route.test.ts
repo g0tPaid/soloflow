@@ -12,8 +12,9 @@ describe('private partner shipment view', () => {
     const upstream = vi.fn().mockResolvedValue(Response.json({
       partner: '<script>alert(1)</script>',
       hasMore: true,
+      stock: [{ name: 'Warehouse product', sku: 'WH', imageUrl: null, allocated: '20', shipped: '6', remaining: '14' }],
       shipments: [{
-        number: 'INV-100', partnerOrderNumber: 'ORDER-200', shippedAt: '2026-11-17T00:00:00Z',
+        shipmentWeightKg: '1.25', number: 'INV-100', partnerOrderNumber: 'ORDER-200', shippedAt: '2026-11-17T00:00:00Z',
         endRecipientName: 'Pat Example', endRecipientAddress: 'Unit 4', shipmentCarrier: 'Carrier',
         shippingToCountry: 'US', fulfillmentStatus: 'SHIPPED_INTERNATIONAL', internationalTrackingNumber: 'TRACK-300',
         currency: 'USD', subtotal: '14', shipping: '6', total: '20', discount: '0', taxAmount: '0',
@@ -30,7 +31,7 @@ describe('private partner shipment view', () => {
     expect(html).toContain('class="shipments grid"');
     expect(html).toContain('href="?view=list&amp;page=2"');
     expect(html).toContain('href="?view=grid&amp;page=3"');
-    for (const text of ['ORDER-200', 'Pat Example', 'TRACK-300', 'product.png', '14.00', '6.00', '20.00']) {
+    for (const text of ['ORDER-200', 'Pat Example', 'TRACK-300', '1.25 kg', 'Warehouse product', 'In stock', 'product.png', '14.00', '6.00', '20.00']) {
       expect(html).toContain(text);
     }
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
