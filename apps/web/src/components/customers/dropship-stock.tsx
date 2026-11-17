@@ -7,12 +7,14 @@ import { apiFetch } from '@/lib/api';
 import { loadProducts } from '@/lib/offline/catalog';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { ImageUploadField } from '@/components/shared/image-upload-field';
 import { Input } from '@/components/ui/input';
 
 type StockRow = {
   id: string;
   name: string;
   sku: string | null;
+  imageUrl?: string | null;
   allocated: string;
   shipped: string;
   remaining: string;
@@ -26,6 +28,7 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
   const path = '/customers/' + customerId + '/dropship-stock';
   const [productId, setProductId] = useState('');
   const [allocated, setAllocated] = useState('');
+  const [photo, setPhoto] = useState<string | null | undefined>(undefined);
   const stock = useQuery({
     queryKey,
     enabled: Boolean(token),
@@ -38,10 +41,11 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
   });
   const save = useMutation({
     mutationFn: () => apiFetch<StockRow[]>(path, {
-      token, organizationId, method: 'PUT', body: JSON.stringify({ productId, allocated: Number(allocated) }),
+      token, organizationId, method: 'PUT', body: JSON.stringify({ productId, allocated: Number(allocated), imageUrl: photo }),
     }),
-    onSuccess: (rows) => queryClient.setQueryData(queryKey, rows),
+    onSuccess: (rows) => { queryClient.setQueryData(queryKey, rows); setPhoto(undefined); },
   });
+  const savedPhoto = stock.data?.find((row) => row.id === productId)?.imageUrl ?? products.data?.data.find((product) => product.id === productId)?.imageUrl;
   return (
     <Card>
       <CardHeader>
@@ -69,6 +73,7 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
             <select required className="h-9 rounded-md border bg-background px-2" value={productId} onChange={(event) => {
               const value = event.target.value;
               setProductId(value);
+              setPhoto(undefined);
               setAllocated(stock.data?.find((row) => row.id === value)?.allocated ?? '');
             }}>
               <option value="">Choose product</option>
@@ -79,6 +84,12 @@ export function DropshipStock({ customerId, organizationId }: { customerId: stri
             Total allocated
             <Input type="number" min={0} max={99999999} step="0.0001" required value={allocated} onChange={(event) => setAllocated(event.target.value)} />
           </label>
+          {productId ? (
+            <div className="basis-full">
+              <ImageUploadField key={productId} compact label="Product photo" value={photo === undefined ? savedPhoto : photo}
+                onChange={(value) => setPhoto(value ?? null)} />
+            </div>
+          ) : null}
           <Button type="submit" disabled={!productId || !allocated || save.isPending}>Save stock</Button>
         </form>
         {save.isSuccess ? <p role="status" className="text-sm text-muted-foreground">Stock saved.</p> : null}

@@ -47,10 +47,16 @@ export class CustomersController {
     return this.portals.stock(orgId, req.user.sub, id);
   }
 
+  @Post(':id/dropship-shipment-import')
+  importShipments(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } },
+    @Body('csv') csv: unknown) {
+    return this.portals.importShipments(orgId, req.user.sub, id, csv);
+  }
+
   @Put(':id/dropship-stock')
   setStock(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Req() req: { user: { sub: string } },
-    @Body('productId') productId: unknown, @Body('allocated') allocated: unknown) {
-    return this.portals.setStock(orgId, req.user.sub, id, productId, allocated);
+    @Body('productId') productId: unknown, @Body('allocated') allocated: unknown, @Body('imageUrl') imageUrl: unknown) {
+    return this.portals.setStock(orgId, req.user.sub, id, productId, allocated, imageUrl);
   }
 
   @Post(':id/dropship-portal')

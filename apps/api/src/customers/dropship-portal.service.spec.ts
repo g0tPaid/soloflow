@@ -14,6 +14,7 @@ describe('DropshipPortalService', () => {
     invoice: { findMany: jest.fn() },
     invoiceItem: { groupBy: jest.fn() },
     dropshipStock: { findMany: jest.fn() },
+    dropshipImportedShipment: { findFirst: jest.fn() },
     $transaction: jest.fn(),
   };
   const service = new DropshipPortalService(prisma as unknown as PrismaService);
@@ -57,7 +58,7 @@ describe('DropshipPortalService', () => {
     prisma.invoice.findMany.mockResolvedValue([]);
     prisma.invoiceItem.groupBy.mockResolvedValue([]);
     prisma.dropshipStock.findMany.mockResolvedValue([]);
-    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', hasMore: false, shipments: [], stock: [] });
+    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', hasMore: false, shipments: [], stock: [], importedShipments: [] });
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query.where).toMatchObject({
       organizationId: 'org',

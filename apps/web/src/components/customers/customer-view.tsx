@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { DropshipShipmentImport } from '@/components/customers/dropship-shipment-import';
 import { DropshipStock } from '@/components/customers/dropship-stock';
 import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
 import { FilePlus, Pencil } from 'lucide-react';
@@ -116,7 +117,10 @@ export function CustomerView({
       </div>
 
       {customer.isDropshipper && portalOrganizationId ? (
-        <DropshipStock key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
+        <div key={customer.id} className="space-y-6">
+          <DropshipStock customerId={customer.id} organizationId={portalOrganizationId} />
+          <DropshipShipmentImport customerId={customer.id} organizationId={portalOrganizationId} />
+        </div>
       ) : null}
 
       <Card>

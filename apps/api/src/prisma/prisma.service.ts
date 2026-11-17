@@ -29,6 +29,11 @@ export const REQUIRED_SCHEMA_STATEMENTS = [
     PRIMARY KEY ("customerId","productId"),
     CHECK ("allocated" >= 0)
   )`,
+  `ALTER TABLE "dropship_stock" ADD COLUMN IF NOT EXISTS "imageUrl" TEXT`,
+  `CREATE TABLE IF NOT EXISTS "dropship_imported_shipments" (
+  "customerId" TEXT PRIMARY KEY REFERENCES "customers"("id") ON DELETE CASCADE ON UPDATE CASCADE,
+  "rows" JSONB NOT NULL
+)`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "dropship_portals_tokenHash_key" ON "dropship_portals"("tokenHash")`,
   `CREATE UNIQUE INDEX IF NOT EXISTS "customers_organizationId_dropshipperNumber_key" ON "customers"("organizationId", "dropshipperNumber")`,
   `WITH missing AS (

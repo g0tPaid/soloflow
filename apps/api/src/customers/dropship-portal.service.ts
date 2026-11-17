@@ -2,6 +2,7 @@ import { BadRequestException, Injectable, ForbiddenException, NotFoundException 
 import { Prisma } from '@flowbooks/database';
 import { hashPortalToken, newPortalLink, tokenForNonce } from './dropship-portal-token';
 import { DROPSHIPPING_PARTNER_INVOICE_FIELD, FULFILLMENT_STATUS_VALUES, INTERNATIONAL_TRACKING_STATUS } from '@flowbooks/shared';
+import { mergeImportedShipments, parsePartnerShipments, type ImportedShipment } from './dropship-shipment-import';
 import { PrismaService } from '../prisma/prisma.service';
 
 function shippedInvoices(organizationId: string, customerId: string): Prisma.InvoiceWhereInput {
@@ -65,12 +66,17 @@ export class DropshipPortalService {
     return this.stockRows(organizationId, customerId);
   }
 
-  async setStock(organizationId: string, userId: string, customerId: string, productId: unknown, allocated: unknown) {
+  async setStock(organizationId: string, userId: string, customerId: string, productId: unknown, allocated: unknown, imageUrl?: unknown) {
     await this.requireManager(organizationId, userId);
     if (typeof productId !== 'string' || typeof allocated !== 'number' || !Number.isFinite(allocated) ||
       allocated < 0 || allocated > 99_999_999 || !/^\d+(?:\.\d{1,4})?$/.test(String(allocated))) {
       throw new BadRequestException('Choose a product and enter a valid stock quantity.');
     }
+    if (imageUrl !== undefined && imageUrl !== null && (typeof imageUrl !== 'string' || imageUrl.length > 550_000 ||
+      !/^data:image\/(jpeg|png|webp|gif);base64,[A-Za-z0-9+/=]+$/.test(imageUrl))) {
+      throw new BadRequestException('Upload a PNG, JPEG, WebP, or GIF photo under 400 KB.');
+    }
+    const photo = imageUrl as string | null | undefined;
     const [customer, product] = await Promise.all([
       this.prisma.customer.findFirst({ where: { id: customerId, organizationId, isActive: true, isDropshipper: true }, select: { id: true } }),
       this.prisma.product.findFirst({ where: { id: productId, organizationId }, select: { id: true } }),
@@ -78,8 +84,8 @@ export class DropshipPortalService {
     if (!customer || !product) throw new NotFoundException('Dropshipper or product not found.');
     await this.prisma.dropshipStock.upsert({
       where: { customerId_productId: { customerId, productId } },
-      create: { customerId, productId, allocated },
-      update: { allocated },
+      create: { customerId, productId, allocated, imageUrl: photo },
+      update: { allocated, imageUrl: photo },
     });
     return this.stockRows(organizationId, customerId);
   }
@@ -90,7 +96,7 @@ export class DropshipPortalService {
     const [stock, shipped] = await Promise.all([
       this.prisma.dropshipStock.findMany({
         where: { customerId, customer, product: { organizationId } },
-        select: { allocated: true, product: { select: { id: true, name: true, sku: true, imageUrl: true } } },
+        select: { allocated: true, imageUrl: true, product: { select: { id: true, name: true, sku: true, imageUrl: true } } },
         orderBy: { product: { name: 'asc' } },
       }),
       this.prisma.invoiceItem.groupBy({
@@ -99,9 +105,33 @@ export class DropshipPortalService {
       }),
     ]);
     const quantities = new Map(shipped.map((row) => [row.productId, row._sum.quantity]));
-    return stock.map(({ product, allocated }) => {
+    return stock.map(({ product, allocated, imageUrl }) => {
       const quantity = quantities.get(product.id) ?? 0;
-      return { ...product, allocated: allocated.toString(), shipped: String(quantity), remaining: allocated.minus(quantity).toString() };
+      return { ...product, imageUrl: imageUrl ?? product.imageUrl, allocated: allocated.toString(), shipped: String(quantity), remaining: allocated.minus(quantity).toString() };
+    });
+  }
+
+  async importShipments(organizationId: string, userId: string, customerId: string, csv: unknown) {
+    await this.requireManager(organizationId, userId);
+    return this.prisma.$transaction(async (tx) => {
+      const locked = await tx.customer.updateMany({
+        where: { id: customerId, organizationId, isActive: true, isDropshipper: true },
+        data: { updatedAt: new Date() },
+      });
+      if (!locked.count) throw new NotFoundException('Active dropshipper not found.');
+      const customer = await tx.customer.findUniqueOrThrow({
+        where: { id: customerId }, select: { dropshipperNumber: true, dropshipperPrefix: true },
+      });
+      if (!customer.dropshipperNumber) throw new BadRequestException('Save this customer’s dropshipper number first.');
+      const batch = parsePartnerShipments(csv, customer.dropshipperNumber, customer.dropshipperPrefix);
+      const existing = await tx.dropshipImportedShipment.findUnique({ where: { customerId } });
+      const current = (existing?.rows ?? []) as ImportedShipment[];
+      const merged = mergeImportedShipments(current, batch);
+      if (merged.length > 2000) throw new BadRequestException('This partner has reached 2,000 imported shipments.');
+      await tx.dropshipImportedShipment.upsert({
+        where: { customerId }, create: { customerId, rows: merged }, update: { rows: merged },
+      });
+      return { rows: batch.length, added: merged.length - current.length, total: merged.length };
     });
   }
 
@@ -150,6 +180,10 @@ export class DropshipPortalService {
     });
     return {
       partner: customer.name,
+      importedShipments: (await this.prisma.dropshipImportedShipment.findFirst({
+        where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
+        select: { rows: true },
+      }))?.rows ?? [],
       stock: await this.stockRows(customer.organizationId, customer.id, tokenHash),
       hasMore: invoices.length > pageSize,
       shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, ...invoice }) => ({

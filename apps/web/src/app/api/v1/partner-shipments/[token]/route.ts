@@ -121,6 +121,18 @@ function inventory(rows: Stock[]) {
   }).join('') + '</ul></section>';
 }
 
+type ImportedShipment = { order: string; tracking: string; recipient: string; carrier: string; origin: string; destination: string; postcode: string };
+
+function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid') {
+  if (!rows.length) return '';
+  return '<section aria-label="Imported shipment history"><h2>Imported shipment history</h2><div class="shipments ' + view + '">' +
+    rows.map((row) => '<article><header><h2>' + escapeHtml(row.order ? 'Order ' + row.order : 'Shipment') +
+      '</h2><span class="badge">' + (row.tracking ? 'Tracking recorded' : 'Tracking pending') + '</span></header>' +
+      '<dl class="details">' + detail('Recipient', row.recipient) + detail('Origin', row.origin) +
+      detail('Destination', row.destination) + detail('Postcode', row.postcode) + detail('Carrier', row.carrier) +
+      detail('Tracking number', row.tracking) + '</dl></article>').join('') + '</div></section>';
+}
+
 const styles = `
 *{box-sizing:border-box}body{margin:0;background:#f7f6f5;color:#251b21;font:15px/1.5 system-ui,sans-serif}
 main{max-width:1150px;margin:auto;padding:clamp(16px,4vw,48px)}.top,article header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start;flex-wrap:wrap}
@@ -159,16 +171,16 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     });
     if (upstream.status === 404) return documentBody(unavailable, 404);
     if (!upstream.ok) throw new Error('Shipment service unavailable');
-    const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; hasMore: boolean } = await upstream.json();
+    const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; hasMore: boolean } = await upstream.json();
     const href = (mode: 'list' | 'grid', number: number) => '?view=' + mode + '&amp;page=' + number;
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list', page) +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid', page) + '">Grid</a></nav>';
     const previous = page > 1 ? '<a href="' + href(view, page - 1) + '">Previous</a>' : '';
     const next = data.hasMore && page < 9999 ? '<a href="' + href(view, page + 1) + '">Next</a>' : '';
     return documentBody('<div class="top"><div><p class="eyebrow">SoloFlow · Sourcing Center</p><h1>Your shipments</h1>' +
-      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) +
+      '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) + importedHistory(data.importedShipments ?? [], view) +
       '<section aria-label="Shipped orders" class="shipments ' + view + '">' +
-      (data.shipments.length ? data.shipments.map(shipmentCard).join('') : '<p class="empty">No shipments on this page.</p>') +
+      (data.shipments.length ? data.shipments.map(shipmentCard).join('') : (data.importedShipments?.length ? '' : '<p class="empty">No shipments on this page.</p>')) +
       '</section>' + (previous || next ? '<nav class="pagination" aria-label="Shipment pages">' + previous + next + '</nav>' : ''));
   } catch {
     return documentBody('<h1>Shipments are temporarily unavailable</h1><p>Please try again shortly.</p>', 503);

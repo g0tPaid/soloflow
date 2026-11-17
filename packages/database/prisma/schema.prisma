@@ -244,6 +244,7 @@ model Customer {
   quotes       Quote[]
   dropshipPortal DropshipPortal?
   dropshipStocks DropshipStock[]
+  importedShipments DropshipImportedShipment?
 
   @@index([organizationId])
   @@index([organizationId, email])
@@ -261,10 +262,18 @@ model DropshipPortal {
   @@map("dropship_portals")
 }
 
+model DropshipImportedShipment {
+  customerId String @id
+  rows Json
+  customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
+  @@map("dropship_imported_shipments")
+}
+
 model DropshipStock {
   customerId String
   productId  String
   allocated  Decimal @db.Decimal(12, 4)
+  imageUrl   String?
   customer Customer @relation(fields: [customerId], references: [id], onDelete: Cascade)
   product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
   @@id([customerId, productId])
