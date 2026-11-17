@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { FulfillmentStatus, Prisma } from '@flowbooks/database';
-import { DROPSHIPPING_PARTNER_INVOICE_FIELD, fulfillmentRank } from '@flowbooks/shared';
+import { fulfillmentRank } from '@flowbooks/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -8,6 +8,7 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
   private readonly logger = new Logger(StaffShipmentSync.name);
   private timer?: ReturnType<typeof setInterval>;
   private running = false;
+  private lastPartnerSync = 0;
 
   constructor(private readonly prisma: PrismaService) {}
 
@@ -21,6 +22,29 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
     if (this.timer) clearInterval(this.timer);
   }
 
+  private async send(body: Record<string, unknown>) {
+    return fetch('https://sourcing.center/api/soloflow-staff-orders', {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(7000),
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.PARTNER_SHIPMENT_PHOTO_KEY },
+      body: JSON.stringify(body),
+    });
+  }
+
+  private async syncPartnerLabels(organizationId: string) {
+    if (Date.now() - this.lastPartnerSync < 60_000) return;
+    const customers = await this.prisma.customer.findMany({
+      where: { organizationId, dropshipperNumber: { not: null } },
+      select: { dropshipperNumber: true, dropshipperPrefix: true, name: true },
+    });
+    const partners = customers.flatMap((customer) => customer.dropshipperNumber && customer.name.trim() ? [{
+      number: customer.dropshipperNumber,
+      prefix: customer.dropshipperPrefix ?? '',
+      name: customer.name.trim().slice(0, 250),
+    }] : []);
+    const response = await this.send({ partners });
+    if (response.ok) this.lastPartnerSync = Date.now();
+  }
+
   private async run() {
     if (this.running) return;
     this.running = true;
@@ -30,13 +54,22 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
         select: { organizationId: true },
       });
       if (!anchor) return;
+      await this.syncPartnerLabels(anchor.organizationId).catch(() => undefined);
       const invoices = await this.prisma.invoice.findMany({
         where: {
           organizationId: anchor.organizationId,
-          customer: { isActive: true, isDropshipper: true, dropshipperNumber: { not: null } },
+          customer: { isDropshipper: true, dropshipperNumber: { not: null } },
           status: { notIn: ['CANCELLED', 'VOID'] },
-          customFields: { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true },
-          shipmentContact: { not: Prisma.DbNull },
+          AND: [{
+            OR: [
+              { shipmentContact: { not: Prisma.DbNull } },
+              { endRecipientName: { not: null } },
+              { endRecipientAddress: { not: null } },
+              { partnerOrderNumber: { not: null } },
+              { internationalTrackingNumber: { not: null } },
+              { localTrackingNumber: { not: null } },
+            ],
+          }],
           OR: [
             { staffSyncedAt: null },
             { staffSyncedAt: { lt: this.prisma.invoice.fields.updatedAt } },
@@ -49,12 +82,11 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
       });
       await Promise.allSettled(invoices.map(async (invoice) => {
         const number = invoice.customer?.dropshipperNumber;
-        if (!number || !invoice.shipmentContact || typeof invoice.shipmentContact !== 'object' || Array.isArray(invoice.shipmentContact)) return;
+        if (!number) return;
+        const contact = invoice.shipmentContact && typeof invoice.shipmentContact === 'object' && !Array.isArray(invoice.shipmentContact)
+          ? invoice.shipmentContact : {};
         const reference = [invoice.customer?.dropshipperPrefix, number].filter(Boolean).join('-');
-        const response = await fetch('https://sourcing.center/api/soloflow-staff-orders', {
-          method: 'POST', redirect: 'error', signal: AbortSignal.timeout(7000),
-          headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + process.env.PARTNER_SHIPMENT_PHOTO_KEY },
-          body: JSON.stringify({
+        const response = await this.send({
             id: invoice.id,
             revision: invoice.updatedAt.toISOString(),
             reference,
@@ -63,11 +95,10 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
             tracking: invoice.internationalTrackingNumber || invoice.localTrackingNumber,
             carrier: invoice.shipmentCarrier,
             contact: {
-              ...invoice.shipmentContact,
+              ...contact,
               address: invoice.endRecipientAddress,
-              country: invoice.shipmentContact.country || invoice.shippingToCountry,
+              country: contact.country || invoice.shippingToCountry,
             },
-          }),
         });
         if (!response.ok) return;
         const data: { tracking?: unknown; carrier?: unknown } = await response.json();
