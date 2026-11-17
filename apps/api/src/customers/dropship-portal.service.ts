@@ -13,9 +13,10 @@ function partnerInvoices(organizationId: string, customerId: string): Prisma.Inv
   };
 }
 
+const shippedStages = FULFILLMENT_STATUS_VALUES.slice(FULFILLMENT_STATUS_VALUES.indexOf(INTERNATIONAL_TRACKING_STATUS));
 const shippedFilter: Prisma.InvoiceWhereInput = {
   OR: [
-    { fulfillmentStatus: { not: null, in: FULFILLMENT_STATUS_VALUES.slice(FULFILLMENT_STATUS_VALUES.indexOf(INTERNATIONAL_TRACKING_STATUS)) } },
+    { fulfillmentStatus: { not: null, in: shippedStages } },
     { fulfillmentStatus: { equals: 'SHIPPED_TO_CHINA_CENTER', not: null }, shippingMethod: { equals: 'LOCAL', not: null }, localTrackingNumber: { not: null } },
   ],
 };
@@ -143,7 +144,7 @@ export class DropshipPortalService {
     return { revoked: true };
   }
 
-  async shipments(token: unknown, offset: number, awaiting = false) {
+  async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped') {
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
       throw new NotFoundException();
     }
@@ -164,7 +165,7 @@ export class DropshipPortalService {
     const invoices = await this.prisma.invoice.findMany({
       where: {
         ...partnerInvoices(customer.organizationId, customer.id),
-        ...(awaiting ? { NOT: shippedFilter } : shippedFilter),
+        ...(scope === 'shipped' ? shippedFilter : {}),
         customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
       },
       orderBy: [{ issueDate: 'desc' }, { id: 'desc' }],
@@ -202,7 +203,9 @@ export class DropshipPortalService {
       hasMore: invoices.length > pageSize,
       shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
         ...invoice,
-        awaiting,
+        awaiting: !shippedStages.some((stage) => stage === invoice.fulfillmentStatus) &&
+          !(invoice.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' &&
+            invoice.shippingMethod === 'LOCAL' && invoice.localTrackingNumber !== null),
         items: items.map(({ productId, product, ...item }) => ({
           ...item,
           imageUrl: item.imageUrl || (productId ? stockByProduct.get(productId)?.imageUrl : null) ||

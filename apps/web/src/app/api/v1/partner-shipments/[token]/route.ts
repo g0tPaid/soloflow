@@ -177,7 +177,12 @@ main{max-width:1150px;margin:auto;padding:clamp(16px,4vw,48px)}.top,article head
 h1,h2,p,dl,dd{margin:0}h1{font-size:clamp(28px,6vw,45px);letter-spacing:-.04em;line-height:1.12}h2{font-size:19px;overflow-wrap:anywhere}
 .eyebrow{color:#774356;font-size:12px;font-weight:700;margin-bottom:5px}.partner{color:#695c63;margin-top:6px}nav{display:flex;gap:8px;flex-wrap:wrap}
 nav a{color:#781538;border:1px solid #e6d7dd;background:#fff;border-radius:999px;padding:8px 14px;text-decoration:none;font-weight:600}
- .sections{margin-top:24px}.attributes{white-space:pre-line;overflow-wrap:anywhere}.badge.awaiting{color:#795310;background:#fff1d5}
+.portal-brand{display:block;width:min(100%,310px);height:auto;margin-bottom:24px;border-radius:0;background:transparent}
+.partner-name{display:inline-block;overflow-wrap:anywhere}
+.customer-id{margin-top:10px;color:#695c63;font-size:14px}.customer-id strong{color:#781538}
+@media(prefers-reduced-motion:no-preference){.partner-name{animation:welcome-name .65s ease-out both}}
+@keyframes welcome-name{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.attributes{white-space:pre-line;overflow-wrap:anywhere}.badge.awaiting{color:#795310;background:#fff1d5}
 nav a[aria-current=true]{background:#8e1744;color:#fff}.shipments{display:grid;gap:14px;margin:22px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
 article,.empty,.inventory{background:#fff;border:1px solid #ece4e7;border-radius:18px;padding:clamp(14px,3vw,24px);min-width:0}article header{margin-bottom:16px}.badge{font-size:12px;font-weight:700;color:#176145;background:#e7f6ed;border-radius:999px;padding:5px 10px}
 .details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px 16px}dt,small{color:#695c63;font-size:12px}dd{overflow-wrap:anywhere;white-space:pre-line;font-weight:600}
@@ -195,13 +200,12 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const { token } = await params;
   const search = new URL(request.url).searchParams;
   const view = search.get('view') === 'grid' ? 'grid' : 'list';
-  const awaiting = search.get('status') !== 'shipped';
   const rawPage = search.get('page') ?? '';
   const page = /^\d{1,4}$/.test(rawPage) ? Math.max(1, Number(rawPage)) : 1;
   const unavailable = '<h1>Private shipment link unavailable</h1><p>Ask your supplier for a new link.</p>';
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return documentBody(unavailable, 404);
   try {
-    const upstream = await fetch(getServerApiBaseUrl() + '/dropship-portal/shipments?page=' + page + (awaiting ? '&status=awaiting' : ''), {
+    const upstream = await fetch(getServerApiBaseUrl() + '/dropship-portal/shipments?page=' + page + '&status=all', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ token }),
@@ -212,28 +216,28 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     if (upstream.status === 404) return documentBody(unavailable, 404);
     if (!upstream.ok) throw new Error('Shipment service unavailable');
     const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean } = await upstream.json();
-    const history = awaiting ? [] : data.importedShipments ?? [];
+    const history = data.importedShipments ?? [];
     const photos = await loadShipmentPhotos(data.sourceCustomer, [...history, ...data.shipments.map((shipment) => ({
       order: shipment.partnerOrderNumber || shipment.number,
       tracking: shipment.internationalTrackingNumber || shipment.localTrackingNumber || '',
     }))]);
-    const href = (mode: 'list' | 'grid', number: number, pending = awaiting) =>
-      '?view=' + mode + '&amp;page=' + number + (pending ? '' : '&amp;status=shipped');
-    const sections = '<nav class="sections" aria-label="Shipment status">' +
-      '<a aria-current="' + awaiting + '" href="' + href(view, 1, true) + '">Awaiting shipments</a>' +
-      '<a aria-current="' + !awaiting + '" href="' + href(view, 1, false) + '">Shipped</a></nav>';
+    const href = (mode: 'list' | 'grid', number: number) => '?view=' + mode + '&amp;page=' + number;
+    const customerId = data.sourceCustomer?.number
+      ? [data.sourceCustomer.prefix, data.sourceCustomer.number].filter(Boolean).join('-')
+      : null;
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list', page) +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid', page) + '">Grid</a></nav>';
     const previous = page > 1 ? '<a href="' + href(view, page - 1) + '">Previous</a>' : '';
     const next = data.hasMore && page < 9999 ? '<a href="' + href(view, page + 1) + '">Next</a>' : '';
-    const title = awaiting ? 'Awaiting shipments' : 'Shipped orders';
     const cards = data.shipments.map((shipment, index) =>
-      awaiting && shipment.awaiting !== true ? '' : shipmentCard(shipment, photos[history.length + index] ?? [])).join('');
-    return documentBody('<div class="top"><div><p class="eyebrow">SoloFlow · Sourcing Center</p><h1>Welcome, ' +
-      escapeHtml(data.partner) + '</h1></div>' + nav + '</div>' + sections +
-      '<section aria-label="' + title + '" class="shipments ' + view + '">' +
-      (cards || (history.length ? '' : '<p class="empty">' +
-        (awaiting ? 'No orders are awaiting shipment on this page.' : 'No shipped orders on this page.') + '</p>')) +
+      shipmentCard(shipment, photos[history.length + index] ?? [])).join('');
+    return documentBody('<img class="portal-brand" src="/partner-portal-logo.png" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
+      '<div class="top"><div><h1>Welcome, <span class="partner-name">' +
+      escapeHtml(data.partner) + '</span></h1>' +
+      (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
+      '</div>' + nav + '</div>' +
+      '<section aria-label="All shipments" class="shipments ' + view + '">' +
+      (cards || (history.length ? '' : '<p class="empty">No shipments on this page.</p>')) +
       '</section>' + (previous || next ? '<nav class="pagination" aria-label="Shipment pages">' + previous + next + '</nav>' : '') +
       importedHistory(history, view, photos) + inventory(data.stock ?? []));
   } catch {

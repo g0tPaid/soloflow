@@ -68,11 +68,11 @@ describe('DropshipPortalService', () => {
       customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
       customFields: { path: ['dropshippingPartner'], equals: true },
     });
-    await service.shipments(token, 0, true);
-    const awaitingQuery = prisma.invoice.findMany.mock.calls[1][0];
-    expect(awaitingQuery.where.NOT).toEqual({ OR: query.where.OR });
-    expect(awaitingQuery.where.status).toEqual({ notIn: ['CANCELLED', 'VOID'] });
-    expect(awaitingQuery.where.customer).toEqual(query.where.customer);
+    await service.shipments(token, 0, 'all');
+    const allQuery = prisma.invoice.findMany.mock.calls[1][0];
+    expect(allQuery.where).not.toHaveProperty('OR');
+    expect(allQuery.where.status).toEqual({ notIn: ['CANCELLED', 'VOID'] });
+    expect(allQuery.where.customer).toEqual(query.where.customer);
     expect(query.where.OR[0].fulfillmentStatus.in).toContain('SHIPPED_INTERNATIONAL');
     expect(query.skip).toBe(20);
     expect(query.take).toBe(21);
