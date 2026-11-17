@@ -35,6 +35,8 @@ import { InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
 const RED = '#DC2626';
 const RED_DARK = '#991B1B';
+const INVOICE_EDGE_ROSE = '#b97980';
+const INVOICE_FOOTER_ROSE = '#965961';
 const GREEN = '#059669';
 const GREEN_LIGHT = '#D1FAE5';
 const GREEN_DARK = '#065F46';
@@ -427,27 +429,29 @@ function PageFooter({
   contacts,
   colors = DEFAULT_INVOICE_COLORS,
   compact = false,
+  rounded = false,
 }: {
   contacts: string[];
   colors?: InvoiceAccentPalette;
   compact?: boolean;
+  rounded?: boolean;
 }) {
   const line = contacts.length > 0 ? contacts.join('   ·   ') : '';
 
   return (
-    <View style={[styles.fixedFooter, compact ? { height: 44 } : {}]} fixed>
-      <BottomWave colors={colors} compact={compact} />
-      <View style={[styles.footerBar, { backgroundColor: colors.dark }]}>
+    <View style={[styles.fixedFooter, compact ? { height: 44 } : {}, rounded ? { left: 28, right: 28, bottom: 12, height: 28 } : {}]} fixed>
+      {!rounded ? <BottomWave colors={colors} compact={compact} /> : null}
+      <View style={[styles.footerBar, { backgroundColor: colors.dark }, rounded ? { backgroundColor: INVOICE_FOOTER_ROSE, borderRadius: 10 } : {}]}>
         <Text style={styles.footerText}>{line || ' '}</Text>
       </View>
     </View>
   );
 }
 
-function PageNumber() {
+function PageNumber({ rounded = false }: { rounded?: boolean }) {
   return (
     <Text
-      style={styles.pageNumber}
+      style={[styles.pageNumber, rounded ? { right: 40, bottom: 22, color: '#ffffff' } : {}]}
       fixed
       render={({ pageNumber, totalPages }) => `Page ${pageNumber} of ${totalPages}`}
     />
@@ -624,7 +628,9 @@ function InvoicePdfBody({
   return (
     <Page size="A4" style={[styles.page, photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       <ContinuedPageHeader org={org} baseUrl={baseUrl} accent={colors.accent} />
-      {barcodeLayout ? <View style={{ height: 7, backgroundColor: "#d6001c" }} /> : <TopWave colors={colors} compact={photoLayout} />}
+      {barcodeLayout ? (
+        <View style={{ marginHorizontal: 28, marginTop: 10, height: 5, borderRadius: 3, backgroundColor: INVOICE_EDGE_ROSE }} />
+      ) : <TopWave colors={colors} compact={photoLayout} />}
       <View style={[styles.pagePad, photoLayout ? { paddingTop: 4 } : {}]}>
         {barcodeLayout ? (
           <View style={{ paddingVertical: 10, borderBottomWidth: 1, borderBottomColor: colors.softBorder, marginBottom: 7 }}>
@@ -779,7 +785,7 @@ function InvoicePdfBody({
         ) : null}
 
         {/* Compact seal + totals: stay on page 1 whenever remaining space allows. */}
-        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}, barcodeLayout ? { borderTopWidth: 1, borderTopColor: '#d6001c', paddingTop: 5 } : {}]} wrap={false}>
+        <View style={[styles.twoCol, { marginTop: photoLayout ? 3 : 6, marginBottom: 4, alignItems: 'stretch' }, photoLayout ? { gap: 7 } : {}, barcodeLayout ? { borderTopWidth: 1, borderTopColor: '#dbb9bb', borderTopLeftRadius: 4, borderTopRightRadius: 4, paddingTop: 5 } : {}]} wrap={false}>
           {photoLayout ? (
             <>
               {signatureSrc ? (
@@ -891,8 +897,8 @@ function InvoicePdfBody({
         ) : null}
       </View>
 
-      <PageFooter contacts={footerContacts as string[]} colors={colors} compact={photoLayout} />
-      <PageNumber />
+      <PageFooter contacts={footerContacts as string[]} colors={colors} compact={photoLayout} rounded={barcodeLayout} />
+      <PageNumber rounded={barcodeLayout} />
     </Page>
   );
 }
