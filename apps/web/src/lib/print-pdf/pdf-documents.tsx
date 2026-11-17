@@ -4,6 +4,7 @@ import {
   Document,
   Image,
   LinearGradient,
+  Link,
   Page,
   Path,
   Rect,
@@ -653,7 +654,7 @@ function InvoicePdfBody({
 
   return (
     <Page size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
-      {documentLabel === "INVOICE" && <Text fixed style={{ position: "absolute", top: 7, right: 22, fontSize: 8, color: "#166534" }}><Text style={{ textDecoration: "underline" }} src="https://wise.com/pay/me/ajmala214">Pay with Wise: wise.com/pay/me/ajmala214</Text></Text>}
+      {documentLabel === "INVOICE" && <Text fixed style={{ position: "absolute", top: 7, right: 22, fontSize: 8, color: "#166534" }}><Link src="https://wise.com/pay/me/ajmala214" style={{ textDecoration: "underline" }}>Pay with Wise: wise.com/pay/me/ajmala214</Link></Text>}
       {barcodeLayout ? (
         <View style={INVOICE_FRAME} fixed>
           <Svg viewBox="0 0 595.28 841.89" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
