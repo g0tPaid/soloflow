@@ -1,0 +1,47 @@
+import { invoiceAmountPaid, invoiceBalanceDue } from '@flowbooks/shared';
+import type { Invoice, Organization } from '@/lib/api';
+import { parseStoredLineItem } from '@/lib/line-items';
+import { formatAddressLines, parseBranding, shouldShowInvoiceLogo } from '@/lib/organization-branding';
+import { formatCurrency } from '@/lib/utils';
+
+export function getMobileInvoiceData(invoice: Invoice, organization?: Organization | null) {
+  const money = (amount: string | number) => formatCurrency(Number(amount), invoice.currency);
+  const branding = parseBranding(organization?.settings?.branding);
+  const paid = invoiceAmountPaid(invoice);
+  const tax = Number(invoice.taxAmount ?? 0);
+  const cancelled = invoice.status === 'CANCELLED' || invoice.status === 'VOID';
+  const date = new Date(invoice.issueDate).toLocaleDateString('en-GB', {
+    day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
+  });
+
+  return {
+    date,
+    organizationName: organization?.name ?? 'Your Company',
+    logo: shouldShowInvoiceLogo(branding, organization?.logo) ? organization?.logo : undefined,
+    address: formatAddressLines(branding.address).join(' · '),
+    contact: [branding.phone, branding.email].filter(Boolean).join(' · '),
+    taxId: branding.trn,
+    website: branding.website,
+    status: cancelled ? invoice.status : undefined,
+    balance: money(cancelled ? 0 : invoiceBalanceDue(invoice)),
+    items: (invoice.items ?? []).map((item) => {
+      const { name, description } = parseStoredLineItem(item);
+      const title = name || description || 'Item';
+      return {
+        id: item.id,
+        title,
+        description: description !== title ? description : undefined,
+        image: item.imageUrl || item.product?.imageUrl,
+        quantity: `${Number(item.quantity)} × ${money(item.unitPrice)}`,
+        amount: money(item.amount),
+      };
+    }),
+    totals: [
+      { label: 'Subtotal', amount: money(invoice.subtotal) },
+      ...(Number(invoice.discount) > 0 ? [{ label: 'Discount', amount: money(-Number(invoice.discount)) }] : []),
+      ...(Number(invoice.shipping) > 0 ? [{ label: 'Delivery', amount: money(invoice.shipping) }] : []),
+      ...(tax > 0 ? [{ label: 'VAT', amount: money(tax) }] : []),
+      ...(paid > 0 ? [{ label: 'Invoice total', amount: money(invoice.total) }, { label: 'Amount paid', amount: money(paid) }] : []),
+    ],
+  };
+}

@@ -34,6 +34,7 @@ import {
 } from '@flowbooks/shared';
 
 import { InvoiceBarcode } from './invoice-barcode';
+import { MobileInvoicePdf } from './mobile-invoice-pdf';
 import { SourcingBrand } from './sourcing-brand';
 import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
@@ -1301,7 +1302,11 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
     case 'invoices':
       return (
         <Document>
-          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
+          {version === 5 ? (
+            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+          ) : (
+            <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
+          )}
         </Document>
       );
     case 'quotes':

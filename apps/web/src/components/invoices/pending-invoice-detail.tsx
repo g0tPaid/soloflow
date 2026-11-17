@@ -54,6 +54,14 @@ export function PendingInvoiceDetail({
               filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
             />
           ) : null}
+          {organizationId && invoicePath === '/invoices-v5' ? (
+            <Link
+              href={`/print/invoices/${invoice.id}?version=5&org=${encodeURIComponent(organizationId)}`}
+              className="text-sm text-primary hover:underline"
+            >
+              Preview mobile invoice
+            </Link>
+          ) : null}
           <Link href={invoicePath} className="text-sm text-primary hover:underline">
             ← Back to invoices
           </Link>

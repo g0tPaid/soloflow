@@ -45,6 +45,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   invoicesV2: FileText,
   invoicesV3: FileText,
   dropshipperInvoices: FileText,
+  invoicesV5: FileText,
   quotes: FileSpreadsheet,
   expenses: Receipt,
   receipts: BadgeCheck,
@@ -65,6 +66,7 @@ const sidebarModules = NAV_MODULES.flatMap((item) =>
         { ...item, key: 'invoicesV2', label: 'Invoice 2', href: '/invoices-v2' },
         { ...item, key: 'invoicesV3', label: 'Invoice 3', href: '/invoices-v3' },
         { ...item, key: 'dropshipperInvoices', label: 'Invoice 4 · Dropshippers', href: DROPSHIPPER_INVOICE_PATH },
+        { ...item, key: 'invoicesV5', label: 'Invoice 5 · Mobile', href: '/invoices-v5' },
       ]
     : [item],
 );

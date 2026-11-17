@@ -311,7 +311,7 @@ export default function InvoicesPage() {
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
             <h1 className="text-2xl font-medium tracking-tight">{dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
-            <p className="text-sm text-muted-foreground">Create and manage invoices</p>
+            <p className="text-sm text-muted-foreground">{version === 5 ? 'Mobile receipt invoices' : 'Create and manage invoices'}</p>
           </div>
           {organizationId && (
             <Button asChild>

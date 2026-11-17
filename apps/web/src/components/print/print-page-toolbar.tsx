@@ -4,6 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { ArrowLeft, Download, LayoutDashboard, Loader2, MessageCircle, Share2 } from 'lucide-react';
 import type { Organization } from '@/lib/api';
+import type { InvoicePdfVersion } from '@/lib/invoice-version';
 import { fetchServerPdfFile, type ServerPdfType } from '@/lib/fetch-server-pdf';
 import { resolveInvoicePdfFile } from '@/lib/offline/resolve-invoice-pdf';
 import { downloadPdfToDevice } from '@/lib/save-pdf-to-device';
@@ -20,6 +21,7 @@ type Props = {
   /** On-device organization, used when the invoice PDF is rendered offline. */
   organization?: Organization | null;
   filename: string;
+  invoiceVersion?: InvoicePdfVersion;
   accentClassName?: string;
   whatsappMessage?: string;
   whatsappPhone?: string;
@@ -35,6 +37,7 @@ export function PrintPageToolbar({
   organizationId,
   organization,
   filename,
+  invoiceVersion,
   accentClassName = 'bg-red-600 hover:bg-red-700',
   whatsappMessage = 'Please find the document attached.',
   whatsappPhone,
@@ -55,6 +58,7 @@ export function PrintPageToolbar({
         organizationId,
         organization,
         filename,
+        version: invoiceVersion,
       });
     }
     return fetchServerPdfFile(documentType, documentId, {
