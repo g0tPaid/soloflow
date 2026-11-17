@@ -5,13 +5,15 @@ import { InvoiceBarcode } from './invoice-barcode';
 import { InvoiceTrackingQr } from './invoice-v2-pdf';
 import { getMobileInvoiceData } from './mobile-invoice-data';
 import { SourcingBrand } from './sourcing-brand';
+import { sevenColorMark } from './sourcing-brand-mark';
 
 const RECEIPT_WIDTH = (80 / 25.4) * 72;
 const styles = StyleSheet.create({
   page: { paddingHorizontal: 12, paddingVertical: 14, color: '#121212', fontFamily: 'Helvetica', fontSize: 9 },
   center: { alignItems: 'center', textAlign: 'center' },
   brand: { fontSize: 8, color: '#64646d', marginTop: 4 },
-  heading: { fontSize: 12, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
+  heading: { fontSize: 9, fontWeight: 'bold', marginTop: 8, marginBottom: 3 },
+  invoiceNumber: { fontSize: 8, fontWeight: 'normal' },
   detail: { fontSize: 8, marginTop: 3, color: '#3f3f46' },
   divider: { borderTopWidth: 1, borderTopColor: '#8b8b91', borderStyle: 'dashed', marginVertical: 8 },
   row: { flexDirection: 'row', alignItems: 'flex-start', marginBottom: 6, paddingBottom: 6, borderBottomWidth: 1, borderBottomColor: '#a1a1aa', borderStyle: 'dotted' },
@@ -30,19 +32,18 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
   return (
     <Page size={{ width: RECEIPT_WIDTH }} style={styles.page} wrap={false}>
       <View style={styles.center}>
-        <SourcingBrand horizontal />
+        <SourcingBrand wordmarkOnly />
         <Text style={styles.brand}>{data.organizationName}</Text>
         {data.address ? <Text style={styles.detail}>{data.address}</Text> : null}
         {data.contact ? <Text style={styles.detail}>{data.contact}</Text> : null}
         {data.taxId ? <Text style={styles.detail}>TRN {data.taxId}</Text> : null}
-        <Text style={styles.heading}>INVOICE</Text>
-        <Text style={styles.label}>{invoice.number}</Text>
+        <Text style={styles.heading}>INVOICE <Text style={styles.invoiceNumber}> · {invoice.number}</Text></Text>
         <Text style={styles.detail}>{data.date}</Text>
-        {invoice.customer?.name ? <Text style={styles.detail}>Bill to: {invoice.customer.name}</Text> : null}
+        {invoice.customer?.name ? <Text style={styles.detail}>Bill to: <Text style={styles.label}>{invoice.customer.name}</Text></Text> : null}
         {data.customerAddress.length ? <Text style={styles.detail}>{data.customerAddress.join('\n')}</Text> : null}
         {data.status ? <Text style={styles.label}>{data.status}</Text> : null}
         <View style={{ marginTop: 7 }}>
-          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={144} height={15} />
+          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={166} height={19} scale={1.12} />
         </View>
       </View>
       <View style={styles.divider} />
@@ -68,6 +69,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       <View style={styles.footer}>
         <InvoiceTrackingQr accent="#18181b" background="#ffffff" />
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
+        <Image src={sevenColorMark} style={{ width: 24, height: 24, marginTop: 8, objectFit: 'contain' }} />
       </View>
     </Page>
   );

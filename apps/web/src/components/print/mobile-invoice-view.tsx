@@ -12,25 +12,24 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
   return (
     <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label="Mobile invoice">
       <header className="space-y-1 text-center">
-        <div className="mb-2 flex items-center justify-center gap-1.5 text-[clamp(1.25rem,6.7vw,1.75rem)]">
-          {/* eslint-disable-next-line @next/next/no-img-element */}
-          <img src={sevenColorMark} alt="" className="h-[1.1em] w-[1.1em] shrink-0 object-contain" />
-          <p className="font-extrabold tracking-tight">sourcing<span className="text-[#e4001b]">.center</span></p>
-        </div>
+        <p className="mb-2 text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold tracking-tight">
+          sourcing<span className="text-[#e4001b]">.center</span>
+        </p>
         <p className="text-xs text-zinc-500">{data.organizationName}</p>
         {data.address ? <p className="text-xs">{data.address}</p> : null}
         {data.contact ? <p className="break-words text-xs">{data.contact}</p> : null}
         {data.taxId ? <p className="text-xs">TRN {data.taxId}</p> : null}
-        <h1 className="pt-2 text-base font-bold">INVOICE</h1>
-        <p className="break-words font-mono font-semibold">{invoice.number}</p>
+        <h1 className="break-words pt-2 text-sm font-bold">
+          INVOICE <span className="font-mono text-xs font-normal"> · {invoice.number}</span>
+        </h1>
         <p>{data.date}</p>
-        {invoice.customer?.name ? <p>Bill to: {invoice.customer.name}</p> : null}
+        {invoice.customer?.name ? <p>Bill to: <strong>{invoice.customer.name}</strong></p> : null}
         {data.customerAddress.length ? (
           <p className="whitespace-pre-line break-words text-xs text-zinc-700">{data.customerAddress.join('\n')}</p>
         ) : null}
         {data.status ? <p className="font-semibold">{data.status}</p> : null}
         <div className="pt-2">
-          <svg width={Math.min(barcode.width, 144)} height={18} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`Invoice barcode for ${barcode.value}`}>
+          <svg width={Math.min(barcode.width * 1.12, 166)} height={22} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`Invoice barcode for ${barcode.value}`}>
             {barcode.bands.map(({ fill, path }) => <path key={fill} fill={fill} d={path} />)}
           </svg>
           <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
@@ -70,6 +69,8 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
           <span><span className="block font-bold">Track shipment</span><span className="block text-xs">sourcing.center/track</span></span>
         </a>
         {data.website ? <p className="break-words text-xs">{data.website}</p> : null}
+        {/* eslint-disable-next-line @next/next/no-img-element */}
+        <img src={sevenColorMark} alt="Seven Color" className="h-8 w-8 object-contain" />
       </footer>
     </article>
   );
