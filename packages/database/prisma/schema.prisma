@@ -538,12 +538,25 @@ model Quote {
   customer         Customer     @relation(fields: [customerId], references: [id])
   convertedInvoice Invoice?     @relation("QuoteConvertedInvoice", fields: [convertedInvoiceId], references: [id], onDelete: SetNull)
   items            QuoteItem[]
+  pdfVersions      QuotePdfVersion[]
 
   @@unique([organizationId, number])
   @@index([organizationId])
   @@index([organizationId, status])
   @@index([organizationId, customerId])
   @@map("quotes")
+}
+
+model QuotePdfVersion {
+  quoteId  String
+  version  Int
+  snapshot Json
+  savedAt  DateTime @default(now())
+
+  quote Quote @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+
+  @@id([quoteId, version])
+  @@map("quote_pdf_versions")
 }
 
 model QuoteItem {

@@ -6,8 +6,9 @@ import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Pencil, FileInput } from 'lucide-react';
+import { Download, Pencil, FileInput } from 'lucide-react';
 import { api } from '@/lib/api';
+import { buildServerPdfUrl } from '@/lib/build-server-pdf-url';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { QuoteForm } from '@/components/quotes/quote-form';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
@@ -34,6 +35,12 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
     queryKey: ['quote', id, organizationId],
     queryFn: () => api.quotes.get(session!.accessToken!, organizationId!, id),
     enabled: !!session?.accessToken && !!organizationId,
+  });
+
+  const pdfHistory = useQuery({
+    queryKey: ['quote-pdf-versions', id, organizationId],
+    queryFn: () => api.quotes.listPdfVersions(session!.accessToken!, organizationId!, id),
+    enabled: !!session?.accessToken && !!organizationId && !!quote,
   });
 
   const { data: customersData } = useQuery({
@@ -67,8 +74,11 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
   }
 
   async function refreshQuote() {
-    await queryClient.invalidateQueries({ queryKey: ['quote', id, organizationId] });
-    await queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] });
+    await Promise.all([
+      queryClient.invalidateQueries({ queryKey: ['quote', id, organizationId] }),
+      queryClient.invalidateQueries({ queryKey: ['quotes', organizationId] }),
+      queryClient.invalidateQueries({ queryKey: ['quote-pdf-versions', id, organizationId] }),
+    ]);
   }
 
   async function handleConvert() {
@@ -204,6 +214,39 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
 
       {isLoading && organizationId && (
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
+      )}
+
+      {quote && organizationId && (
+        <Card>
+          <CardContent className="space-y-3 py-5">
+            <h2 className="font-semibold">PDF version history</h2>
+            {pdfHistory.isLoading ? <p className="text-sm text-muted-foreground">Loading PDF history…</p> : null}
+            {pdfHistory.isError ? (
+              <div className="flex items-center justify-between gap-3 text-sm">
+                <p role="alert" className="text-destructive">Could not load PDF history.</p>
+                <Button type="button" variant="outline" size="sm" onClick={() => void pdfHistory.refetch()}>Retry</Button>
+              </div>
+            ) : null}
+            {pdfHistory.data?.length ? (
+              <ul className="divide-y">
+                {pdfHistory.data.map(({ version, savedAt }, index) => (
+                  <li key={version} className="flex flex-wrap items-center justify-between gap-2 py-2">
+                    <div>
+                      <p className="text-sm font-medium">PDF {version}{index === 0 ? ' · Latest' : ''}</p>
+                      <time dateTime={savedAt} className="text-xs text-muted-foreground">{new Date(savedAt).toLocaleString()}</time>
+                    </div>
+                    <Button asChild variant="outline" size="sm">
+                      <a href={buildServerPdfUrl('quotes', id, { organizationId, quoteVersion: version, filename: `quote-${id}-pdf-${version}.pdf` })}>
+                        <Download className="h-4 w-4" aria-hidden="true" />
+                        Download PDF {version}
+                      </a>
+                    </Button>
+                  </li>
+                ))}
+              </ul>
+            ) : null}
+          </CardContent>
+        </Card>
       )}
 
       {quote && organizationId && (

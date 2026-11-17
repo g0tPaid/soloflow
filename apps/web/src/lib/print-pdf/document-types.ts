@@ -5,4 +5,4 @@ export type LoadedPrintDocument =
   | { type: 'invoices'; invoice: Invoice; org: Organization }
   | { type: 'receipts'; invoice: Invoice; org: Organization }
   | { type: 'expenses'; expense: ExpenseDetail }
-  | { type: 'quotes'; invoice: Invoice; org: Organization };
+  | { type: 'quotes'; invoice: Invoice; org: Organization; quoteVersion?: number };

@@ -11,6 +11,7 @@ export async function loadPrintDocument(
   type: string,
   id: string,
   organizationId?: string | null,
+  quoteVersion?: number,
 ): Promise<LoadedPrintDocument> {
   if (!organizationId) {
     throw new Error('Organization is required to generate this PDF.');
@@ -28,6 +29,10 @@ export async function loadPrintDocument(
         : { type: 'receipts', invoice, org };
     }
     case 'quotes': {
+      if (quoteVersion !== undefined) {
+        const { quote, organization } = await api.quotes.getPdfVersion(accessToken, organizationId, id, quoteVersion);
+        return { type: 'quotes', invoice: quoteAsInvoiceForPrint(quote), org: organization, quoteVersion };
+      }
       const [quote, org] = await Promise.all([
         api.quotes.get(accessToken, organizationId, id),
         api.organizations.get(accessToken, organizationId),

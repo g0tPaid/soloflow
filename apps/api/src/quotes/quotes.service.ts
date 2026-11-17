@@ -3,6 +3,7 @@ import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuoteDto, UpdateQuoteDto } from './dto/quote.dto';
 import { InvoiceStatus, Prisma, QuoteStatus } from '@flowbooks/database';
 import { normalizePagination } from '../common/pagination';
+import { canonicalJson, quoteForPdfHistory, quotePdfOrganization, quotePdfRelations, quotePdfSnapshot } from './quote-pdf-snapshot';
 
 @Injectable()
 export class QuotesService {
@@ -35,10 +36,43 @@ export class QuotesService {
   async findOne(organizationId: string, id: string) {
     const quote = await this.prisma.quote.findFirst({
       where: { id, organizationId },
-      include: { customer: true, items: { include: { product: true }, orderBy: { sortOrder: 'asc' } } },
+      include: quotePdfRelations,
     });
     if (!quote) throw new NotFoundException('Quote not found');
     return quote;
+  }
+
+  async listPdfVersions(organizationId: string, id: string) {
+    const quote = await this.prisma.quote.findFirst({
+      where: { id, organizationId },
+      select: { updatedAt: true },
+    });
+    if (!quote) throw new NotFoundException('Quote not found');
+    const versions = await this.prisma.quotePdfVersion.findMany({
+      where: { quoteId: id },
+      select: { version: true, savedAt: true },
+      orderBy: { version: 'desc' },
+    });
+    return versions.length ? versions : [{ version: 1, savedAt: quote.updatedAt }];
+  }
+
+  async getPdfVersion(organizationId: string, id: string, version: number) {
+    if (!Number.isSafeInteger(version) || version < 1 || version > 2147483647) {
+      throw new NotFoundException('Quote PDF version not found');
+    }
+    const lookup = () => this.prisma.quotePdfVersion.findFirst({
+      where: { quoteId: id, version, quote: { organizationId } },
+      select: { snapshot: true },
+    });
+    const saved = await lookup();
+    if (saved) return saved.snapshot;
+    if (version !== 1) throw new NotFoundException('Quote PDF version not found');
+
+    const quote = await this.findOne(organizationId, id);
+    // Recheck in case the first edit saved the baseline while we read the quote.
+    const baseline = await lookup();
+    if (baseline) return baseline.snapshot;
+    return quotePdfSnapshot(quote, await quotePdfOrganization(this.prisma, organizationId));
   }
 
   async getNextNumber(organizationId: string) {
@@ -152,6 +186,10 @@ export class QuotesService {
           },
         });
 
+        const organization = await quotePdfOrganization(tx, organizationId);
+        await tx.quotePdfVersion.create({
+          data: { quoteId: quote.id, version: 1, savedAt: quote.createdAt, snapshot: quotePdfSnapshot(quote, organization) },
+        });
         return quote;
       });
     } catch (error) {
@@ -263,10 +301,35 @@ export class QuotesService {
     }
 
     try {
-      return await this.prisma.quote.update({
-        where: { id, organizationId, updatedAt: existing.updatedAt },
-        data: updateData,
-        include: { items: { include: { product: true }, orderBy: { sortOrder: 'asc' } }, customer: true },
+      return await this.prisma.$transaction(async (tx) => {
+        const updated = await tx.quote.update({
+          where: { id, organizationId, updatedAt: existing.updatedAt },
+          data: updateData,
+          include: quotePdfRelations,
+        });
+        if (!hasQuoteEdits) return updated;
+
+        const latest = await tx.quotePdfVersion.findFirst({
+          where: { quoteId: id },
+          orderBy: { version: 'desc' },
+        });
+        const organization = await quotePdfOrganization(tx, organizationId);
+        const priorQuote = latest?.snapshot && typeof latest.snapshot === 'object' && !Array.isArray(latest.snapshot)
+          ? latest.snapshot.quote
+          : quoteForPdfHistory(existing);
+        if (!latest) {
+          await tx.quotePdfVersion.create({
+            data: { quoteId: id, version: 1, savedAt: existing.updatedAt, snapshot: quotePdfSnapshot(existing, organization) },
+          });
+        }
+        const previous = JSON.stringify(priorQuote, canonicalJson);
+        const next = JSON.stringify(quoteForPdfHistory(updated), canonicalJson);
+        if (previous !== next) {
+          await tx.quotePdfVersion.create({
+            data: { quoteId: id, version: (latest?.version ?? 1) + 1, savedAt: updated.updatedAt, snapshot: quotePdfSnapshot(updated, organization) },
+          });
+        }
+        return updated;
       });
     } catch (error) {
       if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {

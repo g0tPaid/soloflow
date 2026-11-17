@@ -326,6 +326,11 @@ export type QuoteStatus =
   | 'CANCELLED'
   | 'CONVERTED';
 
+export interface QuotePdfVersionSummary {
+  version: number;
+  savedAt: string;
+}
+
 export interface QuoteItem {
   id: string;
   productId?: string | null;
@@ -1075,6 +1080,10 @@ export const api = {
       ),
     get: (token: string, organizationId: string, id: string) =>
       apiFetch<Quote>(`/quotes/${id}`, { token, organizationId }),
+    listPdfVersions: (token: string, organizationId: string, id: string) =>
+      apiFetch<QuotePdfVersionSummary[]>(`/quotes/${id}/pdf-versions`, { token, organizationId }),
+    getPdfVersion: (token: string, organizationId: string, id: string, version: number) =>
+      apiFetch<{ quote: Quote; organization: Organization }>(`/quotes/${id}/pdf-versions/${version}`, { token, organizationId }),
     nextNumber: (token: string, organizationId: string) =>
       apiFetch<{ number: string }>('/quotes/next-number', { token, organizationId }),
     create: (token: string, organizationId: string, data: CreateQuoteInput) => {

@@ -10,7 +10,10 @@ describe('revising an invoiced quote', () => {
     convertedInvoiceId: 'invoice_1',
     number: 'QUO-00001',
     updatedAt: new Date('2026-11-17T00:00:00Z'),
+    createdAt: new Date('2026-11-16T00:00:00Z'),
+    issueDate: new Date('2026-11-16T00:00:00Z'),
     customerId: 'customer_1',
+    customer: { id: 'customer_1', name: 'Buyer' },
     currency: 'USD',
     subtotal: 20,
     discount: 0,
@@ -24,6 +27,7 @@ describe('revising an invoiced quote', () => {
   let currentQuote: { status: QuoteStatus } & Omit<typeof issuedQuote, 'status'>;
   let claimed: { count: number };
   let service: QuotesService;
+  let versions: Array<{ quoteId: string; version: number; savedAt: Date; snapshot: { quote: { shipping: number; total: number }; organization: { name: string } } }>;
   const quote = {
     update: jest.fn(async ({ data }) => {
       currentQuote = { ...currentQuote, ...data };
@@ -36,17 +40,24 @@ describe('revising an invoiced quote', () => {
     findUnique: jest.fn(async () => ({ invoiceNextNum: 2 })),
     upsert: jest.fn(),
   };
+  const organization = { findUniqueOrThrow: jest.fn(async () => ({ id: 'org_1', name: 'Example Company' })) };
+  const quotePdfVersion = {
+    findFirst: jest.fn(async ({ where }) => where.version
+      ? versions.find((entry) => entry.version === where.version) ?? null
+      : versions.at(-1) ?? null),
+    create: jest.fn(async ({ data }) => { versions.push(data); return data; }),
+  };
+  const tx = { quote, invoice, organizationSettings, organization, quotePdfVersion };
   const prisma = {
-    quote,
-    organizationSettings,
-    $transaction: (run: (tx: { quote: typeof quote; invoice: typeof invoice; organizationSettings: typeof organizationSettings }) => unknown) =>
-      run({ quote, invoice, organizationSettings }),
+    ...tx,
+    $transaction: (run: (transaction: typeof tx) => unknown) => run(tx),
   };
 
   beforeEach(() => {
     jest.clearAllMocks();
     currentQuote = { ...issuedQuote };
     claimed = { count: 1 };
+    versions = [];
     service = new QuotesService(prisma as never);
     jest.spyOn(service, 'findOne').mockImplementation(async () => currentQuote as never);
   });
@@ -75,5 +86,19 @@ describe('revising an invoiced quote', () => {
     claimed = { count: 0 };
     await expect(service.convertToInvoice('org_1', 'quote_1')).rejects.toThrow(ConflictException);
     expect(invoice.create).not.toHaveBeenCalled();
+  });
+
+  it('preserves the original quote and then saves only distinct PDF revisions', async () => {
+    await service.update('org_1', 'quote_1', { shipping: 5 });
+    await service.update('org_1', 'quote_1', { shipping: 10 });
+    await service.update('org_1', 'quote_1', { shipping: 10 });
+    await service.update('org_1', 'quote_1', { status: QuoteStatus.SENT });
+
+    expect(versions.map(({ version, snapshot }) => [version, snapshot.quote.shipping, snapshot.quote.total]))
+      .toEqual([[1, 0, 20], [2, 5, 25], [3, 10, 30]]);
+    await expect(service.getPdfVersion('org_1', 'quote_1', 1)).resolves.toMatchObject({
+      quote: { total: 20 }, organization: { name: 'Example Company' },
+    });
+    await expect(service.getPdfVersion('org_1', 'quote_1', 3)).resolves.toMatchObject({ quote: { total: 30 } });
   });
 });

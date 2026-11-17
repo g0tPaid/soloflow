@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Body, Param, ParseIntPipe, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { QuotesService } from './quotes.service';
 import { CreateQuoteDto, UpdateQuoteDto } from './dto/quote.dto';
@@ -25,6 +25,20 @@ export class QuotesController {
   @Get('next-number')
   nextNumber(@Headers(TENANT_HEADER) orgId: string) {
     return this.quotesService.getNextNumber(orgId);
+  }
+
+  @Get(':id/pdf-versions')
+  listPdfVersions(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.quotesService.listPdfVersions(orgId, id);
+  }
+
+  @Get(':id/pdf-versions/:version')
+  getPdfVersion(
+    @Headers(TENANT_HEADER) orgId: string,
+    @Param('id') id: string,
+    @Param('version', ParseIntPipe) version: number,
+  ) {
+    return this.quotesService.getPdfVersion(orgId, id, version);
   }
 
   @Get(':id')

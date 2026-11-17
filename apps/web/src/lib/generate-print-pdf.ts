@@ -48,8 +48,11 @@ export async function generatePrintPdf(
   organizationId?: string | null,
 ): Promise<Buffer> {
   const baseUrl = resolveBaseUrl(request);
-  const document = await loadPrintDocument(accessToken, type, id, organizationId);
-  const version = invoicePdfVersion(new URL(request.url).searchParams.get('version'));
+  const searchParams = new URL(request.url).searchParams;
+  const requestedQuoteVersion = type === 'quotes' ? searchParams.get('quoteVersion') : null;
+  const quoteVersion = requestedQuoteVersion === null ? undefined : Number(requestedQuoteVersion);
+  const document = await loadPrintDocument(accessToken, type, id, organizationId, quoteVersion);
+  const version = invoicePdfVersion(searchParams.get('version'));
   if (usesBrandedInvoiceLayout(version) && document.type === 'invoices') {
     const org = await prepareTransparentSignature(document.org, (source) => transparentSignature(source, baseUrl));
     return renderToBuffer(buildPdfDocument({ ...document, org }, baseUrl, version));

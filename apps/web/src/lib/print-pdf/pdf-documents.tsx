@@ -608,6 +608,7 @@ function InvoicePdfBody({
   documentLabel = 'INVOICE',
   numberLabel = 'Invoice #',
   dueDateLabel = 'Due Date',
+  quoteVersion,
   version,
 }: {
   invoice: Invoice;
@@ -616,6 +617,7 @@ function InvoicePdfBody({
   documentLabel?: string;
   numberLabel?: string;
   dueDateLabel?: string;
+  quoteVersion?: number;
   version?: InvoicePdfVersion;
 }) {
   const currency = invoice.currency;
@@ -735,6 +737,9 @@ function InvoicePdfBody({
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
+              {quoteVersion !== undefined ? (
+                <Text style={[styles.muted, { marginBottom: 5, fontWeight: 'bold' }]}>PDF {quoteVersion}</Text>
+              ) : null}
               {highlightDropshipper ? (
                 <Text style={{ alignSelf: 'flex-start', backgroundColor: '#e5f4e9', color: '#166534', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, marginBottom: 4 }}>
                   {title}
@@ -1307,6 +1312,7 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
             org={document.org}
             baseUrl={baseUrl}
             documentLabel="QUOTE"
+            quoteVersion={document.quoteVersion}
             numberLabel="Quote #"
             dueDateLabel="Valid Until"
           />

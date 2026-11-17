@@ -102,6 +102,14 @@ export const REQUIRED_SCHEMA_STATEMENTS = [
   `CREATE INDEX IF NOT EXISTS "quotes_organizationId_status_idx" ON "quotes"("organizationId", "status")`,
   `CREATE INDEX IF NOT EXISTS "quotes_organizationId_customerId_idx" ON "quotes"("organizationId", "customerId")`,
   `CREATE INDEX IF NOT EXISTS "quote_items_quoteId_idx" ON "quote_items"("quoteId")`,
+  `CREATE TABLE IF NOT EXISTS "quote_pdf_versions" (
+  "quoteId" TEXT NOT NULL,
+  "version" INTEGER NOT NULL,
+  "snapshot" JSONB NOT NULL,
+  "savedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  CONSTRAINT "quote_pdf_versions_pkey" PRIMARY KEY ("quoteId", "version"),
+  CONSTRAINT "quote_pdf_versions_quoteId_fkey" FOREIGN KEY ("quoteId") REFERENCES "quotes"("id") ON DELETE CASCADE ON UPDATE CASCADE
+)`,
   `DO $$ BEGIN
     ALTER TABLE "quotes" ADD CONSTRAINT "quotes_organizationId_fkey"
       FOREIGN KEY ("organizationId") REFERENCES "organizations"("id") ON DELETE CASCADE ON UPDATE CASCADE;
