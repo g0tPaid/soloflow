@@ -42,6 +42,7 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
           {data.shipTo.address.length ? <p className="whitespace-pre-line break-words">{data.shipTo.address.join('\n')}</p> : null}
         </section>
       ) : null}
+      <div className="mt-3 text-center text-xs"><a href={`\/api\/pdf\/print\/invoices\/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(organization?.id ?? "")}&version=1`} className="font-semibold text-blue-700 underline">Download A4 Invoice (Version 1)</a></div>
       <ul className="my-4 space-y-3 border-t border-dashed border-zinc-400 pt-4">
         {data.items.map((item) => {
           const image = resolveImageSrc(item.image);
