@@ -231,7 +231,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const next = data.hasMore && page < 9999 ? '<a href="' + href(view, page + 1) + '">Next</a>' : '';
     const cards = data.shipments.map((shipment, index) =>
       shipmentCard(shipment, photos[history.length + index] ?? [])).join('');
-    return documentBody('<img class="portal-brand" src="/partner-portal-logo.png" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
+    return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.png" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
       '<div class="top"><div><h1>Welcome, <span class="partner-name">' +
       escapeHtml(data.partner) + '</span></h1>' +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
