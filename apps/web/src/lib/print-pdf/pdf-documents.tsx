@@ -1,4 +1,4 @@
-import { type InvoicePdfVersion } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_PDF_TITLE, type InvoicePdfVersion } from '@/lib/invoice-version';
 import {
   Document,
   Image,
@@ -9,7 +9,7 @@ import {
   Text,
   View,
 } from '@react-pdf/renderer';
-import { DROPSHIPPING_PARTNER_INVOICE_TITLE, isDropshippingPartnerInvoice } from '@flowbooks/shared';
+import { isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import type { ExpenseDetail, Invoice, Organization } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
@@ -596,8 +596,8 @@ function InvoicePdfBody({
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
   const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
-  const title = dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : documentLabel;
-  const photoLayout = version !== undefined;
+  const title = dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
+  const photoLayout = version === 2 || version === 3;
   const barcodeLayout = version === 3;
   const customer = invoice.customer;
   const branding = parseBranding(org.settings?.branding);

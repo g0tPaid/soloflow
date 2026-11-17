@@ -1,6 +1,6 @@
 'use client';
 
-import { DROPSHIPPER_INVOICE_PATH, invoicePathForRoute, isDropshipperInvoicePath } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_DRAFT_ID, invoicePathForRoute, isDropshipperInvoicePath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -172,7 +172,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
     ],
   );
   const pathname = usePathname();
-  const draftId = isDropshipperInvoicePath(pathname) ? DROPSHIPPER_INVOICE_PATH : NEW_DOCUMENT_DRAFT_ID;
+  const draftId = isDropshipperInvoicePath(pathname) ? DROPSHIPPER_INVOICE_DRAFT_ID : NEW_DOCUMENT_DRAFT_ID;
   const identity = props.draftIdentity;
   const scope =
     identity?.userId && identity.organizationId

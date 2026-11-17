@@ -1,6 +1,6 @@
 'use client';
 
-import { DROPSHIPPER_INVOICE_PATH, type InvoicePdfVersion, invoicePathForRoute, invoiceVersionForPath, isDropshipperInvoicePath } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_DRAFT_ID, type InvoicePdfVersion, invoicePathForRoute, invoiceVersionForPath, isDropshipperInvoicePath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -335,7 +335,7 @@ export default function InvoicesPage() {
           kind="invoice"
           userId={session.user.id}
           organizationId={organizationId}
-          documentId={dropshippingPartner ? DROPSHIPPER_INVOICE_PATH : undefined}
+          documentId={dropshippingPartner ? DROPSHIPPER_INVOICE_DRAFT_ID : undefined}
           resumeHref={dropshippingPartner ? `${invoicePath}/new` : undefined}
         />
       ) : null}

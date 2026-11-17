@@ -28,6 +28,7 @@ import {
   Shield,
 } from 'lucide-react';
 import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
+import { DROPSHIPPER_INVOICE_PATH, isDropshipperInvoicePath } from '@/lib/invoice-version';
 import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import { ModuleBackLink, MobileModuleBackBar } from '@/components/layout/module-back-nav';
@@ -63,7 +64,7 @@ const sidebarModules = NAV_MODULES.flatMap((item) =>
         { ...item, label: 'Invoice 1' },
         { ...item, key: 'invoicesV2', label: 'Invoice 2', href: '/invoices-v2' },
         { ...item, key: 'invoicesV3', label: 'Invoice 3', href: '/invoices-v3' },
-        { ...item, key: 'dropshipperInvoices', label: 'Dropshipper Invoice', href: '/dropshipper-invoices' },
+        { ...item, key: 'dropshipperInvoices', label: 'Invoice 4 · Dropshippers', href: DROPSHIPPER_INVOICE_PATH },
       ]
     : [item],
 );
@@ -108,7 +109,9 @@ function SidebarDesktop({ organizationName }: { organizationName?: string }) {
         {sidebarModules.map((item) => {
           const Icon = iconMap[item.key] || LayoutDashboard;
           const isActive =
-            item.href === '/settings'
+            item.href === DROPSHIPPER_INVOICE_PATH
+              ? isDropshipperInvoicePath(pathname)
+              : item.href === '/settings'
               ? pathname === '/settings'
               : pathname === item.href || pathname.startsWith(`${item.href}/`);
           const isDisabled = !item.enabled;

@@ -1,5 +1,6 @@
 import { Globe, Mail, Phone, Plane, Ship, Truck } from 'lucide-react';
-import { DROPSHIPPING_PARTNER_INVOICE_TITLE, isDropshippingPartnerInvoice } from '@flowbooks/shared';
+import { isDropshippingPartnerInvoice } from '@flowbooks/shared';
+import { DROPSHIPPER_INVOICE_PDF_TITLE } from '@/lib/invoice-version';
 import type { Invoice, Organization } from '@/lib/api';
 import { invoiceAmountPaid, invoiceBalanceDue, SHIPPING_TERMS } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
@@ -131,7 +132,7 @@ export function InvoicePrintView({
     offerSrcs.length === 0 ? resolveImage(branding.invoiceBanner) : undefined;
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
-  const title = isInvoice && isDropshippingPartnerInvoice(invoice) ? DROPSHIPPING_PARTNER_INVOICE_TITLE : documentLabel;
+  const title = isInvoice && isDropshippingPartnerInvoice(invoice) ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
   const customer = invoice.customer;
   const taxAmount = Number(invoice.taxAmount ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);

@@ -23,13 +23,13 @@ import {
 } from '@/lib/form-draft/model';
 import { getFormDraftRepository } from '@/lib/form-draft/repository';
 import { DROPSHIPPING_PARTNER_INVOICE_TITLE, type CreateInvoiceInput } from '@flowbooks/shared';
-import { DROPSHIPPER_INVOICE_PATH, isDropshipperInvoicePath } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_DRAFT_ID, isDropshipperInvoicePath } from '@/lib/invoice-version';
 
 export function NewInvoicePageContent() {
   const router = useRouter();
   const pathname = usePathname();
   const dropshippingPartner = isDropshipperInvoicePath(pathname);
-  const draftId = dropshippingPartner ? DROPSHIPPER_INVOICE_PATH : NEW_DOCUMENT_DRAFT_ID;
+  const draftId = dropshippingPartner ? DROPSHIPPER_INVOICE_DRAFT_ID : NEW_DOCUMENT_DRAFT_ID;
   const searchParams = useSearchParams();
   const fromId = searchParams.get('from');
   const customerFromQuery = searchParams.get('customer');

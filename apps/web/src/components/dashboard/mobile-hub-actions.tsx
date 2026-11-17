@@ -18,6 +18,7 @@ import {
   Boxes,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { DROPSHIPPER_INVOICE_PATH } from '@/lib/invoice-version';
 import { Button } from '@/components/ui/button';
 
 const CREATE_ACTIONS = [
@@ -63,7 +64,7 @@ const LIST_ACTIONS = [
 ] as const;
 
 const NAV_ACTIONS = [
-  { href: '/dropshipper-invoices', label: 'Dropshipper Invoice', icon: FileText },
+  { href: DROPSHIPPER_INVOICE_PATH, label: 'Invoice 4 · Dropshippers', icon: FileText },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/vendors', label: 'Vendors', icon: Contact },
   { href: '/products', label: 'Products', icon: Package },
