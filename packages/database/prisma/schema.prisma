@@ -451,6 +451,8 @@ model Invoice {
   endRecipientAddress          String?
   shipmentCarrier              String?
   shipmentWeightKg             Decimal? @db.Decimal(10, 3)
+  shipmentContact              Json?
+  staffSyncedAt                DateTime?
   notes               String?
   customFields        Json             @default("{}")
   createdAt           DateTime         @default(now())

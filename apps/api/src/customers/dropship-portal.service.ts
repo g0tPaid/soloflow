@@ -152,6 +152,10 @@ export class DropshipPortalService {
     });
     if (!portal) throw new NotFoundException();
     const { customer } = portal;
+    const anchorId = process.env.STAFF_SHIPMENT_SYNC_CUSTOMER_ID;
+    const sourcingEnabled = anchorId ? Boolean(await this.prisma.customer.findFirst({
+      where: { id: anchorId, organizationId: customer.organizationId }, select: { id: true },
+    })) : false;
     const pageSize = 20;
     const invoices = await this.prisma.invoice.findMany({
       where: {
@@ -163,7 +167,7 @@ export class DropshipPortalService {
       take: pageSize + 1,
       select: {
         number: true, issueDate: true, partnerOrderNumber: true, endRecipientName: true,
-        endRecipientAddress: true, shipmentCarrier: true, currency: true, subtotal: true,
+        endRecipientAddress: true, shipmentContact: true, shipmentCarrier: true, currency: true, subtotal: true,
         shipping: true, shipmentWeightKg: true, taxAmount: true, discount: true, total: true, shippingToCountry: true,
         shippingMethod: true, fulfillmentStatus: true, internationalTrackingNumber: true, localTrackingNumber: true,
         fulfillmentEvents: {
@@ -180,15 +184,18 @@ export class DropshipPortalService {
     });
     return {
       partner: customer.name,
-      sourceCustomer: { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix },
+      sourceCustomer: { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix, sourcingEnabled },
       importedShipments: (await this.prisma.dropshipImportedShipment.findFirst({
         where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
         select: { rows: true },
       }))?.rows ?? [],
       stock: await this.stockRows(customer.organizationId, customer.id, tokenHash),
       hasMore: invoices.length > pageSize,
-      shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, ...invoice }) => ({
+      shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, shipmentContact, ...invoice }) => ({
         ...invoice,
+        shipmentContact: shipmentContact && typeof shipmentContact === 'object' && !Array.isArray(shipmentContact)
+          ? Object.fromEntries(['addressLine2', 'city', 'region', 'postcode', 'country'].map((key) => [key, shipmentContact[key]]))
+          : null,
         shippedAt: fulfillmentEvents.find(({ status }) => status === (invoice.shippingMethod === 'LOCAL'
           ? 'SHIPPED_TO_CHINA_CENTER' : 'SHIPPED_INTERNATIONAL'))?.createdAt ?? null,
       })),

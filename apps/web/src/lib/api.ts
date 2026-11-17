@@ -278,6 +278,7 @@ export interface Invoice {
   endRecipientAddress?: string | null;
   shipmentCarrier?: string | null;
   shipmentWeightKg?: number | string | null;
+  shipmentContact?: import('@flowbooks/shared').ShipmentContact | null;
   id: string;
   organizationId: string;
   customerId?: string | null;

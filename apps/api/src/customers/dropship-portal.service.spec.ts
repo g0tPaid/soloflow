@@ -58,7 +58,7 @@ describe('DropshipPortalService', () => {
     prisma.invoice.findMany.mockResolvedValue([]);
     prisma.invoiceItem.groupBy.mockResolvedValue([]);
     prisma.dropshipStock.findMany.mockResolvedValue([]);
-    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', sourceCustomer: { id: 'partner', number: '0042', prefix: 'A' }, hasMore: false, shipments: [], stock: [], importedShipments: [] });
+    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: false }, hasMore: false, shipments: [], stock: [], importedShipments: [] });
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query.where).toMatchObject({
       organizationId: 'org',

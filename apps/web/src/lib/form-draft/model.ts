@@ -46,6 +46,7 @@ export interface FormDraftContent {
   shipmentCarrier: string;
   shipmentWeightKg: number | null;
   shipmentTrackingCode: string;
+  shipmentContact: import('@flowbooks/shared').ShipmentContact | null;
   number: string;
   issueDate: string;
   dueDate: string;
@@ -94,6 +95,7 @@ export function emptyFormDraftContent(): FormDraftContent {
     shipmentCarrier: '',
     shipmentWeightKg: null,
     shipmentTrackingCode: '',
+    shipmentContact: null,
     number: '',
     issueDate: '',
     dueDate: '',
@@ -165,6 +167,7 @@ export function normalizeFormDraftContent(content: Partial<FormDraftContent> | n
     shipmentCarrier: cleanText(source.shipmentCarrier),
     shipmentWeightKg: source.shipmentWeightKg ?? null,
     shipmentTrackingCode: cleanText(source.shipmentTrackingCode),
+    shipmentContact: source.shipmentContact ?? null,
     number: cleanText(source.number),
     issueDate: cleanText(source.issueDate),
     dueDate: cleanText(source.dueDate),
@@ -224,6 +227,7 @@ const SCALAR_KEYS = [
   'shipmentCarrier',
   'shipmentWeightKg',
   'shipmentTrackingCode',
+  'shipmentContact',
   'number',
   'issueDate',
   'dueDate',
@@ -252,7 +256,7 @@ export function rebaseUntouchedDraft(
   const next = normalizeFormDraftContent(nextBaseline);
   const merged = { ...currentNorm, items: currentNorm.items.map((item) => ({ ...item })) };
   for (const key of SCALAR_KEYS) {
-    if (Object.is(currentNorm[key], previous[key])) {
+    if (key === 'shipmentContact' ? JSON.stringify(currentNorm[key]) === JSON.stringify(previous[key]) : Object.is(currentNorm[key], previous[key])) {
       merged[key] = next[key] as never;
     }
   }

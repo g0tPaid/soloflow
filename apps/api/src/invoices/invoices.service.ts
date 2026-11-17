@@ -380,6 +380,7 @@ export class InvoicesService {
             endRecipientAddress: dto.endRecipientAddress?.trim() || null,
             shipmentCarrier: dto.shipmentCarrier?.trim() || null,
             shipmentWeightKg: dto.shipmentWeightKg ?? null,
+            ...(dto.shipmentContact ? { shipmentContact: { ...dto.shipmentContact } } : {}),
             ...(tracking ? {
               fulfillmentStatus: initialFulfillment,
               ...(dto.shippingMethod === 'LOCAL' ? { localTrackingNumber: tracking } : { internationalTrackingNumber: tracking }),
@@ -536,6 +537,7 @@ export class InvoicesService {
       if (dto[field] !== undefined) updateData[field] = dto[field]?.trim() || null;
     }
 
+    if (dto.shipmentContact) updateData.shipmentContact = { ...dto.shipmentContact };
     if (dto.shipmentWeightKg !== undefined) updateData.shipmentWeightKg = dto.shipmentWeightKg;
 
     if (dto.currency) updateData.currency = dto.currency.trim().toUpperCase();

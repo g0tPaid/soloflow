@@ -233,7 +233,18 @@ const optionalDateField = z
   .union([dateStringSchema, z.literal(''), z.null(), z.undefined()])
   .transform((value) => (value && value !== '' ? value : null));
 
+export const shipmentContactSchema = z.object({
+  phone: z.string().trim().max(60),
+  addressLine2: z.string().trim().max(200),
+  city: z.string().trim().max(120),
+  region: z.string().trim().max(120),
+  postcode: z.string().trim().max(40),
+  country: z.string().trim().max(120),
+});
+export type ShipmentContact = z.infer<typeof shipmentContactSchema>;
+
 const dropshipInvoiceFields = {
+  shipmentContact: shipmentContactSchema.optional(),
   dropshippingPartner: z.boolean().optional(),
   partnerOrderNumber: z.string().trim().max(120).nullable().optional(),
   endRecipientName: z.string().trim().max(160).nullable().optional(),

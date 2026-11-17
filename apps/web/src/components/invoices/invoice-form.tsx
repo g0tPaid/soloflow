@@ -13,6 +13,7 @@ import {
   isDropshippingPartnerInvoice,
   PROVISIONAL_INVOICE_NUMBER,
   type CreateInvoiceInput,
+  type ShipmentContact,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
 import { useOnlineStatus } from '@/hooks/use-online-status';
@@ -119,6 +120,8 @@ interface EditInvoiceFormProps extends DraftFormExtras {
 
 type InvoiceFormProps = CreateInvoiceFormProps | EditInvoiceFormProps;
 
+const emptyShipmentContact: ShipmentContact = { phone: '', addressLine2: '', city: '', region: '', postcode: '', country: '' };
+
 function buildInvoiceBaseline(props: InvoiceFormProps, today: string, dedicatedDropshipForm: boolean): FormDraftContent {
   if (props.mode === 'edit') {
     const invoice = props.invoice;
@@ -129,6 +132,7 @@ function buildInvoiceBaseline(props: InvoiceFormProps, today: string, dedicatedD
       endRecipientName: invoice.endRecipientName ?? '',
       endRecipientAddress: invoice.endRecipientAddress ?? '',
       shipmentCarrier: invoice.shipmentCarrier ?? '',
+      shipmentContact: invoice.shipmentContact ?? null,
       shipmentWeightKg: invoice.shipmentWeightKg == null ? null : Number(invoice.shipmentWeightKg),
       number: invoice.number ?? '',
       issueDate: toDateInput(invoice.issueDate) || today,
@@ -258,6 +262,7 @@ function InvoiceFormEditor(
       endRecipientName: seed?.endRecipientName ?? '',
       endRecipientAddress: seed?.endRecipientAddress ?? '',
       shipmentCarrier: seed?.shipmentCarrier ?? '',
+      shipmentContact: seed?.shipmentContact ?? emptyShipmentContact,
       shipmentWeightKg: seed?.shipmentWeightKg ?? null,
       shipmentTrackingCode: seed?.shipmentTrackingCode ?? '',
       number: seed?.number ?? (props.mode === 'create' ? props.suggestedNumber ?? '' : ''),
@@ -284,6 +289,7 @@ function InvoiceFormEditor(
       endRecipientName: seed?.endRecipientName ?? invoice?.endRecipientName ?? '',
       endRecipientAddress: seed?.endRecipientAddress ?? invoice?.endRecipientAddress ?? '',
       shipmentCarrier: seed?.shipmentCarrier ?? invoice?.shipmentCarrier ?? '',
+      shipmentContact: seed?.shipmentContact ?? invoice?.shipmentContact ?? emptyShipmentContact,
       shipmentWeightKg: seed?.shipmentWeightKg ?? null,
       status: (seed?.status || invoice?.status || 'DRAFT') as UpdateInvoiceInput['status'],
       dueDate: seed ? seed.dueDate || null : toDateInput(invoice?.dueDate) || null,
@@ -316,6 +322,7 @@ function InvoiceFormEditor(
         endRecipientName: editValues.endRecipientName ?? '',
         endRecipientAddress: editValues.endRecipientAddress ?? '',
         shipmentCarrier: editValues.shipmentCarrier ?? '',
+        shipmentContact: editValues.dropshippingPartner ? editValues.shipmentContact ?? null : null,
         shipmentWeightKg: editValues.shipmentWeightKg ?? null,
         number: editValues.number ?? '',
         issueDate: toDateInput(invoice?.issueDate),
@@ -340,6 +347,7 @@ function InvoiceFormEditor(
         endRecipientName: createValues.endRecipientName ?? '',
         endRecipientAddress: createValues.endRecipientAddress ?? '',
         shipmentCarrier: createValues.shipmentCarrier ?? '',
+        shipmentContact: createValues.dropshippingPartner ? createValues.shipmentContact ?? null : null,
         shipmentWeightKg: createValues.shipmentWeightKg ?? null,
         shipmentTrackingCode: createValues.shipmentTrackingCode ?? '',
         number: createValues.number ?? '',
@@ -480,6 +488,8 @@ function InvoiceFormEditor(
           recipient={editForm.register('endRecipientName')}
           address={editForm.register('endRecipientAddress')}
           carrier={editForm.register('shipmentCarrier')}
+          carrierValue={editForm.watch('shipmentCarrier')}
+          contact={{phone: editForm.register('shipmentContact.phone'), addressLine2: editForm.register('shipmentContact.addressLine2'), city: editForm.register('shipmentContact.city'), region: editForm.register('shipmentContact.region'), postcode: editForm.register('shipmentContact.postcode'), country: editForm.register('shipmentContact.country')}}
           weight={editForm.register('shipmentWeightKg', { setValueAs: (value) => value === '' ? null : Number(value) })}
         />
         <Card id="edit-line-items" className="scroll-mt-20 border-[#E40046]/40">
@@ -671,6 +681,7 @@ function InvoiceFormEditor(
                     createForm.setValue(field, '');
                   }
                   createForm.setValue('shipmentWeightKg', null);
+                  createForm.setValue('shipmentContact', emptyShipmentContact);
                   createForm.setValue('shipmentTrackingCode', '');
                   if (customer?.currency && !currencyTouched.current) {
                     setInvoiceCurrency(customer.currency);
@@ -709,6 +720,8 @@ function InvoiceFormEditor(
             recipient={createForm.register('endRecipientName')}
             address={createForm.register('endRecipientAddress')}
             carrier={createForm.register('shipmentCarrier')}
+            carrierValue={createForm.watch('shipmentCarrier')}
+            contact={{phone: createForm.register('shipmentContact.phone'), addressLine2: createForm.register('shipmentContact.addressLine2'), city: createForm.register('shipmentContact.city'), region: createForm.register('shipmentContact.region'), postcode: createForm.register('shipmentContact.postcode'), country: createForm.register('shipmentContact.country')}}
             weight={createForm.register('shipmentWeightKg', { setValueAs: (value) => value === '' ? null : Number(value) })}
             tracking={createForm.register('shipmentTrackingCode')}
           />

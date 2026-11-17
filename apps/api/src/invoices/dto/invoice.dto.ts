@@ -40,7 +40,38 @@ export class InvoiceItemDto {
   imageUrl?: string;
 }
 
+class ShipmentContactDto {
+  @IsString()
+  @MaxLength(60)
+  phone!: string;
+
+  @IsString()
+  @MaxLength(200)
+  addressLine2!: string;
+
+  @IsString()
+  @MaxLength(120)
+  city!: string;
+
+  @IsString()
+  @MaxLength(120)
+  region!: string;
+
+  @IsString()
+  @MaxLength(40)
+  postcode!: string;
+
+  @IsString()
+  @MaxLength(120)
+  country!: string;
+}
+
 export class CreateInvoiceDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ShipmentContactDto)
+  shipmentContact?: ShipmentContactDto;
+
   @IsOptional()
   @IsString()
   @MaxLength(80)
@@ -161,6 +192,11 @@ export class CreateInvoiceDto {
 }
 
 export class UpdateInvoiceDto {
+  @IsOptional()
+  @ValidateNested()
+  @Type(() => ShipmentContactDto)
+  shipmentContact?: ShipmentContactDto;
+
   @IsOptional()
   @IsBoolean()
   dropshippingPartner?: boolean;

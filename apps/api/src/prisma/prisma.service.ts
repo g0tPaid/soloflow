@@ -8,6 +8,8 @@ import { PrismaClient } from '@flowbooks/database';
  * invoice create 500s.
  */
 export const REQUIRED_SCHEMA_STATEMENTS = [
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "shipmentContact" JSONB`,
+  `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "staffSyncedAt" TIMESTAMP(3)`,
   `ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "isDropshipper" BOOLEAN NOT NULL DEFAULT false`,
   `ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "dropshipperNumber" TEXT`,
   `ALTER TABLE "customers" ADD COLUMN IF NOT EXISTS "dropshipperPrefix" TEXT`,

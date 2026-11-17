@@ -28,6 +28,7 @@ type Shipment = {
   partnerOrderNumber: string | null;
   endRecipientName: string | null;
   endRecipientAddress: string | null;
+  shipmentContact?: { addressLine2?: string; city?: string; region?: string; postcode?: string; country?: string };
   shipmentCarrier: string | null;
   shippingToCountry: string | null;
   shippingMethod: string | null;
@@ -76,7 +77,7 @@ function detail(label: string, value: string | null) {
   return '<div><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>';
 }
 
-function shipmentCard(shipment: Shipment) {
+function shipmentCard(shipment: Shipment, photos: string[]) {
   const currency = shipment.currency;
   const price = (amount: string) => money(amount, currency);
   const products = shipment.items.map((item) => {
@@ -99,13 +100,15 @@ function shipmentCard(shipment: Shipment) {
     '<h2>' + escapeHtml(shipment.partnerOrderNumber ? 'Order ' + shipment.partnerOrderNumber : shipment.number) + '</h2></div>' +
     '<span class="badge">' + escapeHtml(status) + '</span></header>' +
     '<dl class="details">' + detail('Recipient', shipment.endRecipientName || 'Not provided') +
-    detail('Delivery address', shipment.endRecipientAddress) + detail('Destination', shipment.shippingToCountry) +
+    detail('Delivery address', [shipment.endRecipientAddress, shipment.shipmentContact?.addressLine2,
+      [shipment.shipmentContact?.city, shipment.shipmentContact?.region, shipment.shipmentContact?.postcode].filter(Boolean).join(' '),
+      shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) +
     detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || 'Pending') +
     detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
     (Number(shipment.discount) > 0 ? detail('Discount', price(shipment.discount)) : '') +
     (Number(shipment.taxAmount) > 0 ? detail('Tax', price(shipment.taxAmount)) : '') +
-    detail('Total', price(shipment.total)) + '</dl></article>';
+    detail('Total', price(shipment.total)) + '</dl>' + shipmentPhotos(photos) + '</article>';
 }
 
 type Stock = { name: string; sku: string | null; imageUrl: string | null; allocated: string; shipped: string; remaining: string };
@@ -135,12 +138,12 @@ function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid', photos
 
 const sourcingOrigin = 'https://sourcing.center';
 
-type SourceCustomer = { id: string; number: string | null; prefix: string | null };
+type SourceCustomer = { id: string; number: string | null; prefix: string | null; sourcingEnabled?: boolean };
 
-async function loadShipmentPhotos(customer: SourceCustomer | undefined, rows: ImportedShipment[]): Promise<string[][]> {
+async function loadShipmentPhotos(customer: SourceCustomer | undefined, rows: Pick<ImportedShipment, 'order' | 'tracking'>[]): Promise<string[][]> {
   const key = process.env.PARTNER_SHIPMENT_PHOTO_KEY;
   const customerId = process.env.PARTNER_SHIPMENT_PHOTO_CUSTOMER_ID;
-  if (!key || !customerId || customer?.id !== customerId || !customer.number || !rows.length) return [];
+  if (!key || !customer?.number || !rows.length || (!customer.sourcingEnabled && customer.id !== customerId)) return [];
   try {
     const response = await fetch(sourcingOrigin + '/api/partner-shipment-photos', {
       method: 'POST', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(3000),
@@ -205,7 +208,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     if (!upstream.ok) throw new Error('Shipment service unavailable');
     const data: { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean } = await upstream.json();
     const history = data.importedShipments ?? [];
-    const photos = await loadShipmentPhotos(data.sourceCustomer, history);
+    const photos = await loadShipmentPhotos(data.sourceCustomer, [...history, ...data.shipments.map((shipment) => ({
+      order: shipment.partnerOrderNumber || shipment.number,
+      tracking: shipment.internationalTrackingNumber || shipment.localTrackingNumber || '',
+    }))]);
     const href = (mode: 'list' | 'grid', number: number) => '?view=' + mode + '&amp;page=' + number;
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list', page) +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid', page) + '">Grid</a></nav>';
@@ -214,7 +220,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     return documentBody('<div class="top"><div><p class="eyebrow">SoloFlow · Sourcing Center</p><h1>Your shipments</h1>' +
       '<p class="partner">' + escapeHtml(data.partner) + '</p></div>' + nav + '</div>' + inventory(data.stock ?? []) + importedHistory(history, view, photos) +
       '<section aria-label="Shipped orders" class="shipments ' + view + '">' +
-      (data.shipments.length ? data.shipments.map(shipmentCard).join('') : (data.importedShipments?.length ? '' : '<p class="empty">No shipments on this page.</p>')) +
+      (data.shipments.length ? data.shipments.map((shipment, index) => shipmentCard(shipment, photos[history.length + index] ?? [])).join('') : (data.importedShipments?.length ? '' : '<p class="empty">No shipments on this page.</p>')) +
       '</section>' + (previous || next ? '<nav class="pagination" aria-label="Shipment pages">' + previous + next + '</nav>' : ''));
   } catch {
     return documentBody('<h1>Shipments are temporarily unavailable</h1><p>Please try again shortly.</p>', 503);
