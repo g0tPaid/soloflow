@@ -9,6 +9,7 @@ import {
   Text,
   View,
 } from '@react-pdf/renderer';
+import { DROPSHIPPING_PARTNER_INVOICE_TITLE, isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import type { ExpenseDetail, Invoice, Organization } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { parseStoredLineItem } from '@/lib/line-items';
@@ -594,6 +595,8 @@ function InvoicePdfBody({
 }) {
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
+  const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
+  const title = dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : documentLabel;
   const photoLayout = version !== undefined;
   const barcodeLayout = version === 3;
   const customer = invoice.customer;
@@ -669,7 +672,11 @@ function InvoicePdfBody({
             </View>
           </View>
           <View style={styles.colHalf}>
-            {!barcodeLayout ? <Text style={[styles.invoiceTitle, { color: colors.accent }, photoLayout ? { fontSize: 21 } : {}]}>{documentLabel}</Text> : null}
+            {!barcodeLayout ? (
+              <Text style={[styles.invoiceTitle, { color: colors.accent }, dropshippingPartner ? { fontSize: 18 } : photoLayout ? { fontSize: 21 } : {}]}>
+                {title}
+              </Text>
+            ) : null}
             <View
               style={[
                 styles.metaBox,
@@ -678,7 +685,7 @@ function InvoicePdfBody({
                 { borderColor: colors.softBorder, backgroundColor: colors.softBg },
               ]}
             >
-              {barcodeLayout ? <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 4 }}>INVOICE · {invoice.number}</Text> : (
+              {barcodeLayout ? <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 4 }}>{title} · {invoice.number}</Text> : (
                 <View style={styles.row}>
                   <Text style={styles.muted}>{numberLabel}</Text>
                   <Text style={{ fontWeight: 'bold' }}>{invoice.number}</Text>

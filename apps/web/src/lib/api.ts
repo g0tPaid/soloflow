@@ -970,6 +970,7 @@ export const api = {
         sort?: string;
         listFilter?: string;
         customerId?: string;
+        dropshippingPartner?: 'true';
       },
     ) =>
       apiFetch<PaginatedResult<Invoice>>(

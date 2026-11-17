@@ -1,6 +1,7 @@
 'use client';
 
-import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
+import { invoicePathForRoute } from '@/lib/invoice-version';
+import { DROPSHIPPING_PARTNER_INVOICE_TITLE, isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
@@ -38,7 +39,7 @@ import { formatCurrency } from '@/lib/utils';
 export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
-  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
+  const invoicePath = invoicePathForRoute(usePathname());
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();
@@ -220,8 +221,13 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
           <h1 className="text-2xl font-semibold tracking-tight">
-            {invoice ? `Invoice ${invoice.number}` : 'Invoice'}
+            {invoice && isDropshippingPartnerInvoice(invoice)
+              ? DROPSHIPPING_PARTNER_INVOICE_TITLE
+              : invoice ? `Invoice ${invoice.number}` : 'Invoice'}
           </h1>
+          {invoice && isDropshippingPartnerInvoice(invoice) ? (
+            <p className="text-sm text-muted-foreground">{invoice.number}</p>
+          ) : null}
           {invoice && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <InvoiceStatusBadge status={invoice.status} />

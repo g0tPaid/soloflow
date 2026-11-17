@@ -231,6 +231,7 @@ const optionalDateField = z
   .transform((value) => (value && value !== '' ? value : null));
 
 export const createInvoiceSchema = z.object({
+  dropshippingPartner: z.boolean().optional(),
   customerId: z.string().min(1, 'Customer is required'),
   number: z.string().min(1, 'Invoice number is required').max(50).optional(),
   issueDate: dateStringSchema.optional(),

@@ -1,4 +1,4 @@
-import { IsString, IsNumber, IsOptional, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength, Matches } from 'class-validator';
+import { IsString, IsNumber, IsOptional, IsBoolean, IsArray, ValidateNested, Min, IsDateString, IsNotEmpty, IsIn, MinLength, MaxLength, Matches } from 'class-validator';
 import { ApiProperty } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { FULFILLMENT_STATUS_VALUES } from '@flowbooks/shared';
@@ -41,6 +41,11 @@ export class InvoiceItemDto {
 }
 
 export class CreateInvoiceDto {
+  @ApiProperty({ required: false })
+  @IsOptional()
+  @IsBoolean()
+  dropshippingPartner?: boolean;
+
   @ApiProperty()
   @IsString()
   customerId!: string;

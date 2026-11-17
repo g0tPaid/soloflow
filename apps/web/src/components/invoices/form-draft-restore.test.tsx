@@ -10,6 +10,7 @@ import type { StoredFormDraft } from '@/lib/offline/types';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push: vi.fn(), refresh: vi.fn() }),
+  usePathname: () => '/invoices/new',
 }));
 
 const customer = { id: 'cus_1', name: 'Ada' } as Customer;

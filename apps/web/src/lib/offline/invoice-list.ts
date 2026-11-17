@@ -1,6 +1,7 @@
 import {
   invoiceMatchesListFilter,
   isInvoiceListFilter,
+  isDropshippingPartnerInvoice,
   isVendorExpenseInvoice,
   type InvoiceListFilter,
 } from '@flowbooks/shared';
@@ -13,14 +14,18 @@ export function mergeInvoiceList(
   serverInvoices: Invoice[],
   local: StoredInvoice[],
   filter?: InvoiceListFilter | null,
+  dropshippingPartner = false,
 ): ListedInvoice[] {
-  const serverSales = serverInvoices.filter((invoice) => !isVendorExpenseInvoice(invoice));
+  const serverSales = serverInvoices.filter((invoice) =>
+    !isVendorExpenseInvoice(invoice) && (!dropshippingPartner || isDropshippingPartnerInvoice(invoice)),
+  );
   const serverClientIds = new Set(
     serverSales.map((invoice) => invoice.clientRequestId).filter((id): id is string => !!id),
   );
   const pending = local
     .filter((record) => record.syncState === 'pending' || record.syncState === 'error')
     .filter((record) => !isVendorExpenseInvoice(record.invoice))
+    .filter((record) => !dropshippingPartner || isDropshippingPartnerInvoice(record.invoice))
     .filter((record) => !record.clientRequestId || !serverClientIds.has(record.clientRequestId))
     .filter((record) => !filter || invoiceMatchesListFilter(record.invoice, filter))
     .sort((a, b) => b.createdAt - a.createdAt)
@@ -54,14 +59,14 @@ function activeFilter(listFilter?: string): InvoiceListFilter | null {
   return listFilter;
 }
 
-function pageFromLocal(records: StoredInvoice[], listFilter?: string): PaginatedResult<ListedInvoice> {
+function pageFromLocal(records: StoredInvoice[], listFilter?: string, dropshippingPartner = false): PaginatedResult<ListedInvoice> {
   const filter = activeFilter(listFilter);
   const synced = records
     .filter((record) => record.syncState === 'synced')
     .map((record) => record.invoice)
     .filter((invoice) => !isVendorExpenseInvoice(invoice))
     .filter((invoice) => !filter || invoiceMatchesListFilter(invoice, filter));
-  const data = mergeInvoiceList(synced, records, filter);
+  const data = mergeInvoiceList(synced, records, filter, dropshippingPartner);
   return {
     data,
     pagination: {
@@ -145,13 +150,14 @@ export async function cacheServerInvoices(
 export async function loadInvoiceList(input: {
   token: string;
   organizationId: string;
-  params?: { page?: number; limit?: number; fulfillmentStatus?: string; sort?: string; listFilter?: string };
+  params?: { page?: number; limit?: number; fulfillmentStatus?: string; sort?: string; listFilter?: string; dropshippingPartner?: 'true' };
   store?: OfflineStorage;
   isOnline?: () => boolean;
 }): Promise<PaginatedResult<ListedInvoice>> {
   const store = input.store ?? getOfflineStore();
   const isOnline = input.isOnline ?? (() => typeof navigator === 'undefined' || navigator.onLine);
   const filter = input.params?.listFilter;
+  const dropshippingPartner = input.params?.dropshippingPartner === 'true';
 
   const page = input.params?.page ?? 1;
   if (!isOnline()) {
@@ -161,15 +167,17 @@ export async function loadInvoiceList(input: {
         pagination: { page, limit: input.params?.limit ?? 50, total: 0, totalPages: 1 },
       };
     }
-    return pageFromLocal(await store.listInvoices(input.organizationId).catch(() => []), filter);
+    return pageFromLocal(await store.listInvoices(input.organizationId).catch(() => []), filter, dropshippingPartner);
   }
 
   try {
     const remote = await api.invoices.list(input.token, input.organizationId, input.params);
     await cacheServerInvoices(store, input.organizationId, remote.data).catch(() => undefined);
     const local = page === 1 ? await store.listInvoices(input.organizationId).catch(() => []) : [];
-    const sales = remote.data.filter((invoice) => !isVendorExpenseInvoice(invoice));
-    const data = page === 1 ? mergeInvoiceList(sales, local, activeFilter(filter)) : sales;
+    const sales = remote.data.filter((invoice) =>
+      !isVendorExpenseInvoice(invoice) && (!dropshippingPartner || isDropshippingPartnerInvoice(invoice)),
+    );
+    const data = page === 1 ? mergeInvoiceList(sales, local, activeFilter(filter), dropshippingPartner) : sales;
     const extra = Math.max(0, data.length - sales.length);
     return {
       ...remote,
@@ -181,6 +189,6 @@ export async function loadInvoiceList(input: {
     };
   } catch (error) {
     if (!isLikelyOfflineError(error)) throw error;
-    return pageFromLocal(await store.listInvoices(input.organizationId).catch(() => []), filter);
+    return pageFromLocal(await store.listInvoices(input.organizationId).catch(() => []), filter, dropshippingPartner);
   }
 }

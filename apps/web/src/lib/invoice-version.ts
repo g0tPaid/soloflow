@@ -13,3 +13,13 @@ export function invoiceVersionForPath(path: string): InvoicePdfVersion | undefin
 export function invoiceBasePath(version?: InvoicePdfVersion) {
   return version ? `/invoices-v${version}` : '/invoices';
 }
+
+export const DROPSHIPPER_INVOICE_PATH = '/dropshipper-invoices';
+
+export function isDropshipperInvoicePath(path: string) {
+  return path === DROPSHIPPER_INVOICE_PATH || path.startsWith(`${DROPSHIPPER_INVOICE_PATH}/`);
+}
+
+export function invoicePathForRoute(path: string) {
+  return isDropshipperInvoicePath(path) ? DROPSHIPPER_INVOICE_PATH : invoiceBasePath(invoiceVersionForPath(path));
+}

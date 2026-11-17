@@ -1,6 +1,6 @@
 'use client';
 
-import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_PATH, invoicePathForRoute, isDropshipperInvoicePath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
@@ -171,6 +171,8 @@ export function InvoiceForm(props: InvoiceFormProps) {
       today,
     ],
   );
+  const pathname = usePathname();
+  const draftId = isDropshipperInvoicePath(pathname) ? DROPSHIPPER_INVOICE_PATH : NEW_DOCUMENT_DRAFT_ID;
   const identity = props.draftIdentity;
   const scope =
     identity?.userId && identity.organizationId
@@ -178,7 +180,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
           userId: identity.userId,
           organizationId: identity.organizationId,
           kind: 'invoice' as const,
-          documentId: props.mode === 'edit' ? props.invoice.id : NEW_DOCUMENT_DRAFT_ID,
+          documentId: props.mode === 'edit' ? props.invoice.id : draftId,
         }
       : null;
   const draft = useDocumentDraft({
@@ -199,6 +201,7 @@ export function InvoiceForm(props: InvoiceFormProps) {
     <InvoiceFormEditor
       key={draft.generation}
       {...props}
+      invoicePath={invoicePathForRoute(pathname)}
       initialContent={scope ? draft.initialContent : undefined}
       draft={draft.controller}
     />
@@ -207,12 +210,13 @@ export function InvoiceForm(props: InvoiceFormProps) {
 
 function InvoiceFormEditor(
   props: InvoiceFormProps & {
+    invoicePath: string;
     initialContent?: FormDraftContent;
     draft: DocumentDraftController;
   },
 ) {
   const router = useRouter();
-  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
+  const { invoicePath } = props;
   const isEdit = props.mode === 'edit';
   const invoice = isEdit ? props.invoice : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';

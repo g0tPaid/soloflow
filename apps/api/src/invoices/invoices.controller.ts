@@ -22,6 +22,7 @@ export class InvoicesController {
     @Query('sort') sort?: string,
     @Query('listFilter') listFilter?: string,
     @Query('customerId') customerId?: string,
+    @Query('dropshippingPartner') dropshippingPartner?: string,
   ) {
     return this.invoicesService.findAll(
       orgId,
@@ -31,6 +32,7 @@ export class InvoicesController {
       sort,
       listFilter,
       customerId,
+      dropshippingPartner === 'true',
     );
   }
 

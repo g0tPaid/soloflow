@@ -1,6 +1,6 @@
 'use client';
 
-import { type InvoicePdfVersion, invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
+import { DROPSHIPPER_INVOICE_PATH, type InvoicePdfVersion, invoicePathForRoute, invoiceVersionForPath, isDropshipperInvoicePath } from '@/lib/invoice-version';
 import Link from 'next/link';
 import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
@@ -35,6 +35,7 @@ import {
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import { UnsavedDraftBanner } from '@/components/invoices/unsaved-draft-banner';
 import {
+  DROPSHIPPING_PARTNER_INVOICE_TITLE,
   invoiceAmountPaid,
   invoiceBalanceDue,
   invoiceListFilterEmptyLabel,
@@ -165,8 +166,10 @@ function InvoiceListDownloadButton({
 
 export default function InvoicesPage() {
   const router = useRouter();
-  const version = invoiceVersionForPath(usePathname());
-  const invoicePath = invoiceBasePath(version);
+  const pathname = usePathname();
+  const dropshippingPartner = isDropshipperInvoicePath(pathname);
+  const version = invoiceVersionForPath(pathname);
+  const invoicePath = invoicePathForRoute(pathname);
   const { data: session } = useSession();
   const { organizationId, organization, isReady } = useOrganizationId();
   const timeZone = organization?.settings?.timezone;
@@ -194,7 +197,7 @@ export default function InvoicesPage() {
     isFetchingNextPage,
     fetchNextPage,
   } = useInfiniteQuery({
-    queryKey: ['invoices', organizationId, listFilter],
+    queryKey: ['invoices', organizationId, listFilter, dropshippingPartner],
     queryFn: ({ pageParam }) =>
       loadInvoiceList({
         token: session!.accessToken!,
@@ -203,6 +206,7 @@ export default function InvoicesPage() {
           page: pageParam,
           limit: 50,
           listFilter: listFilter ?? undefined,
+          dropshippingPartner: dropshippingPartner ? 'true' : undefined,
         },
       }),
     initialPageParam: 1,
@@ -306,7 +310,7 @@ export default function InvoicesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium tracking-tight">Invoice {version ?? 1}</h1>
+            <h1 className="text-2xl font-medium tracking-tight">{dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
             <p className="text-sm text-muted-foreground">Create and manage invoices</p>
           </div>
           {organizationId && (
@@ -327,7 +331,13 @@ export default function InvoicesPage() {
       </div>
 
       {session?.user?.id && organizationId ? (
-        <UnsavedDraftBanner kind="invoice" userId={session.user.id} organizationId={organizationId} />
+        <UnsavedDraftBanner
+          kind="invoice"
+          userId={session.user.id}
+          organizationId={organizationId}
+          documentId={dropshippingPartner ? DROPSHIPPER_INVOICE_PATH : undefined}
+          resumeHref={dropshippingPartner ? `${invoicePath}/new` : undefined}
+        />
       ) : null}
 
       {invoices.length > 0 ? (

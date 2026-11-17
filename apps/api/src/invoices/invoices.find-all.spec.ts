@@ -57,6 +57,17 @@ describe('InvoicesService findAll', () => {
     expect(prisma.ensureRequiredSchema).not.toHaveBeenCalled();
   });
 
+  it('filters both the organization list and count to dropshipping partner invoices', async () => {
+    prisma.invoice.findMany.mockResolvedValue([]);
+    await service.findAll('org_1', 1, 50, undefined, undefined, undefined, undefined, true);
+    const where = expect.objectContaining({
+      organizationId: 'org_1',
+      customFields: { path: ['dropshippingPartner'], equals: true },
+    });
+    expect(prisma.invoice.findMany).toHaveBeenCalledWith(expect.objectContaining({ where }));
+    expect(prisma.invoice.count).toHaveBeenCalledWith({ where });
+  });
+
   it('repairs the schema and retries the list query', async () => {
     prisma.invoice.findMany
       .mockRejectedValueOnce(new Error('column invoices.clientRequestId does not exist'))

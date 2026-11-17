@@ -1,6 +1,7 @@
 'use client';
 
-import { invoiceBasePath, invoiceVersionForPath } from '@/lib/invoice-version';
+import { invoicePathForRoute } from '@/lib/invoice-version';
+import { DROPSHIPPING_PARTNER_INVOICE_TITLE, isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
@@ -23,14 +24,18 @@ export function PendingInvoiceDetail({
   syncError?: string | null;
   organizationId?: string;
 }) {
-  const invoicePath = invoiceBasePath(invoiceVersionForPath(usePathname()));
+  const invoicePath = invoicePathForRoute(usePathname());
+  const dropshippingPartner = isDropshippingPartnerInvoice(invoice);
   const { requestSync, syncing } = useSyncStatus();
 
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">Invoice {invoice.number}</h1>
+          <h1 className="text-2xl font-semibold tracking-tight">
+            {dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${invoice.number}`}
+          </h1>
+          {dropshippingPartner ? <p className="text-sm text-muted-foreground">{invoice.number}</p> : null}
           <div className="mt-1 flex flex-wrap items-center gap-2">
             <InvoiceStatusBadge status={invoice.status} />
             <PendingSyncBadge

@@ -1,4 +1,4 @@
-import { isProvisionalInvoiceNumber, PROVISIONAL_INVOICE_NUMBER, type CreateInvoiceInput } from '@flowbooks/shared';
+import { DROPSHIPPING_PARTNER_INVOICE_FIELD, isProvisionalInvoiceNumber, PROVISIONAL_INVOICE_NUMBER, type CreateInvoiceInput } from '@flowbooks/shared';
 import { api, type Customer, type Invoice } from '@/lib/api';
 import { calcInvoiceTotals } from '@/lib/line-items';
 import { emitOfflineChange, requestSync } from '@/lib/offline/events';
@@ -59,6 +59,7 @@ export function buildPendingInvoice(input: {
     shippingFromCountry: data.shippingFromCountry ?? null,
     shippingToCountry: data.shippingToCountry ?? null,
     notes: data.notes ?? null,
+    ...(data.dropshippingPartner ? { customFields: { [DROPSHIPPING_PARTNER_INVOICE_FIELD]: true } } : {}),
     createdAt: now,
     updatedAt: now,
     customer: input.customer ?? null,

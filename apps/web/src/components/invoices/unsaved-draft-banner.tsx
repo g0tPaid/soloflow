@@ -29,17 +29,21 @@ export function UnsavedDraftBanner({
   userId,
   organizationId,
   repository,
+  documentId = NEW_DOCUMENT_DRAFT_ID,
+  resumeHref,
 }: {
   kind: FormDraftKind;
   userId: string;
   organizationId: string;
   repository?: FormDraftRepository;
+  documentId?: string;
+  resumeHref?: string;
 }) {
   const scope: FormDraftScope = {
     userId,
     organizationId,
     kind,
-    documentId: NEW_DOCUMENT_DRAFT_ID,
+    documentId,
   };
   const store = repository ?? getFormDraftRepository();
   const [snapshot, setSnapshot] = useState<FormDraftSnapshot | null>(null);
@@ -61,12 +65,12 @@ export function UnsavedDraftBanner({
     };
     // The scope identity is the four fields above.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [kind, userId, organizationId, store]);
+  }, [kind, userId, organizationId, documentId, store]);
 
   if (!snapshot && !error) return null;
 
   const noun = kind === 'invoice' ? 'invoice' : 'quote';
-  const href = kind === 'invoice' ? '/invoices/new' : '/quotes/new';
+  const href = resumeHref ?? (kind === 'invoice' ? '/invoices/new' : '/quotes/new');
 
   async function discard() {
     const confirmed = window.confirm(

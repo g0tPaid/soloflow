@@ -38,6 +38,16 @@ function stored(overrides: Partial<StoredInvoice>): StoredInvoice {
 }
 
 describe('mergeInvoiceList', () => {
+  it('shows only dropshipping partner invoices in the filtered list, including pending ones', () => {
+    const customFields = { dropshippingPartner: true };
+    const result = mergeInvoiceList(
+      [invoice({ id: 'regular' }), invoice({ id: 'partner', customFields })],
+      [stored({}), stored({ localId: 'partner-pending', invoice: invoice({ id: 'partner-pending', customFields }) })],
+      null,
+      true,
+    );
+    expect(result.map((row) => row.id)).toEqual(['partner-pending', 'partner']);
+  });
   it('shows pending invoices ahead of the server page', () => {
     const merged = mergeInvoiceList(
       [invoice({ id: 'srv', number: 'INV-00002' })],

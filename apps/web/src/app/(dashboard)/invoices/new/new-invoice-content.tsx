@@ -22,11 +22,14 @@ import {
   type FormDraftSnapshot,
 } from '@/lib/form-draft/model';
 import { getFormDraftRepository } from '@/lib/form-draft/repository';
-import type { CreateInvoiceInput } from '@flowbooks/shared';
+import { DROPSHIPPING_PARTNER_INVOICE_TITLE, type CreateInvoiceInput } from '@flowbooks/shared';
+import { DROPSHIPPER_INVOICE_PATH, isDropshipperInvoicePath } from '@/lib/invoice-version';
 
 export function NewInvoicePageContent() {
   const router = useRouter();
   const pathname = usePathname();
+  const dropshippingPartner = isDropshipperInvoicePath(pathname);
+  const draftId = dropshippingPartner ? DROPSHIPPER_INVOICE_PATH : NEW_DOCUMENT_DRAFT_ID;
   const searchParams = useSearchParams();
   const fromId = searchParams.get('from');
   const customerFromQuery = searchParams.get('customer');
@@ -85,7 +88,7 @@ export function NewInvoicePageContent() {
         userId,
         organizationId,
         kind: 'invoice',
-        documentId: NEW_DOCUMENT_DRAFT_ID,
+        documentId: draftId,
       })
       .then((stored) => {
         if (cancelled) return;
@@ -102,7 +105,7 @@ export function NewInvoicePageContent() {
     return () => {
       cancelled = true;
     };
-  }, [sessionStatus, isReady, userId, organizationId, fromId]);
+  }, [sessionStatus, isReady, userId, organizationId, fromId, draftId]);
 
   const customers = customersData?.data ?? [];
   const products = productsData?.data ?? [];
@@ -121,7 +124,7 @@ export function NewInvoicePageContent() {
     return createInvoiceWithOfflineFallback({
       token: session!.accessToken!,
       organizationId: organizationId!,
-      data,
+      data: dropshippingPartner ? { ...data, dropshippingPartner: true } : data,
       customer,
     });
   }
@@ -134,7 +137,7 @@ export function NewInvoicePageContent() {
         userId,
         organizationId,
         kind: 'invoice',
-        documentId: NEW_DOCUMENT_DRAFT_ID,
+        documentId: draftId,
       });
       setExistingDraft(null);
       setCopyChoice('replace');
@@ -151,7 +154,7 @@ export function NewInvoicePageContent() {
   return (
     <div className="mx-auto max-w-3xl space-y-6">
       <div>
-        <h1 className="text-2xl font-semibold tracking-tight">New invoice</h1>
+        <h1 className="text-2xl font-semibold tracking-tight">{dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : 'New invoice'}</h1>
         <p className="text-muted-foreground">Fill in the details below</p>
       </div>
 

@@ -11,3 +11,12 @@ export function isVendorExpenseInvoice(record: {
   const customerId = typeof record.customerId === 'string' ? record.customerId.trim() : '';
   return vendorId.length > 0 && customerId.length === 0;
 }
+
+export const DROPSHIPPING_PARTNER_INVOICE_TITLE = 'Dropshipping Partner Invoice';
+export const DROPSHIPPING_PARTNER_INVOICE_FIELD = 'dropshippingPartner';
+
+export function isDropshippingPartnerInvoice(invoice: { customFields?: unknown }) {
+  const fields = invoice.customFields;
+  return !!fields && typeof fields === 'object' && !Array.isArray(fields) &&
+    (fields as Record<string, unknown>)[DROPSHIPPING_PARTNER_INVOICE_FIELD] === true;
+}

@@ -6,6 +6,7 @@ import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invo
 
 import { FulfillmentStatus, InvoiceStatus, PaymentMethod, Prisma, QuoteStatus, StockMovementType } from '@flowbooks/database';
 import {
+  DROPSHIPPING_PARTNER_INVOICE_FIELD,
   FULFILLMENT_STATUS_VALUES,
   fulfillmentPressEvents,
   fulfillmentTrackingError,
@@ -123,10 +124,14 @@ export class InvoicesService {
     sort?: string,
     listFilter?: string,
     customerId?: string,
+    dropshippingPartner = false,
   ) {
 
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
     const where: Prisma.InvoiceWhereInput = salesInvoiceWhere(organizationId);
+    if (dropshippingPartner) {
+      where.customFields = { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true };
+    }
 
     if (fulfillmentStatus === 'NONE') {
       where.fulfillmentStatus = null;
@@ -360,6 +365,7 @@ export class InvoicesService {
             dueDate: dto.dueDate ? new Date(dto.dueDate) : null,
             currency: dto.currency || settings?.currency || 'INR',
             notes: dto.notes,
+            ...(dto.dropshippingPartner ? { customFields: { [DROPSHIPPING_PARTNER_INVOICE_FIELD]: true } } : {}),
             discount: dto.discount || 0,
             shipping,
             shippingMethod: dto.shippingMethod ?? null,
