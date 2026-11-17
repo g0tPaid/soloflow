@@ -1,9 +1,13 @@
 import { DROPSHIPPER_INVOICE_PDF_TITLE, type InvoicePdfVersion, usesBrandedInvoiceLayout } from '@/lib/invoice-version';
 import {
+  Defs,
   Document,
   Image,
+  LinearGradient,
   Page,
   Path,
+  Rect,
+  Stop,
   StyleSheet,
   Svg,
   Text,
@@ -42,7 +46,6 @@ const INVOICE_FRAME = {
   right: 0,
   bottom: 0,
   left: 0,
-  backgroundColor: BRANDED_INVOICE_RED,
 } as const;
 const INVOICE_FRAME_INTERIOR = {
   position: 'absolute',
@@ -647,6 +650,20 @@ function InvoicePdfBody({
     <Page size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       {barcodeLayout ? (
         <View style={INVOICE_FRAME} fixed>
+          <Svg viewBox="0 0 595.28 841.89" preserveAspectRatio="none" style={{ width: '100%', height: '100%' }}>
+            <Defs>
+              <LinearGradient id="invoice-frame-rainbow" x1="0%" y1="0%" x2="100%" y2="100%">
+                <Stop offset="0%" stopColor="#ed3253" />
+                <Stop offset="16%" stopColor="#f47a33" />
+                <Stop offset="31%" stopColor="#e4b527" />
+                <Stop offset="47%" stopColor="#28a568" />
+                <Stop offset="63%" stopColor="#18a6be" />
+                <Stop offset="80%" stopColor="#4166da" />
+                <Stop offset="100%" stopColor="#a044c7" />
+              </LinearGradient>
+            </Defs>
+            <Rect x={0} y={0} width={595.28} height={841.89} fill="url(#invoice-frame-rainbow)" />
+          </Svg>
           <View style={INVOICE_FRAME_INTERIOR} />
         </View>
       ) : null}

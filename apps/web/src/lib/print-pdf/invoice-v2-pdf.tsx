@@ -55,14 +55,22 @@ export function InvoicePhotoGrid({ invoice, baseUrl, colors, branded = false }: 
     <>
       {rows.map((row, index) => (
         <View key={index} wrap={false}>
-          {index === 0 ? <Text style={[styles.heading, { color: colors.dark }, branded ? { color: '#ffffff', backgroundColor: BRANDED_INVOICE_RED, marginBottom: 5, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 7 } : {}]}>{branded ? 'PRODUCTS' : 'ITEMS'}</Text> : null}
+          {index === 0 ? (
+            <Text style={[
+              styles.heading,
+              { color: colors.dark },
+              branded ? { color: BRANDED_INVOICE_RED, borderColor: BRANDED_INVOICE_RED, borderWidth: 1, marginBottom: 5, paddingVertical: 4, paddingHorizontal: 7, borderRadius: 7 } : {},
+            ]}>
+              {branded ? 'PRODUCTS' : 'ITEMS'}
+            </Text>
+          ) : null}
           <View style={styles.row}>
             {row.map((item, column) => {
               const { name, description } = parseStoredLineItem(item);
               const image = resolveImageSrcForPrint(item.imageUrl ?? item.product?.imageUrl, baseUrl);
               return (
                 <View key={item.id} style={[styles.card, { borderColor: colors.softBorder }, branded ? { backgroundColor: colors.softBg, borderWidth: 0 } : {}]}>
-                  <Text style={[styles.serial, { color: colors.dark }, branded ? { backgroundColor: colors.softBg, left: 6, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 } : {}]}>{index * 3 + column + 1}</Text>
+                <Text style={[styles.serial, { color: colors.dark }, branded ? { backgroundColor: colors.softBg, left: 6, paddingHorizontal: 4, paddingVertical: 2, borderRadius: 3 } : {}]}>{index * 3 + column + 1}</Text>
                   <View style={[styles.photo, { backgroundColor: branded ? '#ffffff' : colors.softBg }]}>
                     {image ? <Image src={image} style={styles.image} /> : (
                       <Text style={styles.muted}>No photo</Text>
