@@ -1,6 +1,7 @@
 import { Globe, Mail, Phone, Plane, Ship, Truck } from 'lucide-react';
 import { isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import { DROPSHIPPER_INVOICE_PDF_TITLE } from '@/lib/invoice-version';
+import { buildInvoiceBarcode } from '@/lib/print-pdf/invoice-barcode-data';
 import type { Invoice, Organization } from '@/lib/api';
 import { invoiceAmountPaid, invoiceBalanceDue, SHIPPING_TERMS } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
@@ -132,7 +133,9 @@ export function InvoicePrintView({
     offerSrcs.length === 0 ? resolveImage(branding.invoiceBanner) : undefined;
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
-  const title = isInvoice && isDropshippingPartnerInvoice(invoice) ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
+  const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
+  const title = dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
+  const barcode = isInvoice ? buildInvoiceBarcode(invoice.number, invoice.id) : null;
   const customer = invoice.customer;
   const taxAmount = Number(invoice.taxAmount ?? 0);
   const discountAmount = Number(invoice.discount ?? 0);
@@ -217,6 +220,22 @@ export function InvoicePrintView({
             </div>
           </header>
 
+          {barcode ? (
+            <div className="mb-2 flex flex-col items-center">
+              <svg
+                width={barcode.width}
+                height={23}
+                viewBox={barcode.viewBox}
+                preserveAspectRatio="none"
+                role="img"
+                aria-label={`Invoice barcode for ${barcode.value}`}
+              >
+                {barcode.bands.map(({ fill, path }) => <path key={fill} d={path} fill={fill} />)}
+              </svg>
+              <span className="text-[10px] text-slate-600">{barcode.value}</span>
+            </div>
+          ) : null}
+
           <SectionWave colors={colors} />
 
           <div className={`mb-8 grid grid-cols-1 gap-6 sm:grid-cols-2 sm:items-start ${isInvoice ? "print:mb-3" : ""}`}>
@@ -273,7 +292,7 @@ export function InvoicePrintView({
             <div className="min-w-0 sm:text-right">
               <p
                 className="text-3xl font-extrabold tracking-tight sm:text-4xl"
-                style={{ color: colors.accent }}
+                style={{ color: dropshippingPartner ? '#166534' : colors.accent }}
               >
                 {title}
               </p>

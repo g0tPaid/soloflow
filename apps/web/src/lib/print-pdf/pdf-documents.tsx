@@ -633,6 +633,11 @@ function InvoicePdfBody({
         ) : (
           <>
             <CompanyHeader org={org} baseUrl={baseUrl} accent={colors.accent} compact={photoLayout} />
+            {isInvoice ? (
+              <View style={{ alignItems: 'center', marginTop: 5 }} wrap={false}>
+                <InvoiceBarcode number={invoice.number} id={invoice.id} />
+              </View>
+            ) : null}
             <SectionWave colors={colors} compact={photoLayout} />
           </>
         )}
@@ -687,7 +692,7 @@ function InvoicePdfBody({
               ]}
             >
               {highlightDropshipper ? (
-                <Text style={{ alignSelf: 'flex-start', backgroundColor: '#fce8e9', color: '#9f1326', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, marginBottom: 4 }}>
+                <Text style={{ alignSelf: 'flex-start', backgroundColor: '#e5f4e9', color: '#166534', fontSize: 11, fontWeight: 'bold', paddingHorizontal: 7, paddingVertical: 4, borderRadius: 4, marginBottom: 4 }}>
                   {title}
                 </Text>
               ) : null}
