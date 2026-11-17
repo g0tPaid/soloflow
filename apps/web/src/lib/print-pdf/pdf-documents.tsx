@@ -34,6 +34,7 @@ import {
 } from '@flowbooks/shared';
 
 import { InvoiceBarcode } from './invoice-barcode';
+import { getInvoiceShipTo } from './invoice-ship-to';
 import { MobileInvoicePdf } from './mobile-invoice-pdf';
 import { SourcingBrand } from './sourcing-brand';
 import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
@@ -625,6 +626,7 @@ function InvoicePdfBody({
   const isInvoice = documentLabel === 'INVOICE';
   const highlightDropshipper = isInvoice && version === 4;
   const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
+  const shipTo = isInvoice ? getInvoiceShipTo(invoice) : null;
   const title = highlightDropshipper || dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
   const barcodeLayout = usesBrandedInvoiceLayout(version);
   const photoLayout = version === 2 || barcodeLayout;
@@ -765,6 +767,17 @@ function InvoicePdfBody({
             </View>
           </View>
         </View>
+
+        {shipTo ? (
+          <View wrap={false} style={{
+            marginTop: 6, marginBottom: 8, paddingHorizontal: 10, paddingVertical: 6,
+            borderRadius: 6, backgroundColor: colors.softBg, borderWidth: 1, borderColor: colors.softBorder,
+          }}>
+            <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 3 }}>SHIP TO</Text>
+            {shipTo.name ? <Text style={styles.billToName}>{shipTo.name}</Text> : null}
+            {shipTo.address.length ? <Text style={styles.muted}>{shipTo.address.join('\n')}</Text> : null}
+          </View>
+        ) : null}
 
         <ShippingSection
           method={invoice.shippingMethod}

@@ -46,6 +46,13 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
           <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={166} height={19} scale={1.12} />
         </View>
       </View>
+      {data.shipTo ? (
+        <View style={{ marginTop: 8, padding: 6, borderRadius: 4, backgroundColor: '#f4f4f5' }}>
+          <Text style={styles.label}>Ship to</Text>
+          {data.shipTo.name ? <Text style={[styles.detail, styles.label]}>{data.shipTo.name}</Text> : null}
+          {data.shipTo.address.length ? <Text style={styles.detail}>{data.shipTo.address.join('\n')}</Text> : null}
+        </View>
+      ) : null}
       <View style={styles.divider} />
       {data.items.map((item) => {
         const image = resolveImageSrcForPrint(item.image, baseUrl);

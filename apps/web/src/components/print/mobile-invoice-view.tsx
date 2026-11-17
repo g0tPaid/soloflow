@@ -35,6 +35,13 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
           <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
         </div>
       </header>
+      {data.shipTo ? (
+        <section aria-label="Ship to" className="mt-3 rounded-lg bg-zinc-100 px-3 py-2 text-xs">
+          <p className="font-semibold">Ship to</p>
+          {data.shipTo.name ? <p className="mt-1 break-words font-bold">{data.shipTo.name}</p> : null}
+          {data.shipTo.address.length ? <p className="whitespace-pre-line break-words">{data.shipTo.address.join('\n')}</p> : null}
+        </section>
+      ) : null}
       <ul className="my-4 space-y-3 border-t border-dashed border-zinc-400 pt-4">
         {data.items.map((item) => {
           const image = resolveImageSrc(item.image);

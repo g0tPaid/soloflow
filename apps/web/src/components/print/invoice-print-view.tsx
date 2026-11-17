@@ -2,6 +2,7 @@ import { Globe, Mail, Phone, Plane, Ship, Truck } from 'lucide-react';
 import { isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import { DROPSHIPPER_INVOICE_PDF_TITLE } from '@/lib/invoice-version';
 import { buildInvoiceBarcode } from '@/lib/print-pdf/invoice-barcode-data';
+import { getInvoiceShipTo } from '@/lib/print-pdf/invoice-ship-to';
 import type { Invoice, Organization } from '@/lib/api';
 import { invoiceAmountPaid, invoiceBalanceDue, SHIPPING_TERMS } from '@flowbooks/shared';
 import { formatCurrency } from '@/lib/utils';
@@ -134,6 +135,7 @@ export function InvoicePrintView({
   const currency = invoice.currency;
   const isInvoice = documentLabel === 'INVOICE';
   const dropshippingPartner = isInvoice && isDropshippingPartnerInvoice(invoice);
+  const shipTo = isInvoice ? getInvoiceShipTo(invoice) : null;
   const title = dropshippingPartner ? DROPSHIPPER_INVOICE_PDF_TITLE : documentLabel;
   const barcode = isInvoice ? buildInvoiceBarcode(invoice.number, invoice.id) : null;
   const customer = invoice.customer;
@@ -322,6 +324,14 @@ export function InvoicePrintView({
               </div>
             </div>
           </div>
+
+          {shipTo ? (
+            <section aria-label="Ship to" className="mb-5 break-inside-avoid rounded-xl border border-slate-200 px-4 py-3">
+              <p className="text-xs font-bold uppercase tracking-wide text-slate-600">Ship to</p>
+              {shipTo.name ? <p className="mt-1 break-words font-semibold">{shipTo.name}</p> : null}
+              {shipTo.address.length ? <p className="whitespace-pre-line break-words text-xs text-slate-600">{shipTo.address.join('\n')}</p> : null}
+            </section>
+          ) : null}
 
           {hasShippingInfo && (
             <section className="mb-6">
