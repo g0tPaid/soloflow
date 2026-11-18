@@ -74,11 +74,11 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages }: { invo
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 7, paddingTop: 0, alignItems: 'center', gap: 5 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 170, height: 36, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
-          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 170, height: 36, objectFit: 'fill', borderWidth: 0 }} />
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 152, height: 32, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 152, height: 32, objectFit: 'fill', borderWidth: 0 }} />
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: 170, height: 36, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
-          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 170, height: 36, objectFit: 'fill', borderWidth: 0 }} />
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: 152, height: 32, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 152, height: 32, objectFit: 'fill', borderWidth: 0 }} />
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
