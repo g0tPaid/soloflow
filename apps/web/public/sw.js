@@ -548,6 +548,26 @@ self.addEventListener('fetch', (event) => {
     return;
   }
 
+  // Invoice 6 design previews must never replay the cached HTML shell.
+  // A stale offline shell can show the previous receipt even after deployment.
+  // Do not change the cache behavior of other offline-capable modules.
+  const freshInvoiceV6 =
+    url.pathname === '/invoices-v6' ||
+    url.pathname.startsWith('/invoices-v6/') ||
+    (url.pathname.startsWith('/print/invoices/') && url.searchParams.get('version') === '6');
+  if (freshInvoiceV6 && core.isShellRequest(request)) {
+    event.respondWith(
+      fetch(new Request(request, { cache: 'no-store' })).catch(() =>
+        new Response(
+          '<!doctype html><meta name="viewport" content="width=device-width, initial-scale=1">' +
+          '<title>Invoice 6</title><p>Connect to the internet to view the latest Invoice 6 design.</p>',
+          { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'no-store' } },
+        ),
+      ),
+    );
+    return;
+  }
+
   if (core.isShellRequest(request)) {
     event.respondWith(handleShell(request, event));
   }
