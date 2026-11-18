@@ -37,6 +37,7 @@ import {
 import { InvoiceBarcode } from './invoice-barcode';
 import { getInvoiceShipTo } from './invoice-ship-to';
 import { MobileInvoicePdf } from './mobile-invoice-pdf';
+import { InvoiceV6Pdf } from './invoice-v6-pdf';
 import { SourcingBrand } from './sourcing-brand';
 import { BRANDED_INVOICE_RED, InvoicePhotoGrid, InvoiceTrackingQr } from './invoice-v2-pdf';
 
@@ -1319,6 +1320,8 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
         <Document>
           {version === 5 ? (
             <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
+          ) : version === 6 ? (
+            <InvoiceV6Pdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
           ) : (
             <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
           )}
