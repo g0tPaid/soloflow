@@ -71,6 +71,7 @@ const NAV_ACTIONS = [
   { href: '/vendors', label: 'Vendors', icon: Contact },
   { href: '/products', label: 'Products', icon: Package },
   { href: '/quotes', label: 'Quotes', icon: FileSpreadsheet },
+  { href: '/quotes-v5', label: 'Quote 5 · Mobile', icon: FileSpreadsheet },
   { href: '/inventory', label: 'Inventory', icon: Boxes },
   { href: '/reports', label: 'Reports', icon: BarChart3 },
   { href: '/settings', label: 'Company', icon: Settings },
