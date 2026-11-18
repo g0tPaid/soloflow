@@ -73,12 +73,12 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages }: { invo
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
-      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', alignItems: 'center', gap: 5 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: '100%', height: 39, textDecoration: 'none' }}>
-          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: '100%', height: 39, objectFit: 'contain' }} />
+      <View style={{ marginTop: 7, paddingTop: 0, alignItems: 'center', gap: 3 }} wrap={false}>
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: '100%', height: 48, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: '100%', height: 48, objectFit: 'contain', borderWidth: 0 }} />
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: '100%', height: 39, textDecoration: 'none' }}>
-          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: '100%', height: 39, objectFit: 'contain' }} />
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: '100%', height: 48, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: '100%', height: 48, objectFit: 'contain', borderWidth: 0 }} />
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
