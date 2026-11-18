@@ -1,4 +1,4 @@
-export type InvoicePdfVersion = 2 | 3 | 4 | 5;
+export type InvoicePdfVersion = 2 | 3 | 4 | 5 | 6;
 
 export const DROPSHIPPER_INVOICE_PATH = '/invoices-v4';
 export const DROPSHIPPER_INVOICE_DRAFT_ID = '/dropshipper-invoices';
@@ -13,11 +13,12 @@ export function invoicePdfVersion(value: string | null): InvoicePdfVersion | und
   if (value === '3') return 3;
   if (value === '4') return 4;
   if (value === '5') return 5;
+  if (value === '6') return 6;
 }
 
 export function invoiceVersionForPath(path: string): InvoicePdfVersion | undefined {
   if (isDropshipperInvoicePath(path)) return 4;
-  const match = /^\/invoices-v([235])(?:\/|$)/.exec(path);
+  const match = /^\/invoices-v([2356])(?:\/|$)/.exec(path);
   return invoicePdfVersion(match?.[1] ?? null);
 }
 
