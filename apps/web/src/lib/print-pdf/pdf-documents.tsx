@@ -1312,13 +1312,13 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion, buttonImages?: { wise: string; download: string }) {
   switch (document.type) {
     case 'invoices':
       return (
         <Document>
           {version === 5 ? (
-            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} />
           ) : (
             <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
           )}
