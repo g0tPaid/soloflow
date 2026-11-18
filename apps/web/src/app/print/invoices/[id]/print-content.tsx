@@ -15,6 +15,7 @@ import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
 import { MobileInvoiceView } from '@/components/print/mobile-invoice-view';
 import { InvoiceV6View } from '@/components/print/invoice-v6-view';
+import { InvoiceV7View } from '@/components/print/invoice-v7-view';
 import { invoicePdfVersion } from '@/lib/invoice-version';
 import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
 
@@ -27,6 +28,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const receiptVersion = invoicePdfVersion(searchParams.get('version'));
   const mobileInvoice = receiptVersion === 5;
   const modernInvoice = receiptVersion === 6;
+  const previewV7 = searchParams.get('version') === '7';
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
 
@@ -40,9 +42,10 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const callbackUrl = useMemo(() => {
     const query = new URLSearchParams();
     if (orgFromUrl) query.set('org', orgFromUrl);
-    if (mobileInvoice || modernInvoice) query.set('version', String(receiptVersion));
+    if (previewV7) query.set('version', '7');
+    else if (mobileInvoice || modernInvoice) query.set('version', String(receiptVersion));
     return `/print/invoices/${id}${query.size ? `?${query}` : ''}`;
-  }, [id, orgFromUrl, mobileInvoice, modernInvoice, receiptVersion]);
+  }, [id, orgFromUrl, mobileInvoice, modernInvoice, previewV7, receiptVersion]);
 
   const canFetch =
     sessionStatus === 'authenticated' && !!session?.accessToken && !!organizationId;
@@ -150,7 +153,13 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
 
   return (
     <>
-      {!embed && (
+      {!embed && (previewV7 ? (
+        <div className="no-print sticky top-0 z-50 flex flex-wrap items-center justify-center gap-3 border-b border-red-100 bg-white/95 px-3 py-3 text-center text-sm shadow-sm backdrop-blur">
+          <Link href={`/invoices/${encodeURIComponent(id)}`} className="font-semibold text-slate-800 underline">Back to invoice</Link>
+          <span className="rounded-full bg-red-50 px-3 py-1 font-semibold text-red-700">Invoice 7 · Design preview only</span>
+          <span className="text-xs text-slate-500">PDF download will be built after design approval</span>
+        </div>
+      ) : (
         <PrintPageToolbar
           backHref={modernInvoice ? '/invoices-v6' : `${mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
           backLabel={modernInvoice ? 'Back to Invoice 6 list' : 'Back to invoice'}
@@ -166,9 +175,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
           emailSubject={`Invoice ${invoice.number}`}
           emailBody={whatsappMessage}
         />
-      )}
+      ))}
 
-      {modernInvoice ? <InvoiceV6View invoice={invoice} organization={org} /> : mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} /> : <InvoicePrintView invoice={invoice} org={org} />}
+      {previewV7 ? <InvoiceV7View invoice={invoice} organization={org} /> : modernInvoice ? <InvoiceV6View invoice={invoice} organization={org} /> : mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} /> : <InvoicePrintView invoice={invoice} org={org} />}
 
       <style jsx global>{`
         @media print {
