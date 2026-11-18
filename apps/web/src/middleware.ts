@@ -10,6 +10,9 @@ const publicPrefixes = [
   '/reset-password',
   '/privacy',
   '/api/auth',
+  // Recipients can download only a signed, invoice-scoped PDF without signing in.
+  // The token-issuing route /api/pdf/public-invoice-token remains protected.
+  '/api/pdf/public-invoice/',
 ];
 
 function isPublicPath(pathname: string) {
