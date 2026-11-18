@@ -59,21 +59,33 @@ export async function generatePrintPdf(
     const asset = async (filename: string) => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      let left = info.width, right = -1, top = info.height, bottom = -1;
+      const coloredAt = (x: number, y: number) => {
+        const i = (y * info.width + x) * 4;
+        return data[i + 3] > 60 &&
+          Math.max(data[i], data[i + 1], data[i + 2]) -
+          Math.min(data[i], data[i + 1], data[i + 2]) > 60;
+      };
+      const rows: number[] = [];
       for (let y = 0; y < info.height; y++) {
-        for (let x = 0; x < info.width; x++) {
-          const i = (y * info.width + x) * 4;
-          const max = Math.max(data[i], data[i + 1], data[i + 2]);
-          const min = Math.min(data[i], data[i + 1], data[i + 2]);
-          if (max - min > 35 && max < 245 && data[i + 3] > 25) {
-            left = Math.min(left, x); right = Math.max(right, x);
-            top = Math.min(top, y); bottom = Math.max(bottom, y);
-          }
-        }
+        let count = 0;
+        for (let x = 0; x < info.width; x += 2) if (coloredAt(x, y)) count++;
+        if (count > info.width * 0.22) rows.push(y);
       }
-      if (right < left || bottom < top) throw new Error('Button artwork not found');
+      if (!rows.length) throw new Error('Button artwork not found');
+      const top = Math.min(...rows) + 3;
+      const bottom = Math.max(...rows) - 3;
+      const mid = Math.round((top + bottom) / 2);
+      const columns: number[] = [];
+      for (let x = 0; x < info.width; x++) {
+        let count = 0;
+        for (let y = Math.max(top, mid - 8); y <= Math.min(bottom, mid + 8); y++) if (coloredAt(x, y)) count++;
+        if (count > 6) columns.push(x);
+      }
+      if (!columns.length) throw new Error('Button width not found');
+      const left = Math.min(...columns) + 3, right = Math.max(...columns) - 3;
       const width = right - left + 1, height = bottom - top + 1;
-      const radius = Math.round(height * 0.21);
+      if (width < 30 || height < 10) throw new Error('Button crop too small');
+      const radius = Math.round(height * 0.23);
       const mask = Buffer.from(`<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${radius}" fill="white"/></svg>`);
       const cropped = await sharp(bytes).extract({ left, top, width, height })
         .ensureAlpha().composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
