@@ -653,7 +653,7 @@ function InvoicePdfBody({
   const footerContacts = [branding.website, branding.phone, branding.email].filter(Boolean);
 
   return (
-    <Page size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
+    <Page id={isInvoice && version === undefined ? 'invoice-version-1' : undefined} bookmark={isInvoice && version === undefined ? 'Invoice Version 1 (A4)' : undefined} size="A4" style={[styles.page, barcodeLayout ? { paddingBottom: 55 } : photoLayout ? { paddingBottom: 48 } : {}]} wrap>
       {documentLabel === "INVOICE" && <Text fixed style={{ position: "absolute", top: 7, right: 22, fontSize: 10, fontWeight: "bold", color: "#166534" }}><Link src="https://wise.com/pay/me/ajmala214" style={{ textDecoration: "underline" }}>Pay with Wise</Link></Text>}
       {barcodeLayout ? (
         <View style={INVOICE_FRAME} fixed>
@@ -1312,13 +1312,16 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion, buttonImages?: { wise: string; download: string }, downloadUrl?: string) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion, buttonImages?: { wise: string; download: string }) {
   switch (document.type) {
     case 'invoices':
       return (
         <Document>
           {version === 5 ? (
-            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
+            <>
+              <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} />
+              <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
+            </>
           ) : (
             <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
           )}
