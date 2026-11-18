@@ -27,7 +27,10 @@ const styles = StyleSheet.create({
   footer: { marginTop: 10, alignItems: 'center' },
 });
 
-export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string } }) {
+export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, downloadUrl }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string }; downloadUrl?: string }) {
+  if (!downloadUrl || !downloadUrl.startsWith('https://soloflow.practicalthings.store/api/pdf/public-invoice/')) {
+    throw new Error('A secure public Invoice Version 1 download link is required.');
+  }
   const data = getMobileInvoiceData(invoice, org);
 
   return (
@@ -77,7 +80,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages }: { invo
         <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 152, height: 32, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
           <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 152, height: 32, objectFit: 'fill', borderWidth: 0 }} />
         </Link>
-        <Link src="#invoice-version-1" style={{ width: 152, height: 32, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+        <Link src={downloadUrl} style={{ width: 152, height: 32, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
           <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 152, height: 32, objectFit: 'fill', borderWidth: 0 }} />
         </Link>
       </View>
