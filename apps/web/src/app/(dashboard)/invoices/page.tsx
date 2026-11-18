@@ -169,11 +169,14 @@ export default function InvoicesPage() {
   const pathname = usePathname();
   const dropshippingPartner = isDropshipperInvoicePath(pathname);
   const version = invoiceVersionForPath(pathname);
+  const v7PreviewList = pathname === '/invoices-v7';
   const invoicePath = invoicePathForRoute(pathname);
   const { data: session } = useSession();
   const { organizationId, organization, isReady } = useOrganizationId();
   const invoiceOpenHref = (invoiceId: string) =>
-    version === 6
+    v7PreviewList
+      ? `/print/invoices/${encodeURIComponent(invoiceId)}?version=7${organizationId ? '&org=' + encodeURIComponent(organizationId) : ''}`
+      : version === 6
       ? `/print/invoices/${encodeURIComponent(invoiceId)}?version=6${organizationId ? '&org=' + encodeURIComponent(organizationId) : ''}`
       : `${invoicePath}/${invoiceId}`;
   const invoiceEditHref = (invoiceId: string) =>
@@ -318,8 +321,8 @@ export default function InvoicesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium tracking-tight">{dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
-            <p className="text-sm text-muted-foreground">{version === 6 ? 'Modern 80 mm receipts, optimized for phones' : version === 5 ? 'Mobile receipt invoices' : 'Create and manage invoices'}</p>
+            <h1 className="text-2xl font-medium tracking-tight">{v7PreviewList ? 'Invoice 7 · Preview' : dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
+            <p className="text-sm text-muted-foreground">{v7PreviewList ? 'Choose an invoice to review the new red design. Version 7 PDF is not enabled yet.' : version === 6 ? 'Modern 80 mm receipts, optimized for phones' : version === 5 ? 'Mobile receipt invoices' : 'Create and manage invoices'}</p>
           </div>
           {organizationId && (
             <Button asChild>
