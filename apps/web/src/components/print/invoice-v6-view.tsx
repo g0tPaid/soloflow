@@ -200,10 +200,10 @@ export function InvoiceV6View({
           </div>
         </dl>
 
-        <div className="mt-3 flex items-center gap-2" aria-label="Payment and invoice download">
+        <div className="-mx-1.5 mt-3 flex items-center gap-1.5" aria-label="Payment and invoice download">
           <a
             href="https://wise.com/pay/me/ajmala214" target="_blank" rel="noopener noreferrer"
-            className="flex h-[38px] min-w-0 flex-[46] items-center justify-center overflow-hidden rounded-[12px] bg-[#064b24] shadow-[0_5px_10px_rgba(0,107,37,0.15)]"
+            className="flex h-[35px] min-w-0 flex-[46] items-center justify-center overflow-hidden rounded-[12px] bg-[#064b24] shadow-[0_5px_10px_rgba(0,107,37,0.15)]"
             aria-label="Pay with Wise"
           >
             {buttonArtwork ? (
@@ -217,7 +217,7 @@ export function InvoiceV6View({
             href={downloadUrl ?? '#'} target="_blank" rel="noopener noreferrer"
             aria-disabled={!downloadUrl}
             onClick={(event) => { if (!downloadUrl) event.preventDefault(); }}
-            className={'flex h-[38px] min-w-0 flex-[54] items-center justify-center overflow-hidden rounded-[12px] bg-[#d40720] shadow-[0_5px_10px_rgba(180,0,22,0.13)] ' + (!downloadUrl ? 'opacity-70' : '')}
+            className={'flex h-[35px] min-w-0 flex-[54] items-center justify-center overflow-hidden rounded-[12px] bg-[#d40720] shadow-[0_5px_10px_rgba(180,0,22,0.13)] ' + (!downloadUrl ? 'opacity-70' : '')}
             aria-label="Download Invoice Version 1 PDF"
           >
             {buttonArtwork ? (
