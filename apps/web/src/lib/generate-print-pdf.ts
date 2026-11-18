@@ -58,7 +58,7 @@ export async function generatePrintPdf(
   const quoteVersion = requestedQuoteVersion === null ? undefined : Number(requestedQuoteVersion);
   const document = await loadPrintDocument(accessToken, type, id, organizationId, quoteVersion);
   const version = invoicePdfVersion(searchParams.get('version'));
-  if (version === 5 && document.type === 'invoices') {
+  if ((version === 5 || version === 6) && document.type === 'invoices') {
     const asset = async (filename: string) => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
