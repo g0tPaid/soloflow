@@ -27,8 +27,9 @@ const styles = StyleSheet.create({
   footer: { marginTop: 10, alignItems: 'center' },
 });
 
-export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, downloadUrl }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string }; downloadUrl?: string }) {
-  if (!downloadUrl || !downloadUrl.startsWith('https://soloflow.practicalthings.store/api/pdf/public-invoice/')) {
+export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, downloadUrl, documentType = 'invoice' }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string }; downloadUrl?: string; documentType?: 'invoice' | 'quote' }) {
+  const isQuote = documentType === 'quote';
+  if (!isQuote && (!downloadUrl || !downloadUrl.startsWith('https://soloflow.practicalthings.store/api/pdf/public-invoice/'))) {
     throw new Error('A secure public Invoice Version 1 download link is required.');
   }
   const data = getMobileInvoiceData(invoice, org);
@@ -41,11 +42,12 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
         {data.address ? <Text style={styles.detail}>{data.address}</Text> : null}
         {data.contact ? <Text style={styles.detail}>{data.contact}</Text> : null}
         {data.taxId ? <Text style={styles.detail}>TRN {data.taxId}</Text> : null}
-        <Text style={styles.heading}>INVOICE <Text style={styles.invoiceNumber}> · {invoice.number}</Text></Text>
+        <Text style={styles.heading}>{isQuote ? 'QUOTE' : 'INVOICE'} <Text style={styles.invoiceNumber}> · {invoice.number}</Text></Text>
         <Text style={styles.detail}>{data.date}</Text>
-        {invoice.customer?.name ? <Text style={styles.detail}>Bill to: <Text style={styles.label}>{invoice.customer.name}</Text></Text> : null}
+        {isQuote && invoice.dueDate ? <Text style={styles.detail}>Valid until: {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</Text> : null}
+        {invoice.customer?.name ? <Text style={styles.detail}>{isQuote ? 'Prepared for:' : 'Bill to:'} <Text style={styles.label}>{invoice.customer.name}</Text></Text> : null}
         {data.customerAddress.length ? <Text style={styles.detail}>{data.customerAddress.join('\n')}</Text> : null}
-        {data.status ? <Text style={styles.label}>{data.status}</Text> : null}
+        {!isQuote && data.status ? <Text style={styles.label}>{data.status}</Text> : null}
         <View style={{ marginTop: 7 }}>
           <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={166} height={19} scale={1.12} />
         </View>
@@ -75,18 +77,26 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
       {data.totals.map(({ label, amount }) => (
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
-      <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
+      <View style={styles.balance}><Text>{isQuote ? 'QUOTED TOTAL' : 'TOTAL DUE'}</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 7, paddingTop: 0, alignItems: 'center', gap: 5 }} wrap={false}>
         <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 174, height: 30, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
           <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 174, height: 30, objectFit: 'contain', borderWidth: 0 }} />
         </Link>
-        <Link src={downloadUrl} style={{ width: 174, height: 30, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
-          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 174, height: 30, objectFit: 'contain', borderWidth: 0 }} />
-        </Link>
+        {isQuote ? (
+          <Link src={downloadUrl ?? baseUrl} style={{ width: 174, height: 30, textDecoration: 'none' }}>
+            <View style={[styles.action, { width: 174, height: 30, borderColor: '#e4001b', backgroundColor: '#e4001b' }]}>
+              <Text style={{ fontSize: 10, fontWeight: 'bold', color: '#ffffff', letterSpacing: 0.4 }}>DOWNLOAD QUOTE</Text>
+            </View>
+          </Link>
+        ) : (
+          <Link src={downloadUrl!} style={{ width: 174, height: 30, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+            <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 174, height: 30, objectFit: 'contain', borderWidth: 0 }} />
+          </Link>
+        )}
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
       <View style={styles.footer}>
-        <InvoiceTrackingQr accent="#18181b" background="#ffffff" />
+        {!isQuote ? <InvoiceTrackingQr accent="#18181b" background="#ffffff" /> : null}
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
         <Image src={sevenColorMark} style={{ width: 24, height: 24, marginTop: 8, objectFit: 'contain' }} />
       </View>
