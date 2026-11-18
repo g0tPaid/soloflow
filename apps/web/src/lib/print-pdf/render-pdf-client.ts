@@ -55,31 +55,39 @@ export async function renderInvoicePdfFile(
             if (!context) throw new Error('Cannot prepare invoice button image');
             context.drawImage(bitmap, 0, 0);
             const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
-            let left = canvas.width, right = -1, top = canvas.height, bottom = -1;
+            const coloredAt = (x: number, y: number) => {
+              const i = (y * canvas.width + x) * 4;
+              return data[i + 3] > 60 &&
+                Math.max(data[i], data[i + 1], data[i + 2]) -
+                Math.min(data[i], data[i + 1], data[i + 2]) > 60;
+            };
+            const rows: number[] = [];
             for (let y = 0; y < canvas.height; y++) {
-              for (let x = 0; x < canvas.width; x++) {
-                const i = (y * canvas.width + x) * 4;
-                const max = Math.max(data[i], data[i + 1], data[i + 2]);
-                const min = Math.min(data[i], data[i + 1], data[i + 2]);
-                const colored = data[i + 3] > 25 && max - min > 35 && max < 245;
-                if (colored) {
-                  left = Math.min(left, x);
-                  right = Math.max(right, x);
-                  top = Math.min(top, y);
-                  bottom = Math.max(bottom, y);
-                }
-              }
+              let count = 0;
+              for (let x = 0; x < canvas.width; x += 2) if (coloredAt(x, y)) count++;
+              if (count > canvas.width * 0.22) rows.push(y);
             }
-            if (right < left || bottom < top) throw new Error('Invoice button artwork missing');
+            if (!rows.length) throw new Error('Invoice button artwork missing');
+            const top = Math.min(...rows) + 3, bottom = Math.max(...rows) - 3;
+            const mid = Math.round((top + bottom) / 2);
+            const columns: number[] = [];
+            for (let x = 0; x < canvas.width; x++) {
+              let count = 0;
+              for (let y = Math.max(top, mid - 8); y <= Math.min(bottom, mid + 8); y++) if (coloredAt(x, y)) count++;
+              if (count > 6) columns.push(x);
+            }
+            if (!columns.length) throw new Error('Invoice button width missing');
+            const left = Math.min(...columns) + 3, right = Math.max(...columns) - 3;
             const crop = document.createElement('canvas');
             crop.width = right - left + 1;
             crop.height = bottom - top + 1;
+            if (crop.width < 30 || crop.height < 10) throw new Error('Invoice button crop too small');
             const cropContext = crop.getContext('2d');
             if (!cropContext) throw new Error('Cannot crop invoice button');
             cropContext.drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
             cropContext.globalCompositeOperation = 'destination-in';
             cropContext.beginPath();
-            cropContext.roundRect(0, 0, crop.width, crop.height, Math.round(crop.height * 0.21));
+            cropContext.roundRect(0, 0, crop.width, crop.height, Math.round(crop.height * 0.23));
             cropContext.fill();
             return crop.toDataURL('image/png');
           } finally {
