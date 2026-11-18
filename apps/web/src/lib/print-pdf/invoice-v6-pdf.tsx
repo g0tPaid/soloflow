@@ -1,104 +1,172 @@
-import { Image, Link, Page, Path, StyleSheet, Svg, Text, View } from '@react-pdf/renderer';
+import {
+  Defs, Image, LinearGradient, Link, Page, Path, Rect, Stop,
+  StyleSheet, Svg, Text, View,
+} from '@react-pdf/renderer';
 import type { Invoice, Organization } from '@/lib/api';
-import { resolveImageSrcForPrint } from '@/lib/organization-branding';
+import { parseBranding, resolveImageSrcForPrint } from '@/lib/organization-branding';
 import { InvoiceBarcode } from './invoice-barcode';
 import { getMobileInvoiceData } from './mobile-invoice-data';
 import { trackingQrPath, trackingUrl } from './invoice-tracking-qr-data';
 import { sevenColorMark } from './sourcing-brand-mark';
 
-const RECEIPT_WIDTH = (80 / 25.4) * 72;
-const GREEN = '#064d3c';
-const MUTED = '#475569';
-const RED = '#e50035';
+const WIDTH = (80 / 25.4) * 72;
+const DARK_GREEN = '#064835';
+const RED = '#ec0036';
+const SLATE = '#475569';
 
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 8, paddingVertical: 9, backgroundColor: '#f5f8fa',
-    color: '#111827', fontFamily: 'Helvetica', fontSize: 8.8,
+    paddingHorizontal: 6, paddingVertical: 8, backgroundColor: '#f2f6fc',
+    color: '#111827', fontSize: 8.5, fontFamily: 'Helvetica',
   },
-  sheet: {
-    paddingHorizontal: 9, paddingTop: 10, paddingBottom: 12,
-    borderRadius: 14, backgroundColor: '#ffffff',
-    borderWidth: 0.8, borderColor: '#e6edf1',
+  receipt: {
+    backgroundColor: '#ffffff', borderRadius: 16,
+    borderWidth: 0.7, borderColor: '#e0e7ed',
+    paddingHorizontal: 9, paddingTop: 10, paddingBottom: 10,
   },
   center: { alignItems: 'center', textAlign: 'center' },
-  wordmark: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 },
-  wordmarkText: { color: '#101827', fontSize: 17.2, fontWeight: 'bold', letterSpacing: -0.8 },
-  company: { fontSize: 7.6, color: '#263342', marginTop: 3, textAlign: 'center' },
-  contact: { fontSize: 7.1, color: MUTED, marginTop: 3, textAlign: 'center' },
-  separator: { height: 1, backgroundColor: '#e2e8f0', marginTop: 9, marginBottom: 8 },
-  heading: {
-    backgroundColor: '#eaf8ef', borderRadius: 11,
-    paddingVertical: 6, paddingHorizontal: 8, alignItems: 'center',
+  logoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 },
+  wordmark: { fontWeight: 'bold', color: '#111827', fontSize: 15.7, letterSpacing: -0.6 },
+  orgName: { textAlign: 'center', marginTop: 3, color: '#24303f', fontSize: 7.4 },
+  companyContact: {
+    marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
+    gap: 3,
   },
-  headingText: { color: GREEN, fontWeight: 'bold', fontSize: 13, letterSpacing: 0.5 },
-  metadata: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    paddingHorizontal: 6, paddingVertical: 7, backgroundColor: '#f8fafc',
-    borderWidth: 0.7, borderColor: '#e8ecf2', borderRadius: 9, marginTop: 6, gap: 5,
+  contactText: { fontSize: 7, color: '#344255', textAlign: 'center' },
+  divider: { height: 0.7, backgroundColor: '#d5dfe6', marginTop: 9, marginBottom: 7 },
+  invoiceBar: {
+    flexDirection: 'row', alignItems: 'center',
+    minHeight: 33, gap: 4, paddingHorizontal: 5,
   },
-  metadataNumber: { flex: 1, fontWeight: 'bold', fontSize: 7.7, color: '#121826' },
-  metadataDate: { fontSize: 7, color: '#344152', textAlign: 'right' },
-  billTo: {
-    flexDirection: 'row', alignItems: 'flex-start', marginTop: 7,
-    backgroundColor: '#f0f8f6', borderRadius: 10,
-    borderWidth: 0.6, borderColor: '#e0f0eb', padding: 8, gap: 7,
+  invoiceTitle: { color: DARK_GREEN, fontSize: 10.1, fontWeight: 'bold' },
+  invoiceNumber: {
+    flex: 1, paddingHorizontal: 3, color: '#172033',
+    fontSize: 7.7, fontWeight: 'medium',
   },
-  billName: { width: '43%', paddingRight: 4, borderRightWidth: 0.7, borderRightColor: '#d3e0df' },
-  billAddress: { flex: 1 },
-  smallMuted: { fontSize: 6.9, color: MUTED },
-  name: { fontSize: 8.1, fontWeight: 'bold', marginTop: 3 },
-  address: { fontSize: 7.3, lineHeight: 10.3, color: '#1e293b' },
-  items: { marginTop: 9 },
-  item: {
-    flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7,
-    borderTopWidth: 0.75, borderBottomWidth: 0.75,
-    borderStyle: 'dashed', borderColor: '#bdcbd3',
+  datePill: {
+    flexDirection: 'row', alignItems: 'center', gap: 3,
+    backgroundColor: '#f1f5fa', borderWidth: 0.6,
+    borderColor: '#dae2e9', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 5,
   },
-  itemPhoto: { width: 30, height: 30, borderRadius: 5, objectFit: 'cover' },
-  itemContent: { flex: 1, minWidth: 0 },
-  itemTitle: { fontSize: 9.8, fontWeight: 'bold', color: '#0f172a' },
-  itemDetail: { fontSize: 7.2, color: '#334155', marginTop: 2 },
-  itemAmount: {
-    fontWeight: 'bold', fontSize: 8.1, color: GREEN,
-    backgroundColor: '#e5f8ed', paddingHorizontal: 5, paddingVertical: 5,
-    borderRadius: 9, textAlign: 'right', maxWidth: 74,
+  dateText: { color: '#28374b', fontSize: 6.9 },
+  billCard: {
+    marginTop: 7, flexDirection: 'row', minHeight: 65, alignItems: 'flex-start',
+    backgroundColor: '#eff8f6', borderWidth: 0.6, borderColor: '#e4eff0',
+    borderRadius: 11, paddingVertical: 9, paddingHorizontal: 8,
   },
-  totalRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 6, marginTop: 5 },
-  totalLabel: { fontSize: 8.7 },
-  totalAmount: { fontSize: 8.7, textAlign: 'right' },
-  due: {
-    flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center',
-    borderTopWidth: 1.1, borderBottomWidth: 1.1,
-    borderColor: GREEN, paddingVertical: 7, marginTop: 8,
+  billLeft: { width: '43%', paddingRight: 6, borderRightWidth: 0.7, borderRightColor: '#c2d0d4' },
+  billRight: { width: '57%', flexDirection: 'row', alignItems: 'flex-start', gap: 4, paddingLeft: 6 },
+  muted: { color: SLATE, fontSize: 7.1 },
+  customerName: { color: '#172033', fontSize: 9.5, fontWeight: 'bold', marginTop: 4 },
+  address: { fontSize: 8.1, lineHeight: 10, color: '#1f2937', flex: 1 },
+  dashed: {
+    borderTopWidth: 0.8, borderTopColor: '#b8c6d0',
+    borderStyle: 'dashed', marginTop: 7,
   },
-  dueText: { color: GREEN, fontSize: 11.6, fontWeight: 'bold' },
+  itemCard: {
+    flexDirection: 'row', alignItems: 'center', gap: 6,
+    backgroundColor: '#fbfcfe', borderRadius: 10,
+    borderWidth: 0.6, borderColor: '#e7ecf1', marginTop: 7,
+    paddingVertical: 7, paddingHorizontal: 5,
+  },
+  productPhoto: { width: 31, height: 31, borderRadius: 5, objectFit: 'cover' },
+  itemText: { flex: 1 },
+  productName: { fontSize: 10, fontWeight: 'bold', color: '#0f172a' },
+  productDescription: { marginTop: 2, color: SLATE, fontSize: 7.4 },
+  quantity: { color: '#334155', fontWeight: 'bold', fontSize: 7.9, marginTop: 2 },
+  pricePill: {
+    backgroundColor: '#e2f6e9', borderRadius: 10, paddingVertical: 7,
+    paddingHorizontal: 5, textAlign: 'center', fontWeight: 'bold',
+    color: DARK_GREEN, fontSize: 8.4, maxWidth: 75,
+  },
+  totalRow: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    gap: 6, marginTop: 7, fontSize: 9,
+  },
+  totalAmount: { textAlign: 'right' },
+  totalDue: {
+    flexDirection: 'row', justifyContent: 'space-between',
+    alignItems: 'center', borderTopWidth: 1.25, borderBottomWidth: 1.25,
+    borderColor: DARK_GREEN, marginTop: 9, paddingVertical: 7, gap: 6,
+  },
+  totalDueText: { color: DARK_GREEN, fontWeight: 'bold', fontSize: 12.1 },
   buttonRow: {
-    flexDirection: 'row', justifyContent: 'center', alignItems: 'center',
-    gap: 5, marginTop: 9,
+    flexDirection: 'row', gap: 5, justifyContent: 'center',
+    alignItems: 'center', marginTop: 11,
   },
-  button: { width: 94, height: 25, borderWidth: 0, backgroundColor: 'transparent' },
-  buttonImg: { width: 94, height: 25, objectFit: 'fill', borderWidth: 0 },
-  note: {
-    alignSelf: 'flex-end', backgroundColor: '#fff0f4', color: '#a1124a',
-    paddingVertical: 5, paddingHorizontal: 6, borderRadius: 8,
-    fontSize: 6.7, marginTop: 4,
+  button: { width: 93.2, height: 25.5, borderWidth: 0 },
+  buttonImg: { width: 93.2, height: 25.5, objectFit: 'fill' },
+  browserNote: {
+    alignSelf: 'flex-end', color: '#971444',
+    backgroundColor: '#ffebf3', borderRadius: 9,
+    paddingHorizontal: 5, paddingVertical: 5, marginTop: 4,
+    fontSize: 6.45,
   },
-  tracking: {
-    marginTop: 10, flexDirection: 'row', alignItems: 'center', gap: 9,
-    backgroundColor: '#f8fbfd', borderWidth: 0.7, borderColor: '#e0e9ee',
-    borderRadius: 10, padding: 7,
+  trackingCard: {
+    marginTop: 10, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 8,
+    backgroundColor: '#f8fafc', borderWidth: 0.7, borderColor: '#e4eaf0',
+    flexDirection: 'row', alignItems: 'center', gap: 10,
   },
-  trackingTitle: { fontSize: 9.1, fontWeight: 'bold', marginBottom: 3 },
-  trackingLink: { color: GREEN, fontSize: 7.8, textDecoration: 'underline', marginBottom: 3 },
-  footer: { alignItems: 'center', marginTop: 9 },
-  footerRow: { flexDirection: 'row', alignItems: 'center', gap: 9 },
-  footerLine: { height: 0.6, width: 58, backgroundColor: '#cad4d9' },
+  trackingText: { flex: 1 },
+  trackingTitle: { fontSize: 9.9, fontWeight: 'bold', color: '#111827' },
+  trackingLink: { marginTop: 5, fontSize: 7.5, color: '#087048', textDecoration: 'underline' },
+  trackingSite: { marginTop: 4, fontSize: 7.4, color: '#566579' },
+  footer: { marginTop: 10, flexDirection: 'row', justifyContent: 'center', gap: 9, alignItems: 'center' },
+  footerLine: { width: 60, height: 0.7, backgroundColor: '#b8c6d0' },
 });
 
-export function InvoiceV6Pdf({
-  invoice, org, baseUrl, buttonImages, downloadUrl,
-}: {
+function Icon({ name, size = 11, color = '#475569' }: {
+  name: 'pin' | 'user' | 'calendar' | 'receipt' | 'phone' | 'mail' | 'web';
+  size?: number;
+  color?: string;
+}) {
+  const outline = {
+    stroke: color, strokeWidth: 1.9, strokeLinecap: 'round' as const,
+    strokeLinejoin: 'round' as const, fill: 'none',
+  };
+  let path: React.ReactNode;
+  switch (name) {
+    case 'pin':
+      path = <><Path d="M20 10c0 6-8 12-8 12S4 16 4 10a8 8 0 1 1 16 0Z" {...outline} /><Path d="M12 10a2.5 2.5 0 1 0 0 .01" {...outline} /></>;
+      break;
+    case 'user':
+      path = <><Path d="M12 12a4 4 0 1 0 0-8a4 4 0 0 0 0 8Z" {...outline} /><Path d="M4 22v-2a8 8 0 0 1 16 0v2" {...outline} /></>;
+      break;
+    case 'calendar':
+      path = <><Rect x={3} y={5} width={18} height={16} rx={2} {...outline} /><Path d="M7 3v4M17 3v4M3 10h18M8 15h2M14 15h2" {...outline} /></>;
+      break;
+    case 'receipt':
+      path = <Path d="M6 3h12v18l-3-2-3 2-3-2-3 2V3Zm3 5h6m-6 4h6" {...outline} />;
+      break;
+    case 'phone':
+      path = <Path d="M5 3l4 4-2 3c1.7 3 3.8 5.3 7 7l3-2 4 4-2 2C10 21 3 14 3 5l2-2Z" {...outline} />;
+      break;
+    case 'mail':
+      path = <><Rect x={2} y={5} width={20} height={14} rx={2} {...outline} /><Path d="m3 7 9 7 9-7" {...outline} /></>;
+      break;
+    default:
+      path = <><Path d="M12 2a10 10 0 1 0 0 20a10 10 0 0 0 0-20Z" {...outline} /><Path d="M2 12h20M12 2c-5 5-5 15 0 20M12 2c5 5 5 15 0 20" {...outline} /></>;
+  }
+  return <Svg width={size} height={size} viewBox="0 0 24 24">{path}</Svg>;
+}
+
+function MetadataBackdrop() {
+  return (
+    <Svg style={{ position: 'absolute', top: 0, left: 0, width: '100%', height: 33 }}
+      viewBox="0 0 200 33" preserveAspectRatio="none">
+      <Defs>
+        <LinearGradient id="v6-meta-gradient" x1="0%" y1="40%" x2="100%" y2="60%">
+          <Stop offset="0%" stopColor="#e8f5ee" />
+          <Stop offset="40%" stopColor="#f9fcff" />
+          <Stop offset="100%" stopColor="#f1f5fb" />
+        </LinearGradient>
+      </Defs>
+      <Rect x={0} y={0} width={200} height={33} rx={11} fill="url(#v6-meta-gradient)" />
+    </Svg>
+  );
+}
+
+export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl }: {
   invoice: Invoice;
   org: Organization;
   baseUrl: string;
@@ -106,87 +174,99 @@ export function InvoiceV6Pdf({
   downloadUrl?: string;
 }) {
   if (!downloadUrl || !downloadUrl.startsWith('https://soloflow.practicalthings.store/api/pdf/public-invoice/')) {
-    throw new Error('Invoice Version 6 requires a secure public Invoice Version 1 download link.');
+    throw new Error('Invoice Version 6 requires the secure public Invoice Version 1 download link.');
   }
 
   const data = getMobileInvoiceData(invoice, org);
-
+  const branding = parseBranding(org?.settings?.branding);
   return (
-    <Page size={{ width: RECEIPT_WIDTH }} style={styles.page} wrap={false}>
-      <View style={styles.sheet}>
+    <Page size={{ width: WIDTH }} style={styles.page} wrap={false}>
+      <View style={styles.receipt}>
         <View style={styles.center}>
-          <View style={styles.wordmark}>
+          <View style={styles.logoRow}>
             <Image src={sevenColorMark} style={{ width: 17, height: 19, objectFit: 'contain' }} />
-            <Text style={styles.wordmarkText}>
-              sourcing<Text style={{ color: RED }}>.center</Text>
-            </Text>
+            <Text style={styles.wordmark}>sourcing<Text style={{ color: RED }}>.center</Text></Text>
           </View>
-          <Text style={styles.company}>{data.organizationName}</Text>
-          {data.address ? <Text style={styles.contact}>{data.address}</Text> : null}
-          {data.contact ? <Text style={styles.contact}>{data.contact}</Text> : null}
-          {data.taxId ? <Text style={styles.contact}>TRN {data.taxId}</Text> : null}
+          <Text style={styles.orgName}>{data.organizationName}</Text>
+          {data.address ? (
+            <View style={styles.companyContact}>
+              <Icon name="pin" size={10} />
+              <Text style={styles.contactText}>{data.address}</Text>
+            </View>
+          ) : null}
+          {(branding.phone || branding.email) ? (
+            <View style={styles.companyContact}>
+              {branding.phone ? <><Icon name="phone" size={10} /><Text style={styles.contactText}>{branding.phone}</Text></> : null}
+              {branding.phone && branding.email ? <View style={{ height: 10, width: 0.6, marginHorizontal: 6, backgroundColor: '#94a3b8' }} /> : null}
+              {branding.email ? <><Icon name="mail" size={10} /><Text style={styles.contactText}>{branding.email}</Text></> : null}
+            </View>
+          ) : null}
+          {data.taxId ? <Text style={styles.contactText}>TRN {data.taxId}</Text> : null}
         </View>
 
-        <View style={styles.separator} />
-        <View style={styles.heading}>
-          <Text style={styles.headingText}>INVOICE</Text>
-        </View>
-        <View style={styles.metadata}>
-          <Text style={styles.metadataNumber}>{invoice.number}</Text>
-          <Text style={styles.metadataDate}>{data.date}</Text>
+        <View style={styles.divider} />
+        <View style={{ position: 'relative', borderRadius: 11 }}>
+          <MetadataBackdrop />
+          <View style={styles.invoiceBar}>
+            <View style={{ width: 17, height: 22, justifyContent: 'center', alignItems: 'center', borderRadius: 6, backgroundColor: '#ddf4e5' }}>
+              <Icon name="receipt" color={DARK_GREEN} size={14} />
+            </View>
+            <Text style={styles.invoiceTitle}>INVOICE</Text>
+            <View style={{ height: 20, width: 0.7, backgroundColor: '#bbc7cd', marginHorizontal: 1 }} />
+            <Text style={styles.invoiceNumber}>{invoice.number}</Text>
+            <View style={styles.datePill}><Icon name="calendar" size={11} /><Text style={styles.dateText}>{data.date}</Text></View>
+          </View>
         </View>
 
-        <View style={styles.billTo}>
-          <View style={styles.billName}>
-            <Text style={styles.smallMuted}>Bill to</Text>
-            <Text style={styles.name}>{invoice.customer?.name || 'Customer'}</Text>
+        <View style={styles.billCard}>
+          <View style={styles.billLeft}>
+            <Icon name="user" size={16} />
+            <Text style={[styles.muted, { marginTop: 3 }]}>Bill to</Text>
+            <Text style={styles.customerName}>{invoice.customer?.name || 'Customer'}</Text>
           </View>
-          <View style={styles.billAddress}>
-            {data.customerAddress.length > 0 ? (
-              <Text style={styles.address}>{data.customerAddress.join('\n')}</Text>
-            ) : <Text style={styles.address}>Address not provided</Text>}
+          <View style={styles.billRight}>
+            <Icon name="pin" size={15} />
+            <Text style={styles.address}>{data.customerAddress.length ? data.customerAddress.join('\n') : 'Address not provided'}</Text>
           </View>
         </View>
-        {data.status ? <Text style={{ color: '#b91c1c', marginTop: 4, fontSize: 8, fontWeight: 'bold' }}>{data.status}</Text> : null}
+
+        {data.status ? <Text style={{ textAlign: 'center', color: '#b91c1c', marginTop: 4, fontWeight: 'bold', fontSize: 7.5 }}>{data.status}</Text> : null}
         {data.shipTo ? (
-          <View style={{ marginTop: 6, padding: 6, borderRadius: 7, backgroundColor: '#f1f5f9' }}>
-            <Text style={{ fontWeight: 'bold', fontSize: 7 }}>SHIP TO {data.shipTo.name ?? ''}</Text>
-            <Text style={styles.smallMuted}>{data.shipTo.address.join('\n')}</Text>
+          <View style={{ backgroundColor: '#f0f4f8', borderRadius: 7, padding: 6, marginTop: 7 }}>
+            <Text style={{ fontWeight: 'bold', fontSize: 7.4 }}>Ship to: {data.shipTo.name ?? ''}</Text>
+            <Text style={[styles.muted, { marginTop: 2 }]}>{data.shipTo.address.join('\n')}</Text>
           </View>
         ) : null}
 
-        <View style={{ marginTop: 9, alignItems: 'center' }}>
-          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={175} height={21} scale={1.1} />
+        <View style={{ alignItems: 'center', marginTop: 8 }}>
+          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={134} height={17} scale={1} />
         </View>
+        <View style={styles.dashed} />
 
-        <View style={styles.items}>
-          {data.items.map((item) => {
-            const productImage = resolveImageSrcForPrint(item.image, baseUrl);
-            return (
-              <View key={item.id} style={styles.item} wrap={false}>
-                {productImage ? <Image src={productImage} style={styles.itemPhoto} /> : null}
-                <View style={styles.itemContent}>
-                  <Text style={styles.itemTitle}>{item.title}</Text>
-                  {item.description ? <Text style={styles.itemDetail}>{item.description}</Text> : null}
-                  <Text style={[styles.itemDetail, { fontWeight: 'bold' }]}>{item.quantity}</Text>
-                </View>
-                <Text style={styles.itemAmount}>{item.amount}</Text>
+        {data.items.map((item) => {
+          const img = resolveImageSrcForPrint(item.image, baseUrl);
+          return (
+            <View key={item.id} style={styles.itemCard} wrap={false}>
+              {img ? <Image src={img} style={styles.productPhoto} /> : null}
+              <View style={styles.itemText}>
+                <Text style={styles.productName}>{item.title}</Text>
+                {item.description ? <Text style={styles.productDescription}>{item.description}</Text> : null}
+                <Text style={styles.quantity}>{item.quantity}</Text>
               </View>
-            );
-          })}
-        </View>
-
-        <View style={{ marginTop: 5 }}>
-          {data.totals.map(({ label, amount }) => (
-            <View key={label} style={styles.totalRow}>
-              <Text style={styles.totalLabel}>{label}</Text>
-              <Text style={styles.totalAmount}>{amount}</Text>
+              <Text style={styles.pricePill}>{item.amount}</Text>
             </View>
-          ))}
-          <View style={styles.due}>
-            <Text style={styles.dueText}>TOTAL DUE</Text>
-            <Text style={styles.dueText}>{data.balance}</Text>
+          );
+        })}
+        <View style={styles.dashed} />
+
+        {data.totals.map(({ label, amount }) => (
+          <View key={label} style={styles.totalRow}>
+            <Text>{label}</Text><Text style={styles.totalAmount}>{amount}</Text>
           </View>
+        ))}
+        <View style={styles.totalDue}>
+          <Text style={styles.totalDueText}>TOTAL DUE</Text>
+          <Text style={styles.totalDueText}>{data.balance}</Text>
         </View>
 
         <View style={styles.buttonRow} wrap={false}>
@@ -197,27 +277,27 @@ export function InvoiceV6Pdf({
             <Image src={buttonImages?.download ?? baseUrl + '/Sourcing%20Center%20Download%20Invoice%20Button.png'} style={styles.buttonImg} />
           </Link>
         </View>
-        <Text style={styles.note}>Opens in a browser — no login required</Text>
+        <View style={styles.browserNote}>
+          <Text>Opens in a browser — no login required</Text>
+        </View>
 
-        {invoice.notes ? <Text style={{ marginTop: 8, color: MUTED, fontSize: 7.5 }}>{invoice.notes}</Text> : null}
+        {invoice.notes ? <Text style={{ color: SLATE, fontSize: 7.5, marginTop: 7 }}>{invoice.notes}</Text> : null}
 
-        <View style={styles.tracking} wrap={false}>
-          <Svg width={59} height={59} viewBox="0 0 37 37">
+        <View style={styles.trackingCard} wrap={false}>
+          <Svg width={62} height={62} viewBox="0 0 37 37">
             <Path d={trackingQrPath} fill="#000000" />
           </Svg>
-          <View style={{ flex: 1 }}>
+          <View style={styles.trackingText}>
             <Text style={styles.trackingTitle}>Track your parcel</Text>
             <Link src={trackingUrl} style={styles.trackingLink}>www.sourcing.center/track</Link>
-            <Text style={{ color: MUTED, fontSize: 7.5 }}>www.sourcing.center</Text>
+            <Text style={styles.trackingSite}>www.sourcing.center</Text>
           </View>
         </View>
 
         <View style={styles.footer}>
-          <View style={styles.footerRow}>
-            <View style={styles.footerLine} />
-            <Image src={sevenColorMark} style={{ width: 22, height: 22, objectFit: 'contain' }} />
-            <View style={styles.footerLine} />
-          </View>
+          <View style={styles.footerLine} />
+          <Image src={sevenColorMark} style={{ height: 25, width: 25, objectFit: 'contain' }} />
+          <View style={styles.footerLine} />
         </View>
       </View>
     </Page>
