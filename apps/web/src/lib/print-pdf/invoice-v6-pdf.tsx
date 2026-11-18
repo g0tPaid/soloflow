@@ -26,17 +26,17 @@ const styles = StyleSheet.create({
   },
   center: { alignItems: 'center', textAlign: 'center' },
   logoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 },
-  wordmark: { fontWeight: 'bold', color: '#111827', fontSize: 15.7, letterSpacing: -0.6 },
+  wordmark: { fontWeight: 'bold', color: '#111827', fontSize: 13.4, letterSpacing: -0.6 },
   orgName: { textAlign: 'center', marginTop: 3, color: '#24303f', fontSize: 7.4 },
   companyContact: {
     marginTop: 4, flexDirection: 'row', alignItems: 'center', justifyContent: 'center',
     gap: 3,
   },
   contactText: { fontSize: 7, color: '#344255', textAlign: 'center' },
-  divider: { height: 0.7, backgroundColor: '#d5dfe6', marginTop: 9, marginBottom: 7 },
+  divider: { height: 0.7, backgroundColor: '#d5dfe6', marginTop: 6, marginBottom: 5 },
   invoiceBar: {
     flexDirection: 'row', alignItems: 'center',
-    minHeight: 33, gap: 4, paddingHorizontal: 5,
+    minHeight: 24, gap: 4, paddingHorizontal: 5,
   },
   invoiceTitle: { color: DARK_GREEN, fontSize: 10.1, fontWeight: 'bold' },
   invoiceNumber: {
@@ -46,30 +46,30 @@ const styles = StyleSheet.create({
   datePill: {
     flexDirection: 'row', alignItems: 'center', gap: 3,
     backgroundColor: '#f1f5fa', borderWidth: 0.6,
-    borderColor: '#dae2e9', borderRadius: 8, paddingVertical: 6, paddingHorizontal: 5,
+    borderColor: '#dae2e9', borderRadius: 8, paddingVertical: 4, paddingHorizontal: 4,
   },
   dateText: { color: '#28374b', fontSize: 6.9 },
   billCard: {
-    marginTop: 7, flexDirection: 'row', minHeight: 65, alignItems: 'flex-start',
+    marginTop: 6, flexDirection: 'row', minHeight: 42, alignItems: 'flex-start',
     backgroundColor: '#eff8f6', borderWidth: 0.6, borderColor: '#e4eff0',
-    borderRadius: 11, paddingVertical: 9, paddingHorizontal: 8,
+    borderRadius: 11, paddingVertical: 5, paddingHorizontal: 7,
   },
   billLeft: { width: '43%', paddingRight: 6, borderRightWidth: 0.7, borderRightColor: '#c2d0d4' },
   billRight: { width: '57%', flexDirection: 'row', alignItems: 'flex-start', gap: 4, paddingLeft: 6 },
   muted: { color: SLATE, fontSize: 7.1 },
-  customerName: { color: '#172033', fontSize: 9.5, fontWeight: 'bold', marginTop: 4 },
-  address: { fontSize: 8.1, lineHeight: 10, color: '#1f2937', flex: 1 },
+  customerName: { color: '#172033', fontSize: 9, fontWeight: 'bold', marginTop: 2 },
+  address: { fontSize: 7.6, lineHeight: 8.8, color: '#1f2937', flex: 1 },
   dashed: {
     borderTopWidth: 0.8, borderTopColor: '#b8c6d0',
-    borderStyle: 'dashed', marginTop: 7,
+    borderStyle: 'dashed', marginTop: 5,
   },
   itemCard: {
     flexDirection: 'row', alignItems: 'center', gap: 6,
     backgroundColor: '#fbfcfe', borderRadius: 10,
-    borderWidth: 0.6, borderColor: '#e7ecf1', marginTop: 7,
-    paddingVertical: 7, paddingHorizontal: 5,
+    borderWidth: 0.6, borderColor: '#e7ecf1', marginTop: 5,
+    paddingVertical: 5, paddingHorizontal: 5,
   },
-  productPhoto: { width: 31, height: 31, borderRadius: 5, objectFit: 'cover' },
+  productPhoto: { width: 29, height: 29, borderRadius: 5, objectFit: 'cover' },
   itemText: { flex: 1 },
   productName: { fontSize: 10, fontWeight: 'bold', color: '#0f172a' },
   productDescription: { marginTop: 2, color: SLATE, fontSize: 7.4 },
@@ -81,18 +81,18 @@ const styles = StyleSheet.create({
   },
   totalRow: {
     flexDirection: 'row', justifyContent: 'space-between',
-    gap: 6, marginTop: 7, fontSize: 9,
+    gap: 6, marginTop: 4, fontSize: 9,
   },
   totalAmount: { textAlign: 'right' },
   totalDue: {
     flexDirection: 'row', justifyContent: 'space-between',
     alignItems: 'center', borderTopWidth: 1.25, borderBottomWidth: 1.25,
-    borderColor: DARK_GREEN, marginTop: 9, paddingVertical: 7, gap: 6,
+    borderColor: DARK_GREEN, marginTop: 7, paddingVertical: 4, gap: 6,
   },
-  totalDueText: { color: DARK_GREEN, fontWeight: 'bold', fontSize: 12.1 },
+  totalDueText: { color: DARK_GREEN, fontWeight: 'bold', fontSize: 11.4 },
   buttonRow: {
     flexDirection: 'row', gap: 5, justifyContent: 'center',
-    alignItems: 'center', marginTop: 11,
+    alignItems: 'center', marginTop: 8,
   },
   wiseButton: { width: 88.1, height: 24.5, borderWidth: 0, backgroundColor: 'transparent' },
   wiseButtonImg: { width: 88.1, height: 24.5, objectFit: 'fill' },
@@ -105,15 +105,15 @@ const styles = StyleSheet.create({
     fontSize: 6.45,
   },
   trackingCard: {
-    marginTop: 10, borderRadius: 12, paddingHorizontal: 8, paddingVertical: 8,
+    marginTop: 8, borderRadius: 12, paddingHorizontal: 7, paddingVertical: 6,
     backgroundColor: '#f8fafc', borderWidth: 0.7, borderColor: '#e4eaf0',
-    flexDirection: 'row', alignItems: 'center', gap: 10,
+    flexDirection: 'row', alignItems: 'center', gap: 8,
   },
   trackingText: { flex: 1 },
   trackingTitle: { fontSize: 9.9, fontWeight: 'bold', color: '#111827' },
   trackingLink: { marginTop: 5, fontSize: 7.5, color: '#087048', textDecoration: 'underline' },
   trackingSite: { marginTop: 4, fontSize: 7.4, color: '#566579' },
-  footer: { marginTop: 10, flexDirection: 'row', justifyContent: 'center', gap: 9, alignItems: 'center' },
+  footer: { marginTop: 7, flexDirection: 'row', justifyContent: 'center', gap: 9, alignItems: 'center' },
   footerLine: { width: 60, height: 0.7, backgroundColor: '#b8c6d0' },
 });
 
@@ -186,7 +186,7 @@ export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl 
       <View style={styles.receipt}>
         <View style={styles.center}>
           <View style={styles.logoRow}>
-            <Image src={sevenColorMark} style={{ width: 17, height: 19, objectFit: 'contain' }} />
+            <Image src={sevenColorMark} style={{ width: 15, height: 17, objectFit: 'contain' }} />
             <Text style={styles.wordmark}>sourcing<Text style={{ color: RED }}>.center</Text></Text>
           </View>
           <Text style={styles.orgName}>{data.organizationName}</Text>
@@ -241,7 +241,7 @@ export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl 
         ) : null}
 
         <View style={{ alignItems: 'center', marginTop: 8 }}>
-          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={134} height={17} scale={1} />
+          <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={147} height={17} scale={1} />
         </View>
         <View style={styles.dashed} />
 
@@ -286,7 +286,7 @@ export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl 
         {invoice.notes ? <Text style={{ color: SLATE, fontSize: 7.5, marginTop: 7 }}>{invoice.notes}</Text> : null}
 
         <View style={styles.trackingCard} wrap={false}>
-          <Svg width={62} height={62} viewBox="0 0 37 37">
+          <Svg width={42} height={42} viewBox="0 0 37 37">
             <Path d={trackingQrPath} fill="#000000" />
           </Svg>
           <View style={styles.trackingText}>
@@ -298,7 +298,7 @@ export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl 
 
         <View style={styles.footer}>
           <View style={styles.footerLine} />
-          <Image src={sevenColorMark} style={{ height: 25, width: 25, objectFit: 'contain' }} />
+          <Image src={sevenColorMark} style={{ height: 17, width: 17, objectFit: 'contain' }} />
           <View style={styles.footerLine} />
         </View>
       </View>
