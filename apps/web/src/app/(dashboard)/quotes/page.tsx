@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
@@ -27,10 +27,12 @@ function QuoteListDownloadButton({
   quoteId,
   organizationId,
   number,
+  mobileVersion,
 }: {
   quoteId: string;
   organizationId: string;
   number: string;
+  mobileVersion?: boolean;
 }) {
   const [busy, setBusy] = useState(false);
 
@@ -40,15 +42,16 @@ function QuoteListDownloadButton({
     if (busy) return;
     setBusy(true);
     try {
-      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+      const filename = `${number.replace(/[^a-zA-Z0-9-_]/g, '_')}${mobileVersion ? '-quote5' : ''}.pdf`;
       const file = await fetchServerPdfFile('quotes', quoteId, {
         organizationId,
         filename,
+        version: mobileVersion ? 5 : undefined,
       });
       await downloadPdfToDevice(file);
     } catch {
       window.open(
-        `/print/quotes/${quoteId}?org=${encodeURIComponent(organizationId)}`,
+        `/print/quotes/${quoteId}?org=${encodeURIComponent(organizationId)}${mobileVersion ? '&version=5' : ''}`, 
         '_blank',
         'noopener,noreferrer',
       );
@@ -74,6 +77,9 @@ function QuoteListDownloadButton({
 
 export default function QuotesPage() {
   const router = useRouter();
+  const pathname = usePathname();
+  const mobileVersion = pathname.startsWith('/quotes-v5');
+  const basePath = mobileVersion ? '/quotes-v5' : '/quotes';
   const { data: session } = useSession();
   const { organizationId, isReady } = useOrganizationId();
   const queryClient = useQueryClient();
@@ -136,12 +142,12 @@ export default function QuotesPage() {
     <div className="space-y-6">
       <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
         <div>
-          <h1 className="text-2xl font-medium tracking-tight">Quotes</h1>
+          <h1 className="text-2xl font-medium tracking-tight">{mobileVersion ? 'Quote 5 · Mobile' : 'Quotes'}</h1>
           <p className="text-sm text-muted-foreground">Create and manage quotes</p>
         </div>
         {organizationId && (
           <Button asChild>
-            <Link href="/quotes/new">
+            <Link href={`${basePath}/new`}>
               <Plus className="h-4 w-4" />
               New quote
             </Link>
@@ -195,7 +201,7 @@ export default function QuotesPage() {
               Create your first quote to send proposals to customers
             </p>
             <Button asChild>
-              <Link href="/quotes/new">Create quote</Link>
+              <Link href={`${basePath}/new`}>Create quote</Link>
             </Button>
           </CardContent>
         </Card>
@@ -218,7 +224,7 @@ export default function QuotesPage() {
                 )}
               >
                 <CardContent className="flex flex-col gap-4 p-4 sm:flex-row sm:items-center sm:justify-between">
-                  <Link href={`/quotes/${quote.id}`} className="min-w-0 flex-1 space-y-1">
+                  <Link href={`${basePath}/${quote.id}`} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{quote.number}</span>
                       <QuoteStatusBadge status={quote.status} />
@@ -244,7 +250,7 @@ export default function QuotesPage() {
                         size="sm"
                         className="flex-1 gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c] sm:flex-none"
                       >
-                        <Link href={`/quotes/${quote.id}#edit-line-items`}>
+                        <Link href={`${basePath}/${quote.id}#edit-line-items`}>
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Link>
@@ -254,6 +260,7 @@ export default function QuotesPage() {
                           quoteId={quote.id}
                           organizationId={organizationId}
                           number={quote.number}
+                          mobileVersion={mobileVersion}
                         />
                       )}
                       {organizationId ? (
@@ -261,6 +268,7 @@ export default function QuotesPage() {
                           quote={quote}
                           quoteId={quote.id}
                           organizationId={organizationId}
+                          mobileVersion={mobileVersion}
                           size="sm"
                         />
                       ) : null}
