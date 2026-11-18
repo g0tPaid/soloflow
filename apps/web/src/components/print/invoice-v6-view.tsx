@@ -12,6 +12,7 @@ import { getMobileInvoiceData } from '@/lib/print-pdf/mobile-invoice-data';
 import { trackingQrPath, trackingUrl } from '@/lib/print-pdf/invoice-tracking-qr-data';
 import { sevenColorMark } from '@/lib/print-pdf/sourcing-brand-mark';
 import { isPublicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
+import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
 
 export function InvoiceV6View({
   invoice, organization,
@@ -24,6 +25,48 @@ export function InvoiceV6View({
   const barcode = buildInvoiceBarcode(invoice.number, invoice.id);
   const [downloadUrl, setDownloadUrl] = useState<string | null>(null);
   const [downloadError, setDownloadError] = useState(false);
+
+  const [buttonArtwork, setButtonArtwork] = useState<{ wise: string; download: string } | null>(null);
+  useEffect(() => {
+    let cancelled = false;
+    async function loadButton(filename: string) {
+      const response = await fetch('/' + encodeURIComponent(filename));
+      if (!response.ok) throw new Error('Missing original invoice button: ' + filename);
+      const bitmap = await createImageBitmap(await response.blob());
+      try {
+        const canvas = document.createElement('canvas');
+        canvas.width = bitmap.width;
+        canvas.height = bitmap.height;
+        const context = canvas.getContext('2d');
+        if (!context) throw new Error('Unable to render original invoice buttons');
+        context.drawImage(bitmap, 0, 0);
+        const image = context.getImageData(0, 0, canvas.width, canvas.height);
+        const clean = isolateInvoiceButton(image.data, canvas.width, canvas.height);
+        const trimmed = document.createElement('canvas');
+        trimmed.width = clean.width;
+        trimmed.height = clean.height;
+        const trimmedContext = trimmed.getContext('2d');
+        if (!trimmedContext) throw new Error('Unable to crop original invoice buttons');
+        trimmedContext.putImageData(
+          new ImageData(new Uint8ClampedArray(clean.pixels), clean.width, clean.height),
+          0, 0,
+        );
+        return trimmed.toDataURL('image/png');
+      } finally {
+        bitmap.close();
+      }
+    }
+    void Promise.all([
+      loadButton('Pay with Wise Button.png'),
+      loadButton('Sourcing Center Download Invoice Button.png'),
+    ]).then(([wise, download]) => {
+      if (!cancelled) setButtonArtwork({ wise, download });
+    }).catch(() => {
+      // Render the branded fallback labels until the original assets can be loaded.
+    });
+    return () => { cancelled = true; };
+  }, []);
+
 
   useEffect(() => {
     if (!organization?.id) return;
@@ -156,25 +199,32 @@ export function InvoiceV6View({
           </div>
         </dl>
 
-        <div className="mt-5 grid grid-cols-2 gap-2">
+        <div className="mt-5 flex items-center gap-2" aria-label="Payment and invoice download">
           <a
             href="https://wise.com/pay/me/ajmala214" target="_blank" rel="noopener noreferrer"
-            className="flex min-h-[54px] items-center justify-center gap-1 rounded-[16px] border border-[#c6f3ba] bg-[linear-gradient(140deg,#16ed12_0%,#0aaa11_38%,#006c14_100%)] px-1.5 text-white shadow-[0_5px_9px_rgba(0,107,37,0.19)]"
+            className="flex h-[46px] min-w-0 flex-[46] items-center justify-center overflow-hidden rounded-[14px] bg-[#064b24] shadow-[0_5px_10px_rgba(0,107,37,0.15)]"
+            aria-label="Pay with Wise"
           >
-            <span className="text-[clamp(16px,5vw,20px)] font-black italic tracking-[-0.09em]">WISE</span>
-            <span className="mx-0.5 h-5 w-px bg-white/75" />
-            <span className="text-[10px] font-bold leading-tight">Pay with Wise</span>
+            {buttonArtwork ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={buttonArtwork.wise} alt="Wise — Pay with Wise" className="h-full w-full object-fill" />
+            ) : (
+              <span className="text-[12px] font-bold text-white">WISE | Pay with Wise</span>
+            )}
           </a>
           <a
             href={downloadUrl ?? '#'} target="_blank" rel="noopener noreferrer"
             aria-disabled={!downloadUrl}
             onClick={(event) => { if (!downloadUrl) event.preventDefault(); }}
-            className={'flex min-h-[54px] items-center justify-center gap-1 rounded-[16px] border border-[#ffc1ca] bg-[linear-gradient(145deg,#ff183b_0%,#e10022_55%,#b5000e_100%)] px-1 text-white shadow-[0_5px_9px_rgba(180,0,22,0.17)] ' + (!downloadUrl ? 'opacity-70' : '')}
+            className={'flex h-[46px] min-w-0 flex-[54] items-center justify-center overflow-hidden rounded-[14px] bg-[#d40720] shadow-[0_5px_10px_rgba(180,0,22,0.13)] ' + (!downloadUrl ? 'opacity-70' : '')}
+            aria-label="Download Invoice Version 1 PDF"
           >
-            <span className="min-w-0 text-center text-[clamp(9px,2.6vw,11px)] font-black leading-none tracking-tight">sourcing.center</span>
-            <span className="mx-0.5 h-5 w-px shrink-0 bg-white/75" />
-            <Download className="h-[19px] w-[19px] shrink-0" strokeWidth={2.7} />
-            <span className="text-[10px] font-bold leading-tight">Download Invoice</span>
+            {buttonArtwork ? (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img src={buttonArtwork.download} alt="sourcing.center — Download Invoice" className="h-full w-full object-fill" />
+            ) : (
+              <span className="flex items-center gap-1 text-center text-[11px] font-bold text-white"><Download size={16} /> Download Invoice</span>
+            )}
           </a>
         </div>
         <p className="ml-auto mt-2 w-fit max-w-[54%] rounded-2xl bg-[#ffebf1] px-2 py-1.5 text-center text-[10px] font-medium leading-tight text-[#a31143]">
