@@ -1330,15 +1330,26 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
     case 'quotes':
       return (
         <Document>
-          <InvoicePdfBody
-            invoice={document.invoice}
-            org={document.org}
-            baseUrl={baseUrl}
-            documentLabel="QUOTE"
-            quoteVersion={document.quoteVersion}
-            numberLabel="Quote #"
-            dueDateLabel="Valid Until"
-          />
+          {version === 5 && document.quoteVersion === undefined ? (
+            <MobileInvoicePdf
+              invoice={document.invoice}
+              org={document.org}
+              baseUrl={baseUrl}
+              buttonImages={buttonImages}
+              downloadUrl={downloadUrl}
+              documentType="quote"
+            />
+          ) : (
+            <InvoicePdfBody
+              invoice={document.invoice}
+              org={document.org}
+              baseUrl={baseUrl}
+              documentLabel="QUOTE"
+              quoteVersion={document.quoteVersion}
+              numberLabel="Quote #"
+              dueDateLabel="Valid Until"
+            />
+          )}
         </Document>
       );
     case 'receipts':
