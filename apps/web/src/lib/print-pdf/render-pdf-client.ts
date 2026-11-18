@@ -42,7 +42,7 @@ export async function renderInvoicePdfFile(
   const printOrg = usesBrandedInvoiceLayout(version)
     ? await prepareTransparentSignature(prepared.org, transparentSignature)
     : prepared.org;
-  const buttonImages = version === 5
+  const buttonImages = (version === 5 || version === 6)
     ? await (async () => {
         const asset = async (filename: string) => {
           const response = await fetch(`${origin}/${encodeURIComponent(filename)}`);
@@ -81,7 +81,7 @@ export async function renderInvoicePdfFile(
       })()
     : undefined;
   let downloadUrl: string | undefined;
-  if (version === 5) {
+  if (version === 5 || version === 6) {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       throw new Error('An internet connection is required to create a working customer invoice download link.');
     }
