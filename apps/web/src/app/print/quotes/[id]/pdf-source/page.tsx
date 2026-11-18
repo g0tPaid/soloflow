@@ -2,6 +2,7 @@ import { notFound, redirect } from 'next/navigation';
 import { auth } from '@/auth';
 import { api } from '@/lib/api';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
+import { MobileInvoiceView } from '@/components/print/mobile-invoice-view';
 import { quoteAsInvoiceForPrint } from '@/lib/quote-print';
 import { resolveRequestBaseUrl } from '@/lib/resolve-base-url';
 
@@ -10,7 +11,7 @@ export default async function QuotePdfSourcePage({
   searchParams,
 }: {
   params: Promise<{ id: string }>;
-  searchParams: Promise<{ org?: string }>;
+  searchParams: Promise<{ org?: string; version?: string }>;
 }) {
   const session = await auth();
   if (!session?.accessToken) {
@@ -18,7 +19,7 @@ export default async function QuotePdfSourcePage({
   }
 
   const { id } = await params;
-  const { org } = await searchParams;
+  const { org, version } = await searchParams;
   if (!org) notFound();
 
   const [quote, organization] = await Promise.all([
@@ -26,7 +27,13 @@ export default async function QuotePdfSourcePage({
     api.organizations.get(session.accessToken, org),
   ]);
 
-  return (
+  return version === '5' ? (
+    <MobileInvoiceView
+      invoice={quoteAsInvoiceForPrint(quote)}
+      organization={organization}
+      documentType="quote"
+    />
+  ) : (
     <InvoicePrintView
       invoice={quoteAsInvoiceForPrint(quote)}
       org={organization}
