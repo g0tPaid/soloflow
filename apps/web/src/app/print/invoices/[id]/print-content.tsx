@@ -145,7 +145,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   }
 
   const org = orgDetail ?? organization;
-  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${modernInvoice ? '-v6' : mobileInvoice ? '-v5' : ''}.pdf`;
+  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${modernInvoice ? '-v6-redesign' : mobileInvoice ? '-v5' : ''}.pdf`;
   const whatsappMessage = buildWhatsAppMessage(invoice);
 
   return (
