@@ -9,6 +9,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
+import { widenV5Button } from '@/lib/print-pdf/widen-v5-buttons';
 import { recolorV6Button } from '@/lib/print-pdf/v6-button-art';
 import { apiFetch } from '@/lib/api';
 import { publicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
@@ -64,9 +65,11 @@ export async function generatePrintPdf(
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
       const clean = isolateInvoiceButton(data, info.width, info.height);
-      const styledPixels = version === 6 ? recolorV6Button(clean.pixels, kind) : clean.pixels;
-      const cropped = await sharp(styledPixels, {
-        raw: { width: clean.width, height: clean.height, channels: 4 },
+      const art = version === 5
+        ? widenV5Button(clean.pixels, clean.width, clean.height, kind)
+        : { pixels: recolorV6Button(clean.pixels, kind), width: clean.width, height: clean.height };
+      const cropped = await sharp(art.pixels, {
+        raw: { width: art.width, height: art.height, channels: 4 },
       }).png().toBuffer();
       return `data:image/png;base64,${cropped.toString('base64')}`;
     };
