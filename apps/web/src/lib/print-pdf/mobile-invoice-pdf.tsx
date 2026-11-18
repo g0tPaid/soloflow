@@ -77,11 +77,11 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 7, paddingTop: 0, alignItems: 'center', gap: 5 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 174, height: 27, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
-          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 174, height: 27, objectFit: 'fill', borderWidth: 0 }} />
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 174, height: 30, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: 174, height: 30, objectFit: 'contain', borderWidth: 0 }} />
         </Link>
-        <Link src={downloadUrl} style={{ width: 174, height: 27, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
-          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 174, height: 27, objectFit: 'fill', borderWidth: 0 }} />
+        <Link src={downloadUrl} style={{ width: 174, height: 30, textDecoration: 'none', borderWidth: 0, backgroundColor: 'transparent' }}>
+          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: 174, height: 30, objectFit: 'contain', borderWidth: 0 }} />
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
