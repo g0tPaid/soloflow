@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { use, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
@@ -23,6 +23,9 @@ import type { UpdateQuoteInput } from '@flowbooks/shared';
 export function QuoteDetailPageContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const router = useRouter();
+  const pathname = usePathname();
+  const mobileVersion = pathname.startsWith('/quotes-v5');
+  const basePath = mobileVersion ? '/quotes-v5' : '/quotes';
   const searchParams = useSearchParams();
   const isNew = searchParams.get('new') === '1';
   const { data: session } = useSession();
@@ -117,6 +120,7 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
               <DownloadQuotePdfButton
                 quoteId={id}
                 organizationId={organizationId}
+                mobileVersion={mobileVersion}
                 filename={`${quote.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
                 size="lg"
               />
@@ -160,6 +164,7 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
                 <DownloadQuotePdfButton
                   quoteId={id}
                   organizationId={organizationId}
+                  mobileVersion={mobileVersion}
                   filename={`${quote.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
                 />
               )}
@@ -167,6 +172,7 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
                 quote={quote}
                 quoteId={id}
                 organizationId={organizationId}
+                mobileVersion={mobileVersion}
                 fullWidth
               />
               {quote.status !== 'CONVERTED' && (
@@ -187,7 +193,7 @@ export function QuoteDetailPageContent({ params }: { params: Promise<{ id: strin
               )}
             </>
           )}
-          <Link href="/quotes" className="text-sm text-primary hover:underline sm:text-right">
+          <Link href={basePath} className="text-sm text-primary hover:underline sm:text-right">
             ← Back to quotes
           </Link>
         </div>
