@@ -617,7 +617,7 @@ function InvoiceFormEditor(
             {submitting ? 'Saving...' : 'Save changes'}
           </Button>
           <Button type="button" variant="outline" asChild>
-            <Link href="/invoices">Back to invoices</Link>
+            <Link href={invoicePath}>Back to invoices</Link>
           </Button>
         </div>
       </form>
@@ -826,7 +826,7 @@ function InvoiceFormEditor(
           {submitting ? 'Creating...' : 'Create invoice'}
         </Button>
         <Button type="button" variant="outline" asChild>
-          <Link href="/invoices">Cancel</Link>
+          <Link href={invoicePath}>Cancel</Link>
         </Button>
       </div>
     </form>
