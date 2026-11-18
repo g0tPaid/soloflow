@@ -7,6 +7,7 @@ import { embedInvoiceImages } from '@/lib/print-pdf/embed-print-images';
 import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/print-pdf/transparent-signature';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
+import { widenV5Button } from '@/lib/print-pdf/widen-v5-buttons';
 import { recolorV6Button } from '@/lib/print-pdf/v6-button-art';
 import { isPublicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
@@ -59,13 +60,16 @@ export async function renderInvoicePdfFile(
             context.drawImage(bitmap, 0, 0);
             const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
             const clean = isolateInvoiceButton(data, canvas.width, canvas.height);
+            const art = version === 5
+              ? widenV5Button(clean.pixels, clean.width, clean.height, kind)
+              : { pixels: recolorV6Button(clean.pixels, kind), width: clean.width, height: clean.height };
             const crop = document.createElement('canvas');
-            crop.width = clean.width;
-            crop.height = clean.height;
+            crop.width = art.width;
+            crop.height = art.height;
             const cropContext = crop.getContext('2d');
             if (!cropContext) throw new Error('Cannot prepare invoice button image');
             cropContext.putImageData(
-              new ImageData(new Uint8ClampedArray(version === 6 ? recolorV6Button(clean.pixels, kind) : clean.pixels), clean.width, clean.height),
+              new ImageData(new Uint8ClampedArray(art.pixels), art.width, art.height),
               0,
               0,
             );
