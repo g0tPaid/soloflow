@@ -73,7 +73,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
-      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }} wrap={false}>
+      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'column', justifyContent: 'center', alignItems: 'center', gap: 6 }} wrap={false}>
         <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 93, height: 29, borderRadius: 7, backgroundColor: '#07451e', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
           <View style={{ position: 'absolute', top: 0, left: 0 }}>
             <Svg width={93} height={29} viewBox="0 0 93 29">
