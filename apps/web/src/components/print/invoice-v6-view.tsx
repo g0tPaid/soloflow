@@ -13,6 +13,7 @@ import { trackingQrPath, trackingUrl } from '@/lib/print-pdf/invoice-tracking-qr
 import { sevenColorMark } from '@/lib/print-pdf/sourcing-brand-mark';
 import { isPublicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
+import { recolorV6Button } from '@/lib/print-pdf/v6-button-art';
 
 export function InvoiceV6View({
   invoice, organization,
@@ -29,7 +30,7 @@ export function InvoiceV6View({
   const [buttonArtwork, setButtonArtwork] = useState<{ wise: string; download: string } | null>(null);
   useEffect(() => {
     let cancelled = false;
-    async function loadButton(filename: string) {
+    async function loadButton(filename: string, kind: 'wise' | 'download') {
       const response = await fetch('/' + encodeURIComponent(filename));
       if (!response.ok) throw new Error('Missing original invoice button: ' + filename);
       const bitmap = await createImageBitmap(await response.blob());
@@ -48,7 +49,7 @@ export function InvoiceV6View({
         const trimmedContext = trimmed.getContext('2d');
         if (!trimmedContext) throw new Error('Unable to crop original invoice buttons');
         trimmedContext.putImageData(
-          new ImageData(new Uint8ClampedArray(clean.pixels), clean.width, clean.height),
+          new ImageData(new Uint8ClampedArray(recolorV6Button(clean.pixels, kind)), clean.width, clean.height),
           0, 0,
         );
         return trimmed.toDataURL('image/png');
@@ -57,8 +58,8 @@ export function InvoiceV6View({
       }
     }
     void Promise.all([
-      loadButton('Pay with Wise Button.png'),
-      loadButton('Sourcing Center Download Invoice Button.png'),
+      loadButton('Pay with Wise Button.png', 'wise'),
+      loadButton('Sourcing Center Download Invoice Button.png', 'download'),
     ]).then(([wise, download]) => {
       if (!cancelled) setButtonArtwork({ wise, download });
     }).catch(() => {
