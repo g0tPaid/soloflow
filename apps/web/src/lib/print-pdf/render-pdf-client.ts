@@ -45,10 +45,38 @@ export async function renderInvoicePdfFile(
         const asset = async (filename: string) => {
           const response = await fetch(`${origin}/${encodeURIComponent(filename)}`);
           if (!response.ok) throw new Error(`Unable to load invoice button: ${filename}`);
-          const bytes = new Uint8Array(await response.arrayBuffer());
-          let binary = '';
-          for (const byte of bytes) binary += String.fromCharCode(byte);
-          return `data:image/png;base64,${btoa(binary)}`;
+          const blob = await response.blob();
+          const bitmap = await createImageBitmap(blob);
+          try {
+            const canvas = document.createElement('canvas');
+            canvas.width = bitmap.width;
+            canvas.height = bitmap.height;
+            const context = canvas.getContext('2d');
+            if (!context) throw new Error('Cannot prepare invoice button image');
+            context.drawImage(bitmap, 0, 0);
+            const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
+            let left = canvas.width, right = -1, top = canvas.height, bottom = -1;
+            for (let y = 0; y < canvas.height; y++) {
+              for (let x = 0; x < canvas.width; x++) {
+                const i = (y * canvas.width + x) * 4;
+                const colored = data[i + 3] > 25 && Math.min(data[i], data[i + 1], data[i + 2]) < 220;
+                if (colored) {
+                  left = Math.min(left, x);
+                  right = Math.max(right, x);
+                  top = Math.min(top, y);
+                  bottom = Math.max(bottom, y);
+                }
+              }
+            }
+            if (right < left || bottom < top) throw new Error('Invoice button artwork missing');
+            const crop = document.createElement('canvas');
+            crop.width = right - left + 1;
+            crop.height = bottom - top + 1;
+            crop.getContext('2d')?.drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
+            return crop.toDataURL('image/png');
+          } finally {
+            bitmap.close();
+          }
         };
         const [wise, download] = await Promise.all([
           asset('Pay with Wise Button.png'),
