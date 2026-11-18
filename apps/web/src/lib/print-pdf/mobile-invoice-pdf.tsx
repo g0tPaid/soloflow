@@ -74,11 +74,13 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={[styles.action, { width: 77, backgroundColor: '#edf7e9', borderColor: '#b9d6aa' }]}>
-          <Svg width={13} height={13} viewBox="0 0 24 24">
-            <Path d="M2 6h13l-3 4H5l-3-4zM8 11h14l-4 4H6l2-4zM11 16h10l-4 4H8l3-4z" fill="#9ccf86" />
-          </Svg>
-          <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold' }}>Pay with Wise</Text>
+        <Link src="https://wise.com/pay/me/ajmala214" style={[styles.action, { width: 77, backgroundColor: '#edf7e9', borderColor: '#b9d6aa', position: 'relative', overflow: 'hidden' }]}>
+          <View style={{ position: 'absolute', left: 5, top: 5, opacity: 0.22 }}>
+            <Svg width={21} height={19} viewBox="0 0 24 24">
+              <Path d="M2 6h13l-3 4H5l-3-4zM8 11h14l-4 4H6l2-4zM11 16h10l-4 4H8l3-4z" fill="#2d7b2a" />
+            </Svg>
+          </View>
+          <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>Pay with Wise</Text>
         </Link>
         <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={[styles.action, { width: 119, backgroundColor: '#eff5ff', borderColor: '#bed4f9' }]}>
           <Svg width={13} height={13} viewBox="0 0 24 24">
