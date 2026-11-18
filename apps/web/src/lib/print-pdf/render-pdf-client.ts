@@ -7,7 +7,6 @@ import { embedInvoiceImages } from '@/lib/print-pdf/embed-print-images';
 import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/print-pdf/transparent-signature';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
-import { isPublicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
 async function transparentSignature(source: string) {
   const image = new Image();
@@ -80,31 +79,12 @@ export async function renderInvoicePdfFile(
         return { wise, download };
       })()
     : undefined;
-  let downloadUrl: string | undefined;
-  if (version === 5) {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      throw new Error('Connect to the internet to generate Invoice Version 5 with a working customer download link.');
-    }
-    const response = await fetch(
-      `/api/pdf/public-invoice-token/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}`,
-      { credentials: 'include', cache: 'no-store' },
-    );
-    if (!response.ok) {
-      throw new Error('Could not create a customer download link for Invoice Version 1. Try again online.');
-    }
-    const result = await response.json() as { url?: string };
-    if (!result.url || !isPublicInvoiceDownloadUrl(result.url)) {
-      throw new Error('The invoice download link is invalid. Please regenerate the PDF.');
-    }
-    downloadUrl = result.url;
-  }
   const blob = await pdf(
     buildPdfDocument(
       { type: 'invoices', invoice: prepared.invoice, org: printOrg },
       origin,
       version,
       buttonImages,
-      downloadUrl,
     ),
   ).toBlob();
   const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
