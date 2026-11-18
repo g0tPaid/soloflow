@@ -172,6 +172,14 @@ export default function InvoicesPage() {
   const invoicePath = invoicePathForRoute(pathname);
   const { data: session } = useSession();
   const { organizationId, organization, isReady } = useOrganizationId();
+  const invoiceOpenHref = (invoiceId: string) =>
+    version === 6
+      ? `/print/invoices/${encodeURIComponent(invoiceId)}?version=6${organizationId ? '&org=' + encodeURIComponent(organizationId) : ''}`
+      : `${invoicePath}/${invoiceId}`;
+  const invoiceEditHref = (invoiceId: string) =>
+    version === 6
+      ? `${invoicePath}/${encodeURIComponent(invoiceId)}?edit=1#edit-line-items`
+      : `${invoicePath}/${invoiceId}#edit-line-items`;
   const timeZone = organization?.settings?.timezone;
   const queryClient = useQueryClient();
   const [convertingId, setConvertingId] = useState<string | null>(null);
@@ -422,7 +430,7 @@ export default function InvoicesPage() {
                     className={cn('border-b last:border-b-0 align-top', invoiceSurfaceClass(invoice, 'row'))}
                   >
                     <td className="px-4 py-3">
-                      <Link href={`${invoicePath}/${invoice.id}`} className="font-medium text-foreground hover:underline">
+                      <Link href={invoiceOpenHref(invoice.id)} className="font-medium text-foreground hover:underline">
                         {invoice.number}
                       </Link>
                     </td>
@@ -467,7 +475,7 @@ export default function InvoicesPage() {
                       {!unsynced && (
                       <div className="flex flex-wrap justify-end gap-2">
                         <Button asChild size="sm" className="gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c]">
-                          <Link href={`${invoicePath}/${invoice.id}#edit-line-items`}>
+                          <Link href={invoiceEditHref(invoice.id)}>
                             <Pencil className="h-3.5 w-3.5" />
                             Edit
                           </Link>
@@ -510,7 +518,7 @@ export default function InvoicesPage() {
               >
                 <CardContent className="flex flex-col gap-4 p-4">
                   <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-                  <Link href={`${invoicePath}/${invoice.id}`} className="min-w-0 flex-1 space-y-1">
+                  <Link href={invoiceOpenHref(invoice.id)} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
                       <InvoiceStatusBadge status={invoice.status} />
@@ -553,7 +561,7 @@ export default function InvoicesPage() {
                         size="sm"
                         className="flex-1 gap-1.5 bg-[#E40046] text-white hover:bg-[#c4003c] sm:flex-none"
                       >
-                        <Link href={`${invoicePath}/${invoice.id}#edit-line-items`}>
+                        <Link href={invoiceEditHref(invoice.id)}>
                           <Pencil className="h-3.5 w-3.5" />
                           Edit
                         </Link>
