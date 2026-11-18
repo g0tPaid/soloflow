@@ -2,6 +2,37 @@ import { describe, expect, it } from 'vitest';
 import { widenV5Button } from './widen-v5-buttons';
 
 describe('Invoice 5 button shape', () => {
+  it('never repeats the white stroke of the Wise e into a long horizontal streak', () => {
+    const width = 500, height = 114;
+    const pixels = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const offset = (y * width + x) * 4;
+        const whiteLetter = x >= 170 && x <= 197 && y >= 46 && y <= 54;
+        const separator = x >= 208 && x <= 209 && y >= 29 && y <= 83;
+        const payLetter = x >= 239 && x <= 252 && y >= 40 && y <= 64;
+        pixels[offset] = whiteLetter || payLetter ? 247 : separator ? 126 : 10;
+        pixels[offset + 1] = whiteLetter || payLetter ? 252 : separator ? 164 : 61;
+        pixels[offset + 2] = whiteLetter || payLetter ? 248 : separator ? 128 : 27;
+        pixels[offset + 3] = 255;
+      }
+    }
+    const result = widenV5Button(pixels, width, height, 'wise');
+    const countWhite = (arr: Uint8Array, w: number, y: number) => {
+      let total = 0;
+      for (let x = 0; x < w; x++) {
+        const i = (y * w + x) * 4;
+        if (arr[i] > 230 && arr[i + 1] > 230 && arr[i + 2] > 230) total++;
+      }
+      return total;
+    };
+    // Every white pixel in the complete source must occur exactly once
+    // after widening; in particular, the white horizontal e is not duplicated.
+    expect(countWhite(result.pixels, result.width, 50)).toBe(countWhite(pixels, width, 50));
+    expect(result.width).toBeGreaterThan(width);
+  });
+
+
   it('removes the translucent white-looking edge fringe on Wise without affecting the separator', () => {
     const width = 100, height = 20;
     const pixels = new Uint8Array(width * height * 4);
@@ -25,7 +56,7 @@ describe('Invoice 5 button shape', () => {
 
 
   for (const [kind, width, height, seam1, seam2] of [
-    ['wise', 500, 114, 0.378, 0.45],
+    ['wise', 500, 114, 0.398, 0.448],
     ['download', 500, 101, 0.514, 0.69],
   ] as const) {
     it(`widens ${kind} without changing the original logos, letters or rounded corners`, () => {
@@ -34,9 +65,11 @@ describe('Invoice 5 button shape', () => {
       for (let y = 0; y < height; y++) {
         for (let x = 0; x < width; x++) {
           const i = (y * width + x) * 4;
-          pixels[i] = x % 256;
-          pixels[i + 1] = Math.floor(x / 256);
-          pixels[i + 2] = y;
+          // A distinct, dark-green sample in each column (matching the
+          // real gaps in the Wise artwork) without arbitrary white letters.
+          pixels[i] = x % 50;
+          pixels[i + 1] = 70 + Math.floor(x / 50);
+          pixels[i + 2] = y % 30;
           pixels[i + 3] = (x === 0 || x === width - 1) ? 0 : 255;
         }
       }
