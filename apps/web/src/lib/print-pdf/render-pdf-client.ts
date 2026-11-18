@@ -7,6 +7,7 @@ import { embedInvoiceImages } from '@/lib/print-pdf/embed-print-images';
 import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/print-pdf/transparent-signature';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
+import { recolorV6Button } from '@/lib/print-pdf/v6-button-art';
 import { isPublicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
 async function transparentSignature(source: string) {
@@ -44,7 +45,7 @@ export async function renderInvoicePdfFile(
     : prepared.org;
   const buttonImages = (version === 5 || version === 6)
     ? await (async () => {
-        const asset = async (filename: string) => {
+        const asset = async (filename: string, kind: 'wise' | 'download') => {
           const response = await fetch(`${origin}/${encodeURIComponent(filename)}`);
           if (!response.ok) throw new Error(`Unable to load invoice button: ${filename}`);
           const blob = await response.blob();
@@ -64,7 +65,7 @@ export async function renderInvoicePdfFile(
             const cropContext = crop.getContext('2d');
             if (!cropContext) throw new Error('Cannot prepare invoice button image');
             cropContext.putImageData(
-              new ImageData(new Uint8ClampedArray(clean.pixels), clean.width, clean.height),
+              new ImageData(new Uint8ClampedArray(version === 6 ? recolorV6Button(clean.pixels, kind) : clean.pixels), clean.width, clean.height),
               0,
               0,
             );
@@ -74,8 +75,8 @@ export async function renderInvoicePdfFile(
           }
         };
         const [wise, download] = await Promise.all([
-          asset('Pay with Wise Button.png'),
-          asset('Sourcing Center Download Invoice Button.png'),
+          asset('Pay with Wise Button.png', 'wise'),
+          asset('Sourcing Center Download Invoice Button.png', 'download'),
         ]);
         return { wise, download };
       })()
