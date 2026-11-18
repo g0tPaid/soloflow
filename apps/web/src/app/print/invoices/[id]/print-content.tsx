@@ -152,8 +152,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
     <>
       {!embed && (
         <PrintPageToolbar
-          backHref={`${modernInvoice ? '/invoices-v6' : mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
-          backLabel="Back to invoice"
+          backHref={modernInvoice ? '/invoices-v6' : `${mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
+          backLabel={modernInvoice ? 'Back to Invoice 6 list' : 'Back to invoice'}
+          editHref={modernInvoice ? `/invoices-v6/${encodeURIComponent(id)}?edit=1` : undefined}
           documentType="invoices"
           documentId={id}
           organizationId={organizationId}
