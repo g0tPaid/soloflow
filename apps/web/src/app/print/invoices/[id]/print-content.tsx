@@ -14,6 +14,8 @@ import { resolveImageSrc, parseBranding } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
 import { MobileInvoiceView } from '@/components/print/mobile-invoice-view';
+import { InvoiceV6View } from '@/components/print/invoice-v6-view';
+import { invoicePdfVersion } from '@/lib/invoice-version';
 import { buildWhatsAppMessage } from '@/components/invoices/share-invoice-whatsapp-button';
 
 export function InvoicePrintPageContent({ params }: { params: Promise<{ id: string }> }) {
@@ -22,7 +24,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const orgFromUrl = searchParams.get('org');
   const sharePhone = searchParams.get('phone');
   const embed = searchParams.get('embed') === '1';
-  const mobileInvoice = searchParams.get('version') === '5';
+  const receiptVersion = invoicePdfVersion(searchParams.get('version'));
+  const mobileInvoice = receiptVersion === 5;
+  const modernInvoice = receiptVersion === 6;
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
 
@@ -36,9 +40,9 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const callbackUrl = useMemo(() => {
     const query = new URLSearchParams();
     if (orgFromUrl) query.set('org', orgFromUrl);
-    if (mobileInvoice) query.set('version', '5');
+    if (mobileInvoice || modernInvoice) query.set('version', String(receiptVersion));
     return `/print/invoices/${id}${query.size ? `?${query}` : ''}`;
-  }, [id, orgFromUrl, mobileInvoice]);
+  }, [id, orgFromUrl, mobileInvoice, modernInvoice, receiptVersion]);
 
   const canFetch =
     sessionStatus === 'authenticated' && !!session?.accessToken && !!organizationId;
@@ -141,21 +145,21 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   }
 
   const org = orgDetail ?? organization;
-  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${mobileInvoice ? '-v5' : ''}.pdf`;
+  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${modernInvoice ? '-v6' : mobileInvoice ? '-v5' : ''}.pdf`;
   const whatsappMessage = buildWhatsAppMessage(invoice);
 
   return (
     <>
       {!embed && (
         <PrintPageToolbar
-          backHref={`${mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
+          backHref={`${modernInvoice ? '/invoices-v6' : mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
           backLabel="Back to invoice"
           documentType="invoices"
           documentId={id}
           organizationId={organizationId}
           organization={org}
           filename={safeFilename}
-          invoiceVersion={mobileInvoice ? 5 : undefined}
+          invoiceVersion={modernInvoice ? 6 : mobileInvoice ? 5 : undefined}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}
           emailSubject={`Invoice ${invoice.number}`}
@@ -163,7 +167,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         />
       )}
 
-      {mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} /> : <InvoicePrintView invoice={invoice} org={org} />}
+      {modernInvoice ? <InvoiceV6View invoice={invoice} organization={org} /> : mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} /> : <InvoicePrintView invoice={invoice} org={org} />}
 
       <style jsx global>{`
         @media print {
