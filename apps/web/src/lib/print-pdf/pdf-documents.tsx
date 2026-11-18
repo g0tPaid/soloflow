@@ -1312,15 +1312,16 @@ function ExpensePdfBody({ expense, baseUrl }: { expense: ExpenseDetail; baseUrl:
   );
 }
 
-export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion, buttonImages?: { wise: string; download: string }) {
+export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string, version?: InvoicePdfVersion, buttonImages?: { wise: string; download: string }, downloadUrl?: string) {
   switch (document.type) {
     case 'invoices':
       return (
         <Document>
           {version === 5 ? (
-            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} />
-          ) : null}
-          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version === 5 ? undefined : version} />
+            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
+          ) : (
+            <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
+          )}
         </Document>
       );
     case 'quotes':
