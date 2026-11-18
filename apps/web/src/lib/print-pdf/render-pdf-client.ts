@@ -79,12 +79,30 @@ export async function renderInvoicePdfFile(
         return { wise, download };
       })()
     : undefined;
+  let downloadUrl: string | undefined;
+  if (version === 5 && typeof navigator !== 'undefined' && navigator.onLine) {
+    try {
+      const response = await fetch(
+        `/api/pdf/public-invoice-token/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}`,
+        { credentials: 'include', cache: 'no-store' },
+      );
+      if (response.ok) {
+        const result = await response.json() as { url?: string };
+        if (result.url?.startsWith(window.location.origin + '/api/pdf/public-invoice/')) {
+          downloadUrl = result.url;
+        }
+      }
+    } catch {
+      // Offline documents can still be saved, but cannot mint a server link.
+    }
+  }
   const blob = await pdf(
     buildPdfDocument(
       { type: 'invoices', invoice: prepared.invoice, org: printOrg },
       origin,
       version,
       buttonImages,
+      downloadUrl,
     ),
   ).toBlob();
   const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
