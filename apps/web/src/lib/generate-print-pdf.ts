@@ -9,8 +9,6 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
-import { apiFetch } from '@/lib/api';
-import { publicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
 function resolveBaseUrl(request: Request) {
   const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
@@ -72,13 +70,8 @@ export async function generatePrintPdf(
       asset('Pay with Wise Button.png'),
       asset('Sourcing Center Download Invoice Button.png'),
     ]);
-    const { token } = await apiFetch<{ token: string }>(
-      `/invoices/${encodeURIComponent(id)}/public-download-token`,
-      { token: accessToken, organizationId: organizationId ?? undefined },
-    );
-    const customerDownloadUrl = publicInvoiceDownloadUrl(token);
     return renderToBuffer(buildPdfDocument(
-      document, baseUrl, version, { wise, download }, customerDownloadUrl,
+      document, baseUrl, version, { wise, download },
     ));
   }
   if (usesBrandedInvoiceLayout(version) && document.type === 'invoices') {
