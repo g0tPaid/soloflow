@@ -8,6 +8,7 @@ import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/p
 import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
+import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
 
 function resolveBaseUrl(request: Request) {
   const configured = process.env.NEXTAUTH_URL?.replace(/\/$/, '');
@@ -59,36 +60,10 @@ export async function generatePrintPdf(
     const asset = async (filename: string) => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
-      const coloredAt = (x: number, y: number) => {
-        const i = (y * info.width + x) * 4;
-        return data[i + 3] > 60 &&
-          Math.max(data[i], data[i + 1], data[i + 2]) -
-          Math.min(data[i], data[i + 1], data[i + 2]) > 60;
-      };
-      const rows: number[] = [];
-      for (let y = 0; y < info.height; y++) {
-        let count = 0;
-        for (let x = 0; x < info.width; x += 2) if (coloredAt(x, y)) count++;
-        if (count > info.width * 0.22) rows.push(y);
-      }
-      if (!rows.length) throw new Error('Button artwork not found');
-      const top = Math.min(...rows) + 3;
-      const bottom = Math.max(...rows) - 3;
-      const mid = Math.round((top + bottom) / 2);
-      const columns: number[] = [];
-      for (let x = 0; x < info.width; x++) {
-        let count = 0;
-        for (let y = Math.max(top, mid - 8); y <= Math.min(bottom, mid + 8); y++) if (coloredAt(x, y)) count++;
-        if (count > 6) columns.push(x);
-      }
-      if (!columns.length) throw new Error('Button width not found');
-      const left = Math.min(...columns) + 3, right = Math.max(...columns) - 3;
-      const width = right - left + 1, height = bottom - top + 1;
-      if (width < 30 || height < 10) throw new Error('Button crop too small');
-      const radius = Math.round(height * 0.23);
-      const mask = Buffer.from(`<svg width="${width}" height="${height}"><rect width="${width}" height="${height}" rx="${radius}" fill="white"/></svg>`);
-      const cropped = await sharp(bytes).extract({ left, top, width, height })
-        .ensureAlpha().composite([{ input: mask, blend: 'dest-in' }]).png().toBuffer();
+      const clean = isolateInvoiceButton(data, info.width, info.height);
+      const cropped = await sharp(clean.pixels, {
+        raw: { width: clean.width, height: clean.height, channels: 4 },
+      }).png().toBuffer();
       return `data:image/png;base64,${cropped.toString('base64')}`;
     };
     const [wise, download] = await Promise.all([
