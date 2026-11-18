@@ -59,7 +59,9 @@ export async function renderInvoicePdfFile(
             for (let y = 0; y < canvas.height; y++) {
               for (let x = 0; x < canvas.width; x++) {
                 const i = (y * canvas.width + x) * 4;
-                const colored = data[i + 3] > 25 && Math.min(data[i], data[i + 1], data[i + 2]) < 220;
+                const max = Math.max(data[i], data[i + 1], data[i + 2]);
+                const min = Math.min(data[i], data[i + 1], data[i + 2]);
+                const colored = data[i + 3] > 25 && max - min > 35 && max < 245;
                 if (colored) {
                   left = Math.min(left, x);
                   right = Math.max(right, x);
@@ -72,7 +74,13 @@ export async function renderInvoicePdfFile(
             const crop = document.createElement('canvas');
             crop.width = right - left + 1;
             crop.height = bottom - top + 1;
-            crop.getContext('2d')?.drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
+            const cropContext = crop.getContext('2d');
+            if (!cropContext) throw new Error('Cannot crop invoice button');
+            cropContext.drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
+            cropContext.globalCompositeOperation = 'destination-in';
+            cropContext.beginPath();
+            cropContext.roundRect(0, 0, crop.width, crop.height, Math.round(crop.height * 0.21));
+            cropContext.fill();
             return crop.toDataURL('image/png');
           } finally {
             bitmap.close();
