@@ -60,6 +60,20 @@ export async function generatePrintPdf(
   const quoteVersion = requestedQuoteVersion === null ? undefined : Number(requestedQuoteVersion);
   const document = await loadPrintDocument(accessToken, type, id, organizationId, quoteVersion);
   const version = invoicePdfVersion(searchParams.get('version'));
+  if (version === 5 && document.type === 'quotes' && document.quoteVersion === undefined) {
+    // Quote 5 reuses the exact narrow Invoice 5 PDF renderer and resized Wise artwork.
+    const filename = 'Pay with Wise Button.png';
+    const bytes = await readFile(path.join(process.cwd(), 'public', filename));
+    const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
+    const clean = isolateInvoiceButton(data, info.width, info.height);
+    const wide = widenV5Button(clean.pixels, clean.width, clean.height, 'wise');
+    const png = await sharp(wide.pixels, {
+      raw: { width: wide.width, height: wide.height, channels: 4 },
+    }).png().toBuffer();
+    const wise = `data:image/png;base64,${png.toString('base64')}`;
+    const downloadUrl = `${baseUrl}/api/pdf/print/quotes/${encodeURIComponent(id)}?org=${encodeURIComponent(organizationId ?? '')}&version=5`;
+    return renderToBuffer(buildPdfDocument(document, baseUrl, version, { wise, download: '' }, downloadUrl));
+  }
   if ((version === 5 || version === 6) && document.type === 'invoices') {
     const asset = async (filename: string, kind: 'wise' | 'download') => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
