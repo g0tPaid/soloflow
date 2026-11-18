@@ -39,6 +39,7 @@ export function ShareQuoteWhatsAppButton({
   organizationId,
   size = 'default',
   fullWidth,
+  mobileVersion = false,
 }: {
   quote: {
     number: string;
@@ -51,6 +52,7 @@ export function ShareQuoteWhatsAppButton({
   organizationId?: string;
   size?: 'default' | 'lg' | 'sm';
   fullWidth?: boolean;
+  mobileVersion?: boolean;
 }) {
   const [sharing, setSharing] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
@@ -65,7 +67,8 @@ export function ShareQuoteWhatsAppButton({
       const safeName = quote.number.replace(/[^a-zA-Z0-9-_]/g, '_');
       const file = await fetchServerPdfFile('quotes', quoteId, {
         organizationId,
-        filename: `${safeName}.pdf`,
+        filename: `${safeName}${mobileVersion ? '-quote5' : ''}.pdf`,
+        version: mobileVersion ? 5 : undefined,
       });
       const message = buildQuoteWhatsAppMessage(quote);
       setStatus('Opening WhatsApp…');
@@ -79,6 +82,7 @@ export function ShareQuoteWhatsAppButton({
       setStatus(null);
       const params = new URLSearchParams({ org: organizationId });
       if (hasPhone) params.set('phone', phone);
+      if (mobileVersion) params.set('version', '5');
       window.location.href = `/print/quotes/${quoteId}?${params.toString()}`;
     } finally {
       setSharing(false);
