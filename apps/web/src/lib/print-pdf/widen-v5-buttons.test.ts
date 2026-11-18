@@ -2,6 +2,28 @@ import { describe, expect, it } from 'vitest';
 import { widenV5Button } from './widen-v5-buttons';
 
 describe('Invoice 5 button shape', () => {
+  it('removes the translucent white-looking edge fringe on Wise without affecting the separator', () => {
+    const width = 100, height = 20;
+    const pixels = new Uint8Array(width * height * 4);
+    for (let y = 0; y < height; y++) {
+      for (let x = 0; x < width; x++) {
+        const i = (y * width + x) * 4;
+        const divider = x === 50 && y >= 5 && y < 15;
+        pixels.set(divider ? [245, 245, 245, 255] : [9, 61, 28, 255], i);
+        if (y === 0 || y === height - 2) pixels[i + 3] = 66;
+        if (y === height - 1) pixels[i + 3] = 0;
+      }
+    }
+    const result = widenV5Button(pixels, width, height, 'wise');
+    const x = Math.floor(result.width / 2);
+    expect(result.pixels[(x * 4) + 3]).toBe(255);
+    expect(result.pixels[((height - 2) * result.width + x) * 4 + 3]).toBe(255);
+    expect(result.pixels[((height - 1) * result.width + x) * 4 + 3]).toBe(0);
+    // Original internal divider is retained, not erased by the perimeter fix.
+    expect(result.pixels[((8 * result.width + 50 + (result.width - width)) * 4)]).toBe(245);
+  });
+
+
   for (const [kind, width, height, seam1, seam2] of [
     ['wise', 500, 114, 0.378, 0.45],
     ['download', 500, 101, 0.514, 0.69],
