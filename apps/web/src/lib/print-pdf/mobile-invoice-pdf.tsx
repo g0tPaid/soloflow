@@ -23,6 +23,7 @@ const styles = StyleSheet.create({
   amount: { minWidth: 56, textAlign: 'right' },
   totalRow: { flexDirection: 'row', justifyContent: 'space-between', gap: 5, marginBottom: 4 },
   balance: { flexDirection: 'row', justifyContent: 'space-between', gap: 5, borderTopWidth: 1.5, borderBottomWidth: 1.5, paddingVertical: 6, marginTop: 4, fontSize: 12, fontWeight: 'bold' },
+  action: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 4, height: 29, flexShrink: 0, borderWidth: 1, borderRadius: 7 },
   footer: { marginTop: 10, alignItems: 'center' },
 });
 
@@ -73,21 +74,17 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ backgroundColor: '#edf7e9', borderWidth: 1, borderColor: '#b9d6aa', paddingVertical: 7, paddingHorizontal: 9, borderRadius: 7, textDecoration: 'none' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5, position: 'relative' }}>
-            <Svg width={13} height={13} viewBox="0 0 24 24">
-              <Path d="M2 6h13l-3 4H5l-3-4zM8 11h14l-4 4H6l2-4zM11 16h10l-4 4H8l3-4z" fill="#9ccf86" />
-            </Svg>
-            <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold' }}>Pay with Wise</Text>
-          </View>
+        <Link src="https://wise.com/pay/me/ajmala214" style={[styles.action, { width: 77, backgroundColor: '#edf7e9', borderColor: '#b9d6aa' }]}>
+          <Svg width={13} height={13} viewBox="0 0 24 24">
+            <Path d="M2 6h13l-3 4H5l-3-4zM8 11h14l-4 4H6l2-4zM11 16h10l-4 4H8l3-4z" fill="#9ccf86" />
+          </Svg>
+          <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold' }}>Pay with Wise</Text>
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ backgroundColor: '#eff5ff', borderWidth: 1, borderColor: '#bed4f9', paddingVertical: 7, paddingHorizontal: 9, borderRadius: 7, textDecoration: 'none' }}>
-          <View style={{ flexDirection: 'row', alignItems: 'center', gap: 5 }}>
-            <Svg width={13} height={13} viewBox="0 0 24 24">
-              <Path d="M6 2h8l4 4v16H6zM14 2v5h5M12 10v8m-3-3 3 3 3-3" stroke="#1d4ed8" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-            <Text style={{ color: '#1d4ed8', fontSize: 8, fontWeight: 'bold' }}>Download Official Invoice</Text>
-          </View>
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={[styles.action, { width: 119, backgroundColor: '#eff5ff', borderColor: '#bed4f9' }]}>
+          <Svg width={13} height={13} viewBox="0 0 24 24">
+            <Path d="M6 2h8l4 4v16H6zM14 2v5h5M12 10v8m-3-3 3 3 3-3" stroke="#1d4ed8" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+          </Svg>
+          <Text style={{ color: '#1d4ed8', fontSize: 8, fontWeight: 'bold' }}>Download Official Invoice</Text>
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
