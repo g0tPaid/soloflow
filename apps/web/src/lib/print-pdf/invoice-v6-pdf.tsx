@@ -94,8 +94,10 @@ const styles = StyleSheet.create({
     flexDirection: 'row', gap: 5, justifyContent: 'center',
     alignItems: 'center', marginTop: 11,
   },
-  button: { width: 93.2, height: 25.5, borderWidth: 0 },
-  buttonImg: { width: 93.2, height: 25.5, objectFit: 'fill' },
+  wiseButton: { width: 88.1, height: 24.5, borderWidth: 0, backgroundColor: 'transparent' },
+  wiseButtonImg: { width: 88.1, height: 24.5, objectFit: 'fill' },
+  downloadButton: { width: 103.2, height: 24.5, borderWidth: 0, backgroundColor: 'transparent' },
+  downloadButtonImg: { width: 103.2, height: 24.5, objectFit: 'fill' },
   browserNote: {
     alignSelf: 'flex-end', color: '#971444',
     backgroundColor: '#ffebf3', borderRadius: 9,
@@ -270,11 +272,11 @@ export function InvoiceV6Pdf({ invoice, org, baseUrl, buttonImages, downloadUrl 
         </View>
 
         <View style={styles.buttonRow} wrap={false}>
-          <Link src="https://wise.com/pay/me/ajmala214" style={styles.button}>
-            <Image src={buttonImages?.wise ?? baseUrl + '/Pay%20with%20Wise%20Button.png'} style={styles.buttonImg} />
+          <Link src="https://wise.com/pay/me/ajmala214" style={styles.wiseButton}>
+            <Image src={buttonImages?.wise ?? baseUrl + '/Pay%20with%20Wise%20Button.png'} style={styles.wiseButtonImg} />
           </Link>
-          <Link src={downloadUrl} style={styles.button}>
-            <Image src={buttonImages?.download ?? baseUrl + '/Sourcing%20Center%20Download%20Invoice%20Button.png'} style={styles.buttonImg} />
+          <Link src={downloadUrl} style={styles.downloadButton}>
+            <Image src={buttonImages?.download ?? baseUrl + '/Sourcing%20Center%20Download%20Invoice%20Button.png'} style={styles.downloadButtonImg} />
           </Link>
         </View>
         <View style={styles.browserNote}>
