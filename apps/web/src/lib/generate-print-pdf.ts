@@ -73,7 +73,7 @@ export async function generatePrintPdf(
     ]);
     const { token } = await apiFetch<{ token: string }>(
       `/invoices/${encodeURIComponent(id)}/public-download-token`,
-      { token: accessToken, organizationId },
+      { token: accessToken, organizationId: organizationId ?? undefined },
     );
     const customerDownloadUrl = `${baseUrl}/api/pdf/public-invoice/${encodeURIComponent(token)}`;
     return renderToBuffer(buildPdfDocument(
