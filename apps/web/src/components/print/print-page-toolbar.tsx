@@ -15,6 +15,7 @@ import { cn } from '@/lib/utils';
 type Props = {
   backHref: string;
   backLabel?: string;
+  editHref?: string;
   documentType: ServerPdfType;
   documentId: string;
   organizationId?: string | null;
@@ -32,6 +33,7 @@ type Props = {
 export function PrintPageToolbar({
   backHref,
   backLabel = 'Back',
+  editHref,
   documentType,
   documentId,
   organizationId,
@@ -137,6 +139,11 @@ export function PrintPageToolbar({
             <ArrowLeft className="h-4 w-4" />
             {backLabel}
           </Link>
+          {editHref ? (
+            <Link href={editHref} className="ml-auto inline-flex items-center justify-center rounded-lg border border-slate-200 bg-white px-3 py-2 text-sm font-semibold text-slate-800 shadow-sm">
+              Edit invoice
+            </Link>
+          ) : null}
         </div>
         {error ? <p className="mx-auto mt-2 max-w-[900px] text-sm text-red-600">{error}</p> : null}
         {status && !error ? (
