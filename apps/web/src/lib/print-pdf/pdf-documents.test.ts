@@ -66,6 +66,23 @@ const invoice: Invoice = {
 };
 
 describe('buildPdfDocument', () => {
+  it('bundles Version 1 A4 into Version 5 and uses a PDF-internal button destination', async () => {
+    const buffer = await renderToBuffer(
+      buildPdfDocument(
+        { type: 'invoices', invoice, org },
+        'https://soloflow.practicalthings.store',
+        5,
+        { wise: PNG, download: PNG },
+      ),
+    );
+    expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+    // The receipt and A4 layout must both be in the same PDF.
+    const raw = buffer.toString('latin1');
+    expect((raw.match(/\/Type \/Page\b/g) ?? []).length).toBeGreaterThanOrEqual(2);
+    // A PDF-internal destination must not send recipients to a web host.
+    expect(raw).not.toContain('localhost');
+  });
+
   it('renders the shared invoice layout to a PDF from local data', async () => {
     const buffer = await renderToBuffer(
       buildPdfDocument({ type: 'invoices', invoice, org }, 'https://soloflow.test'),
