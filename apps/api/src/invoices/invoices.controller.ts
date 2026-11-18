@@ -5,6 +5,7 @@ import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invo
 import { TenantMemberGuard } from '../common/tenant-member.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
+import { createPublicInvoiceToken } from './public-invoice-token';
 
 @ApiTags('Invoices')
 @Controller('invoices')
@@ -40,6 +41,16 @@ export class InvoicesController {
   @Get('next-number')
   nextNumber(@Headers(TENANT_HEADER) orgId: string) {
     return this.invoicesService.getNextNumber(orgId);
+  }
+
+  @Get(':id/public-download-token')
+  async getPublicDownloadToken(
+    @Headers(TENANT_HEADER) orgId: string,
+    @Param('id') id: string,
+  ) {
+    // JWT and tenant membership guards authorize the issuer first.
+    await this.invoicesService.findOne(orgId, id);
+    return { token: createPublicInvoiceToken(orgId, id) };
   }
 
   @Get(':id')
