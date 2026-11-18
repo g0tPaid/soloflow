@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { CalendarDays, Download, Globe2, Link2, Mail, MapPin, Phone, UserRound } from 'lucide-react';
+import { CalendarDays, Download, Globe2, Link2, MapPin, Phone, UserRound } from 'lucide-react';
 import type { Invoice, Organization } from '@/lib/api';
 import { resolveImageSrc } from '@/lib/organization-branding';
 import { buildInvoiceBarcode } from '@/lib/print-pdf/invoice-barcode-data';
