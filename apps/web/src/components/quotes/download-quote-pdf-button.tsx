@@ -8,15 +8,18 @@ export function DownloadQuotePdfButton({
   organizationId,
   filename = 'quote.pdf',
   size = 'default',
+  mobileVersion = false,
 }: {
   quoteId: string;
   organizationId?: string;
   filename?: string;
   size?: 'default' | 'lg';
+  mobileVersion?: boolean;
 }) {
-  const printUrl = organizationId
-    ? `/print/quotes/${quoteId}?org=${encodeURIComponent(organizationId)}`
-    : `/print/quotes/${quoteId}`;
+  const params = new URLSearchParams();
+  if (organizationId) params.set('org', organizationId);
+  if (mobileVersion) params.set('version', '5');
+  const printUrl = `/print/quotes/${quoteId}${params.size ? `?${params}` : ''}`;
 
   function handleDownload() {
     window.location.href = printUrl;
