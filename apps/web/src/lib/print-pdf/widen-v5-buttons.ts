@@ -45,5 +45,25 @@ export function widenV5Button(
       result[dest + 3] = pixels[src + 3];
     }
   }
+  // The supplied Wise PNG has a semi-transparent fringe along its straight
+  // top and bottom edges. PDF scaling exposes it as a thin white hairline.
+  // Replace only those two fringe rows with neighboring opaque green artwork.
+  // Keep the rounded ends, the internal white divider, and all lettering intact.
+  if (kind === 'wise' && height > 8) {
+    const inset = Math.ceil(height * 0.28);
+    for (let x = inset; x < targetWidth - inset; x++) {
+      for (const [edgeRow, interiorRow] of [[0, 1], [height - 2, height - 3]]) {
+        const at = (edgeRow * targetWidth + x) * 4;
+        const sample = (interiorRow * targetWidth + x) * 4;
+        if (result[at + 3] < 240 && result[sample + 3] >= 240) {
+          result[at] = result[sample];
+          result[at + 1] = result[sample + 1];
+          result[at + 2] = result[sample + 2];
+          result[at + 3] = result[sample + 3];
+        }
+      }
+    }
+  }
+
   return { pixels: result, width: targetWidth, height };
 }
