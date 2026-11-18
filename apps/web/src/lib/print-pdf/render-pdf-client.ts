@@ -6,6 +6,7 @@ import type { Invoice, Organization } from '@/lib/api';
 import { embedInvoiceImages } from '@/lib/print-pdf/embed-print-images';
 import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/print-pdf/transparent-signature';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
+import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
 
 async function transparentSignature(source: string) {
   const image = new Image();
@@ -55,40 +56,17 @@ export async function renderInvoicePdfFile(
             if (!context) throw new Error('Cannot prepare invoice button image');
             context.drawImage(bitmap, 0, 0);
             const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
-            const coloredAt = (x: number, y: number) => {
-              const i = (y * canvas.width + x) * 4;
-              return data[i + 3] > 60 &&
-                Math.max(data[i], data[i + 1], data[i + 2]) -
-                Math.min(data[i], data[i + 1], data[i + 2]) > 60;
-            };
-            const rows: number[] = [];
-            for (let y = 0; y < canvas.height; y++) {
-              let count = 0;
-              for (let x = 0; x < canvas.width; x += 2) if (coloredAt(x, y)) count++;
-              if (count > canvas.width * 0.22) rows.push(y);
-            }
-            if (!rows.length) throw new Error('Invoice button artwork missing');
-            const top = Math.min(...rows) + 3, bottom = Math.max(...rows) - 3;
-            const mid = Math.round((top + bottom) / 2);
-            const columns: number[] = [];
-            for (let x = 0; x < canvas.width; x++) {
-              let count = 0;
-              for (let y = Math.max(top, mid - 8); y <= Math.min(bottom, mid + 8); y++) if (coloredAt(x, y)) count++;
-              if (count > 6) columns.push(x);
-            }
-            if (!columns.length) throw new Error('Invoice button width missing');
-            const left = Math.min(...columns) + 3, right = Math.max(...columns) - 3;
+            const clean = isolateInvoiceButton(data, canvas.width, canvas.height);
             const crop = document.createElement('canvas');
-            crop.width = right - left + 1;
-            crop.height = bottom - top + 1;
-            if (crop.width < 30 || crop.height < 10) throw new Error('Invoice button crop too small');
+            crop.width = clean.width;
+            crop.height = clean.height;
             const cropContext = crop.getContext('2d');
-            if (!cropContext) throw new Error('Cannot crop invoice button');
-            cropContext.drawImage(canvas, left, top, crop.width, crop.height, 0, 0, crop.width, crop.height);
-            cropContext.globalCompositeOperation = 'destination-in';
-            cropContext.beginPath();
-            cropContext.roundRect(0, 0, crop.width, crop.height, Math.round(crop.height * 0.23));
-            cropContext.fill();
+            if (!cropContext) throw new Error('Cannot prepare invoice button image');
+            cropContext.putImageData(
+              new ImageData(new Uint8ClampedArray(clean.pixels), clean.width, clean.height),
+              0,
+              0,
+            );
             return crop.toDataURL('image/png');
           } finally {
             bitmap.close();
