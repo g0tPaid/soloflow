@@ -10,6 +10,7 @@ import { ORG_STORAGE_KEY, useOrganizationId } from '@/hooks/use-organization';
 import { resolveImageSrc, parseBranding } from '@/lib/organization-branding';
 import { PrintPageToolbar } from '@/components/print/print-page-toolbar';
 import { InvoicePrintView } from '@/components/print/invoice-print-view';
+import { MobileInvoiceView } from '@/components/print/mobile-invoice-view';
 import { quoteAsInvoiceForPrint } from '@/lib/quote-print';
 import { buildQuoteWhatsAppMessage } from '@/components/quotes/share-quote-whatsapp-button';
 
@@ -18,6 +19,7 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
   const searchParams = useSearchParams();
   const orgFromUrl = searchParams.get('org');
   const embed = searchParams.get('embed') === '1';
+  const mobileQuote = searchParams.get('version') === '5';
   const { data: session, status: sessionStatus } = useSession();
   const { organizationId: orgFromHook, organization, isReady } = useOrganizationId();
 
@@ -29,9 +31,11 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
   }, [orgFromUrl, orgFromHook]);
 
   const callbackUrl = useMemo(() => {
-    const query = orgFromUrl ? `?org=${encodeURIComponent(orgFromUrl)}` : '';
-    return `/print/quotes/${id}${query}`;
-  }, [id, orgFromUrl]);
+    const query = new URLSearchParams();
+    if (orgFromUrl) query.set('org', orgFromUrl);
+    if (mobileQuote) query.set('version', '5');
+    return `/print/quotes/${id}${query.size ? `?${query}` : ''}`;
+  }, [id, orgFromUrl, mobileQuote]);
 
   const canFetch =
     sessionStatus === 'authenticated' && !!session?.accessToken && !!organizationId;
@@ -124,7 +128,7 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
 
   const org = orgDetail ?? organization;
   const invoice = quoteAsInvoiceForPrint(quote);
-  const safeFilename = `${quote.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`;
+  const safeFilename = `${quote.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${mobileQuote ? '-quote5' : ''}.pdf`;
 
   return (
     <>
@@ -136,6 +140,7 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
           documentId={id}
           organizationId={organizationId}
           filename={safeFilename}
+          invoiceVersion={mobileQuote ? 5 : undefined}
           emailSubject={`Quote ${quote.number}`}
           whatsappMessage={buildQuoteWhatsAppMessage(quote)}
           whatsappPhone={quote.customer?.phone ?? undefined}
@@ -143,13 +148,17 @@ export function QuotePrintPageContent({ params }: { params: Promise<{ id: string
         />
       )}
 
-      <InvoicePrintView
-        invoice={invoice}
-        org={org}
-        documentLabel="QUOTE"
-        numberLabel="Quote #"
-        dueDateLabel="Valid Until"
-      />
+      {mobileQuote ? (
+        <MobileInvoiceView invoice={invoice} organization={org} documentType="quote" />
+      ) : (
+        <InvoicePrintView
+          invoice={invoice}
+          org={org}
+          documentLabel="QUOTE"
+          numberLabel="Quote #"
+          dueDateLabel="Valid Until"
+        />
+      )}
 
       <style jsx global>{`
         @media print {
