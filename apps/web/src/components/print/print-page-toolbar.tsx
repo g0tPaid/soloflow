@@ -66,6 +66,7 @@ export function PrintPageToolbar({
     return fetchServerPdfFile(documentType, documentId, {
       organizationId,
       filename,
+      version: invoiceVersion,
     });
   }
 
