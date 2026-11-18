@@ -27,7 +27,7 @@ const styles = StyleSheet.create({
   footer: { marginTop: 10, alignItems: 'center' },
 });
 
-export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; org: Organization; baseUrl: string }) {
+export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string } }) {
   const data = getMobileInvoiceData(invoice, org);
 
   return (
@@ -75,10 +75,10 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
       <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', alignItems: 'center', gap: 5 }} wrap={false}>
         <Link src="https://wise.com/pay/me/ajmala214" style={{ width: '100%', height: 39, textDecoration: 'none' }}>
-          <Image src="https://soloflow.practicalthings.store/Pay%20with%20Wise%20Button.png" style={{ width: '100%', height: 39, objectFit: 'contain' }} />
+          <Image src={buttonImages?.wise ?? `${baseUrl}/Pay%20with%20Wise%20Button.png`} style={{ width: '100%', height: 39, objectFit: 'contain' }} />
         </Link>
         <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: '100%', height: 39, textDecoration: 'none' }}>
-          <Image src="https://soloflow.practicalthings.store/Sourcing%20Center%20Download%20Invoice%20Button.png" style={{ width: '100%', height: 39, objectFit: 'contain' }} />
+          <Image src={buttonImages?.download ?? `${baseUrl}/Sourcing%20Center%20Download%20Invoice%20Button.png`} style={{ width: '100%', height: 39, objectFit: 'contain' }} />
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
