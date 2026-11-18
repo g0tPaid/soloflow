@@ -66,6 +66,7 @@ const LIST_ACTIONS = [
 const NAV_ACTIONS = [
   { href: DROPSHIPPER_INVOICE_PATH, label: 'Invoice 4 · Dropshippers', icon: FileText },
   { href: '/invoices-v5', label: 'Invoice 5 · Mobile', icon: FileText },
+  { href: '/invoices-v7', label: 'Invoice 7 · Red Design Preview', icon: FileText },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/vendors', label: 'Vendors', icon: Contact },
   { href: '/products', label: 'Products', icon: Package },
@@ -98,6 +99,21 @@ export function MobileHubActions() {
           );
         })}
       </div>
+
+      <Link
+        href="/invoices-v7"
+        className="flex min-h-[56px] items-center justify-between gap-3 rounded-2xl border border-red-300 bg-gradient-to-r from-[#ed002d] to-[#aa001a] px-4 py-3 text-white shadow-md transition active:scale-[0.98]"
+        aria-label="Open Invoice 7 red design preview"
+      >
+        <span className="flex items-center gap-3">
+          <FileText className="h-6 w-6 shrink-0" strokeWidth={2.2} />
+          <span className="flex flex-col">
+            <span className="text-sm font-extrabold">Invoice 7 · Red Design Preview</span>
+            <span className="text-xs text-white/85">Tap to open an invoice with the new design</span>
+          </span>
+        </span>
+        <span className="shrink-0 text-xl font-bold" aria-hidden="true">›</span>
+      </Link>
 
       <div className="grid grid-cols-3 gap-3">
         {LIST_ACTIONS.map((action) => {
