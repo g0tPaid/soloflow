@@ -5,12 +5,13 @@ import { sevenColorMark } from '@/lib/print-pdf/sourcing-brand-mark';
 import { trackingQrPath, trackingUrl } from '@/lib/print-pdf/invoice-tracking-qr-data';
 import { getMobileInvoiceData } from '@/lib/print-pdf/mobile-invoice-data';
 
-export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice; organization?: Organization | null }) {
+export function MobileInvoiceView({ invoice, organization, documentType = 'invoice' }: { invoice: Invoice; organization?: Organization | null; documentType?: 'invoice' | 'quote' }) {
+  const isQuote = documentType === 'quote';
   const data = getMobileInvoiceData(invoice, organization);
   const barcode = buildInvoiceBarcode(invoice.number, invoice.id);
 
   return (
-    <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label="Mobile invoice">
+    <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label={isQuote ? "Mobile quote" : "Mobile invoice"}>
       <header className="space-y-1 text-center">
         <p className="mb-2 text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold tracking-tight">
           sourcing<span className="text-[#e4001b]">.center</span>
@@ -20,16 +21,17 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
         {data.contact ? <p className="break-words text-xs">{data.contact}</p> : null}
         {data.taxId ? <p className="text-xs">TRN {data.taxId}</p> : null}
         <h1 className="break-words pt-2 text-sm font-bold">
-          INVOICE <span className="font-mono text-xs font-normal"> · {invoice.number}</span>
+          {isQuote ? 'QUOTE' : 'INVOICE'} <span className="font-mono text-xs font-normal"> · {invoice.number}</span>
         </h1>
         <p>{data.date}</p>
-        {invoice.customer?.name ? <p>Bill to: <strong>{invoice.customer.name}</strong></p> : null}
+        {isQuote && invoice.dueDate ? <p className="text-xs font-semibold">Valid until: {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</p> : null}
+        {invoice.customer?.name ? <p>{isQuote ? 'Prepared for:' : 'Bill to:'} <strong>{invoice.customer.name}</strong></p> : null}
         {data.customerAddress.length ? (
           <p className="whitespace-pre-line break-words text-xs text-zinc-700">{data.customerAddress.join('\n')}</p>
         ) : null}
-        {data.status ? <p className="font-semibold">{data.status}</p> : null}
+        {!isQuote && data.status ? <p className="font-semibold">{data.status}</p> : null}
         <div className="pt-2">
-          <svg width={Math.min(barcode.width * 1.12, 166)} height={22} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`Invoice barcode for ${barcode.value}`}>
+          <svg width={Math.min(barcode.width * 1.12, 166)} height={22} viewBox={barcode.viewBox} preserveAspectRatio="none" className="mx-auto max-w-full" role="img" aria-label={`${isQuote ? 'Quote' : 'Invoice'} barcode for ${barcode.value}`}>
             {barcode.bands.map(({ fill, path }) => <path key={fill} fill={fill} d={path} />)}
           </svg>
           <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
@@ -42,7 +44,7 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
           {data.shipTo.address.length ? <p className="whitespace-pre-line break-words">{data.shipTo.address.join('\n')}</p> : null}
         </section>
       ) : null}
-      <div className="mt-3 text-center text-xs"><a href={`\/api\/pdf\/print\/invoices\/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(organization?.id ?? "")}&version=1`} className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 font-bold text-blue-800 shadow-sm transition hover:bg-blue-100">Download Official Invoice</a></div>
+      <div className="mt-3 text-center text-xs"><a href={`/api/pdf/print/${isQuote ? 'quotes' : 'invoices'}/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(organization?.id ?? '')}&version=${isQuote ? '5' : '1'}`} className="inline-flex rounded-xl border border-blue-200 bg-blue-50 px-4 py-2.5 font-bold text-blue-800 shadow-sm transition hover:bg-blue-100">Download Official {isQuote ? 'Quote' : 'Invoice'}</a></div>
       <ul className="my-4 space-y-3 border-t border-dashed border-zinc-400 pt-4">
         {data.items.map((item) => {
           const image = resolveImageSrc(item.image);
@@ -65,17 +67,17 @@ export function MobileInvoiceView({ invoice, organization }: { invoice: Invoice;
           <div key={label} className="flex justify-between gap-2"><dt>{label}</dt><dd>{amount}</dd></div>
         ))}
         <div className="flex flex-wrap justify-between gap-x-2 border-y-2 border-zinc-900 py-2 text-lg font-extrabold">
-          <dt>TOTAL DUE</dt><dd>{data.balance}</dd>
+          <dt>{isQuote ? 'QUOTED TOTAL' : 'TOTAL DUE'}</dt><dd>{data.balance}</dd>
         </div>
       </dl>
       {invoice.notes ? <p className="mt-3 whitespace-pre-wrap break-words text-xs">{invoice.notes}</p> : null}
       <footer className="mt-5 grid justify-items-center gap-3 text-center">
-        <a href={trackingUrl} className="flex items-center gap-2 rounded-lg border border-zinc-300 px-2 py-1.5 text-left">
+        {!isQuote ? <a href={trackingUrl} className="flex items-center gap-2 rounded-lg border border-zinc-300 px-2 py-1.5 text-left">
           <svg width={47} height={47} viewBox="0 0 37 37" aria-hidden="true">
             <path fill="#000" d={trackingQrPath} />
           </svg>
           <span><span className="block font-bold">Track shipment</span><span className="block text-xs">sourcing.center/track</span></span>
-        </a>
+        </a> : null}
         {data.website ? <p className="break-words text-xs">{data.website}</p> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
         <img src={sevenColorMark} alt="Seven Color" className="h-8 w-8 object-contain" />
