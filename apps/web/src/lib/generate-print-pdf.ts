@@ -58,7 +58,8 @@ export async function generatePrintPdf(
   if (version === 5 && document.type === 'invoices') {
     const asset = async (filename: string) => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
-      return `data:image/png;base64,${bytes.toString('base64')}`;
+      const cropped = await sharp(bytes).trim({ background: '#ffffff', threshold: 35 }).png().toBuffer();
+      return `data:image/png;base64,${cropped.toString('base64')}`;
     };
     const [wise, download] = await Promise.all([
       asset('Pay with Wise Button.png'),
