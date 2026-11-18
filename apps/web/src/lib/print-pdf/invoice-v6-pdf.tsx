@@ -16,13 +16,13 @@ const SLATE = '#475569';
 
 const styles = StyleSheet.create({
   page: {
-    paddingHorizontal: 6, paddingVertical: 8, backgroundColor: '#f2f6fc',
+    paddingHorizontal: 4, paddingVertical: 8, backgroundColor: '#f2f6fc',
     color: '#111827', fontSize: 8.5, fontFamily: 'Helvetica',
   },
   receipt: {
     backgroundColor: '#ffffff', borderRadius: 16,
     borderWidth: 0.7, borderColor: '#e0e7ed',
-    paddingHorizontal: 9, paddingTop: 10, paddingBottom: 10,
+    paddingHorizontal: 7, paddingTop: 10, paddingBottom: 10,
   },
   center: { alignItems: 'center', textAlign: 'center' },
   logoRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 3 },
@@ -91,13 +91,13 @@ const styles = StyleSheet.create({
   },
   totalDueText: { color: DARK_GREEN, fontWeight: 'bold', fontSize: 11.4 },
   buttonRow: {
-    flexDirection: 'row', gap: 5, justifyContent: 'center',
+    flexDirection: 'row', gap: 4, justifyContent: 'center',
     alignItems: 'center', marginTop: 8,
   },
-  wiseButton: { width: 88.1, height: 24.5, borderWidth: 0, backgroundColor: 'transparent' },
-  wiseButtonImg: { width: 88.1, height: 24.5, objectFit: 'fill' },
-  downloadButton: { width: 103.2, height: 24.5, borderWidth: 0, backgroundColor: 'transparent' },
-  downloadButtonImg: { width: 103.2, height: 24.5, objectFit: 'fill' },
+  wiseButton: { width: 92, height: 22.3, borderWidth: 0, backgroundColor: 'transparent' },
+  wiseButtonImg: { width: 92, height: 22.3, objectFit: 'fill' },
+  downloadButton: { width: 106, height: 22.3, borderWidth: 0, backgroundColor: 'transparent' },
+  downloadButtonImg: { width: 106, height: 22.3, objectFit: 'fill' },
   browserNote: {
     alignSelf: 'flex-end', color: '#971444',
     backgroundColor: '#ffebf3', borderRadius: 9,
