@@ -42,7 +42,7 @@ export function DownloadInvoicePdfButton({
         documentId: invoiceId,
         organizationId,
         organization,
-        filename: version === 1 ? filename : filename.replace(/(?:\.pdf)?$/i, `-v${version}.pdf`),
+        filename: version === 1 ? filename : filename.replace(/(?:\.pdf)?$/i, version === 6 ? '-v6-redesign.pdf' : `-v${version}.pdf`),
         version: version === 1 ? undefined : version,
       });
       const saved = await downloadPdfToDevice(file);
