@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server';
 import { auth } from '@/auth';
 import { apiFetch } from '@/lib/api';
+import { publicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
 export const runtime = 'nodejs';
 
@@ -22,7 +23,7 @@ export async function GET(
       `/invoices/${encodeURIComponent(id)}/public-download-token`,
       { token: session.accessToken, organizationId },
     );
-    const url = `${new URL(request.url).origin}/api/pdf/public-invoice/${encodeURIComponent(token)}`;
+    const url = publicInvoiceDownloadUrl(token);
     return NextResponse.json({ url }, {
       headers: { 'Cache-Control': 'private, no-store' },
     });
