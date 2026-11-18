@@ -2,6 +2,8 @@ import { invoicePdfVersion, usesBrandedInvoiceLayout } from '@/lib/invoice-versi
 import 'server-only';
 
 import sharp from 'sharp';
+import { readFile } from 'node:fs/promises';
+import path from 'node:path';
 import { prepareTransparentSignature, removeWhiteSignaturePixels } from '@/lib/print-pdf/transparent-signature';
 import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
@@ -53,6 +55,17 @@ export async function generatePrintPdf(
   const quoteVersion = requestedQuoteVersion === null ? undefined : Number(requestedQuoteVersion);
   const document = await loadPrintDocument(accessToken, type, id, organizationId, quoteVersion);
   const version = invoicePdfVersion(searchParams.get('version'));
+  if (version === 5 && document.type === 'invoices') {
+    const asset = async (filename: string) => {
+      const bytes = await readFile(path.join(process.cwd(), 'public', filename));
+      return `data:image/png;base64,${bytes.toString('base64')}`;
+    };
+    const [wise, download] = await Promise.all([
+      asset('Pay with Wise Button.png'),
+      asset('Sourcing Center Download Invoice Button.png'),
+    ]);
+    return renderToBuffer(buildPdfDocument(document, baseUrl, version, { wise, download }));
+  }
   if (usesBrandedInvoiceLayout(version) && document.type === 'invoices') {
     const org = await prepareTransparentSignature(document.org, (source) => transparentSignature(source, baseUrl));
     return renderToBuffer(buildPdfDocument({ ...document, org }, baseUrl, version));
