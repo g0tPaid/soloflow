@@ -7,7 +7,7 @@ export function buildServerPdfUrl(
   const params = new URLSearchParams();
   if (options?.organizationId) params.set('org', options.organizationId);
   if (options?.filename) params.set('filename', options.filename);
-  if (type === 'invoices' && options?.version) params.set('version', String(options.version));
+  if ((type === 'invoices' || type === 'quotes') && options?.version) params.set('version', String(options.version));
   if (type === 'quotes' && options?.quoteVersion) params.set('quoteVersion', String(options.quoteVersion));
   const query = params.toString();
   return `/api/pdf/print/${type}/${id}${query ? `?${query}` : ''}`;
