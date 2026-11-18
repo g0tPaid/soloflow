@@ -1,4 +1,4 @@
-import { Image, Link, Page, Path, StyleSheet, Svg, Text, View } from '@react-pdf/renderer';
+import { Image, Link, Page, StyleSheet, Text, View } from '@react-pdf/renderer';
 import type { Invoice, Organization } from '@/lib/api';
 import { resolveImageSrcForPrint } from '@/lib/organization-branding';
 import { InvoiceBarcode } from './invoice-barcode';
@@ -73,38 +73,12 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
-      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'column', alignItems: 'stretch', gap: 6 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: '100%', height: 32, borderRadius: 7, backgroundColor: '#07451e', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
-          <View style={{ position: 'absolute', top: 0, left: 0 }}>
-            <Svg width={202} height={32} viewBox="0 0 202 38">
-              <Path d="M171 0H202V38H183L194 12H178Z" fill="#2d8b38" opacity={0.45} />
-              <Path d="M0 0H202V5H0Z" fill="#195c2b" opacity={0.35} />
-              <Path d="M10 11h18l-5 6H15zM17 19h16l-5 6H12z" fill="#ffffff" />
-              <Path d="M94 8V30" stroke="#d6e6d7" strokeWidth={0.9} />
-            </Svg>
-          </View>
-          <View style={{ position: 'absolute', top: 0, left: 0, width: 202, height: 32, flexDirection: 'row', alignItems: 'center' }}>
-            <Text style={{ width: 94, textAlign: 'center', color: '#ffffff', fontSize: 16, fontWeight: 'bold', paddingLeft: 19 }}>WISE</Text>
-            <Text style={{ width: 108, textAlign: 'center', color: '#ffffff', fontSize: 10, fontWeight: 'bold' }}>Pay with Wise</Text>
-          </View>
+      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', alignItems: 'center', gap: 5 }} wrap={false}>
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: '100%', height: 39, textDecoration: 'none' }}>
+          <Image src="https://soloflow.practicalthings.store/Pay%20with%20Wise%20Button.png" style={{ width: '100%', height: 39, objectFit: 'contain' }} />
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: '100%', height: 32, borderRadius: 7, backgroundColor: '#e60020', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
-          <View style={{ position: 'absolute', top: 0, left: 0 }}>
-            <Svg width={202} height={32} viewBox="0 0 202 38">
-              <Path d="M172 0h30v38h-48Z" fill="#ff4351" opacity={0.4} />
-              <Path d="M0 0h202v5H0Z" fill="#ff6972" opacity={0.2} />
-              <Path d="M108 7v24" stroke="#ffffff" strokeWidth={0.9} opacity={0.85} />
-              <Path d="M123 11v13m-5-5 5 5 5-5M117 28h12" stroke="#ffffff" strokeWidth={2.2} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-            </Svg>
-          </View>
-          <View style={{ position: 'absolute', left: 6, top: 6, width: 96 }}>
-            <Text style={{ color: '#ffffff', fontSize: 10, fontWeight: 'bold', textAlign: 'center' }}>sourcing.center</Text>
-            <Text style={{ color: '#ffffff', fontSize: 6, textAlign: 'center', marginTop: 3 }}>by Seven Color Trading Co Ltd</Text>
-          </View>
-          <View style={{ position: 'absolute', left: 137, top: 6, width: 60 }}>
-            <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: 'bold', textAlign: 'center' }}>Download</Text>
-            <Text style={{ color: '#ffffff', fontSize: 9.5, fontWeight: 'bold', textAlign: 'center' }}>Invoice</Text>
-          </View>
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: '100%', height: 39, textDecoration: 'none' }}>
+          <Image src="https://soloflow.practicalthings.store/Sourcing%20Center%20Download%20Invoice%20Button.png" style={{ width: '100%', height: 39, objectFit: 'contain' }} />
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
