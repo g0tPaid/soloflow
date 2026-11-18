@@ -263,9 +263,11 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                     </Button>
                   )}
               </div>
-              {invoicePath === '/invoices-v5' ? (
+              {invoicePath === '/invoices-v5' || invoicePath === '/invoices-v6' ? (
                 <Button asChild variant="outline" size="lg">
-                  <Link href={`/print/invoices/${id}?version=5&org=${encodeURIComponent(organizationId)}`}>Preview mobile invoice</Link>
+                  <Link href={`/print/invoices/${id}?version=${invoicePath === '/invoices-v6' ? 6 : 5}&org=${encodeURIComponent(organizationId)}`}>
+                    {invoicePath === '/invoices-v6' ? 'Preview Invoice 6' : 'Preview mobile invoice'}
+                  </Link>
                 </Button>
               ) : null}
               {!isNew && (
