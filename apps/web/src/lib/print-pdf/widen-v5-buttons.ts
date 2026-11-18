@@ -20,9 +20,46 @@ export function widenV5Button(
   const extra = targetWidth - width;
   if (extra === 0) return { pixels: new Uint8Array(pixels), width, height };
 
-  // Safe empty vertical bands in the supplied original branded artwork.
-  const first = Math.round(width * (kind === 'wise' ? 0.378 : 0.514));
-  const second = Math.round(width * (kind === 'wise' ? 0.45 : 0.69));
+  // A hard-coded seam once passed through the final "e" in WISE and
+  // repeated its white horizontal stroke across the widened band. Pick both
+  // seams from *actual green background pixels* so letters cannot be copied.
+  const chooseWiseSeam = (targetRatio: number, leftRatio: number, rightRatio: number) => {
+    const target = Math.round(width * targetRatio);
+    const start = Math.max(2, Math.round(width * leftRatio));
+    const end = Math.min(width - 3, Math.round(width * rightRatio));
+    let best = target;
+    let bestScore = Number.POSITIVE_INFINITY;
+    for (let x = start; x <= end; x++) {
+      let score = Math.abs(x - target) * 2;
+      for (let y = Math.round(height * 0.27); y < Math.round(height * 0.73); y++) {
+        for (let dx = -2; dx <= 2; dx++) {
+          const at = (y * width + x + dx) * 4;
+          const red = pixels[at], green = pixels[at + 1], blue = pixels[at + 2];
+          const brightness = Math.max(red, green, blue);
+          // Real empty button space is solid dark green. Pale strokes,
+          // separator pixels, bright graphics, and transparent edges are not.
+          if (brightness > 105 || green < red + 8 || green < blue + 6 || pixels[at + 3] < 200) {
+            score += 500;
+          }
+        }
+      }
+      if (score < bestScore) {
+        bestScore = score;
+        best = x;
+      }
+    }
+    // Better to stop than create a broken payment logo on unexpected artwork.
+    if (bestScore > width * 0.35 + 100) {
+      throw new Error('Unable to find clean green space for Wise button extension');
+    }
+    return best;
+  };
+  const first = kind === 'wise'
+    ? chooseWiseSeam(0.398, 0.36, 0.414)
+    : Math.round(width * 0.514);
+  const second = kind === 'wise'
+    ? chooseWiseSeam(0.448, 0.422, 0.468)
+    : Math.round(width * 0.69);
   const firstExtra = Math.floor(extra / 2);
   const secondExtra = extra - firstExtra;
   const result = new Uint8Array(targetWidth * height * 4);
