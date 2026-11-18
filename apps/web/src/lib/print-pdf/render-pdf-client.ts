@@ -40,11 +40,29 @@ export async function renderInvoicePdfFile(
   const printOrg = usesBrandedInvoiceLayout(version)
     ? await prepareTransparentSignature(prepared.org, transparentSignature)
     : prepared.org;
+  const buttonImages = version === 5
+    ? await (async () => {
+        const asset = async (filename: string) => {
+          const response = await fetch(`${origin}/${encodeURIComponent(filename)}`);
+          if (!response.ok) throw new Error(`Unable to load invoice button: ${filename}`);
+          const bytes = new Uint8Array(await response.arrayBuffer());
+          let binary = '';
+          for (const byte of bytes) binary += String.fromCharCode(byte);
+          return `data:image/png;base64,${btoa(binary)}`;
+        };
+        const [wise, download] = await Promise.all([
+          asset('Pay with Wise Button.png'),
+          asset('Sourcing Center Download Invoice Button.png'),
+        ]);
+        return { wise, download };
+      })()
+    : undefined;
   const blob = await pdf(
     buildPdfDocument(
       { type: 'invoices', invoice: prepared.invoice, org: printOrg },
       origin,
       version,
+      buttonImages,
     ),
   ).toBlob();
   const safeName = filename.endsWith('.pdf') ? filename : `${filename}.pdf`;
