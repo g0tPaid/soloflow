@@ -1,7 +1,7 @@
 'use client';
 
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
@@ -189,6 +189,8 @@ function QuoteFormEditor(
   },
 ) {
   const router = useRouter();
+  const pathname = usePathname();
+  const basePath = pathname.startsWith('/quotes-v5') ? '/quotes-v5' : '/quotes';
   const isEdit = props.mode === 'edit';
   const quote = isEdit ? props.quote : undefined;
   const businessCurrency = props.defaultCurrency ?? 'INR';
@@ -339,7 +341,7 @@ function QuoteFormEditor(
         return;
       }
       await props.onSaved?.();
-      router.push(`/quotes/${created.id}?new=1`);
+      router.push(`${basePath}/${created.id}?new=1`);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Failed to create quote');
     } finally {
