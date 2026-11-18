@@ -9,6 +9,7 @@ import { renderToBuffer } from '@react-pdf/renderer';
 import { loadPrintDocument } from '@/lib/print-pdf/load-print-data';
 import { buildPdfDocument } from '@/lib/print-pdf/pdf-documents';
 import { isolateInvoiceButton } from '@/lib/print-pdf/isolate-invoice-button';
+import { recolorV6Button } from '@/lib/print-pdf/v6-button-art';
 import { apiFetch } from '@/lib/api';
 import { publicInvoiceDownloadUrl } from '@/lib/public-invoice-download-url';
 
@@ -59,18 +60,19 @@ export async function generatePrintPdf(
   const document = await loadPrintDocument(accessToken, type, id, organizationId, quoteVersion);
   const version = invoicePdfVersion(searchParams.get('version'));
   if ((version === 5 || version === 6) && document.type === 'invoices') {
-    const asset = async (filename: string) => {
+    const asset = async (filename: string, kind: 'wise' | 'download') => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
       const clean = isolateInvoiceButton(data, info.width, info.height);
-      const cropped = await sharp(clean.pixels, {
+      const styledPixels = version === 6 ? recolorV6Button(clean.pixels, kind) : clean.pixels;
+      const cropped = await sharp(styledPixels, {
         raw: { width: clean.width, height: clean.height, channels: 4 },
       }).png().toBuffer();
       return `data:image/png;base64,${cropped.toString('base64')}`;
     };
     const [wise, download] = await Promise.all([
-      asset('Pay with Wise Button.png'),
-      asset('Sourcing Center Download Invoice Button.png'),
+      asset('Pay with Wise Button.png', 'wise'),
+      asset('Sourcing Center Download Invoice Button.png', 'download'),
     ]);
     const { token } = await apiFetch<{ token: string }>(
       `/invoices/${encodeURIComponent(id)}/public-download-token`,
