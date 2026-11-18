@@ -48,7 +48,7 @@ const styles = StyleSheet.create({
   billAddress: { flex: 1 },
   smallMuted: { fontSize: 6.9, color: MUTED },
   name: { fontSize: 8.1, fontWeight: 'bold', marginTop: 3 },
-  address: { fontSize: 7.3, lineHeight: 1.34, color: '#1e293b' },
+  address: { fontSize: 7.3, lineHeight: 10.3, color: '#1e293b' },
   items: { marginTop: 9 },
   item: {
     flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 7,
