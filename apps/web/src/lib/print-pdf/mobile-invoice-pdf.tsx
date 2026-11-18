@@ -73,20 +73,38 @@ export function MobileInvoicePdf({ invoice, org, baseUrl }: { invoice: Invoice; 
         <View key={label} style={styles.totalRow}><Text>{label}</Text><Text>{amount}</Text></View>
       ))}
       <View style={styles.balance}><Text>TOTAL DUE</Text><Text>{data.balance}</Text></View>
-      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 7 }} wrap={false}>
-        <Link src="https://wise.com/pay/me/ajmala214" style={[styles.action, { width: 77, backgroundColor: '#edf7e9', borderColor: '#b9d6aa', position: 'relative', overflow: 'hidden' }]}>
-          <View style={{ position: 'absolute', left: 5, top: 5, opacity: 0.22 }}>
-            <Svg width={21} height={19} viewBox="0 0 24 24">
-              <Path d="M2 6h13l-3 4H5l-3-4zM8 11h14l-4 4H6l2-4zM11 16h10l-4 4H8l3-4z" fill="#2d7b2a" />
+      <View style={{ marginTop: 8, paddingTop: 8, borderTopWidth: 1, borderTopColor: '#d4d4d8', flexDirection: 'row', justifyContent: 'center', alignItems: 'center', gap: 6 }} wrap={false}>
+        <Link src="https://wise.com/pay/me/ajmala214" style={{ width: 93, height: 29, borderRadius: 7, backgroundColor: '#07451e', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
+          <View style={{ position: 'absolute', top: 0, left: 0 }}>
+            <Svg width={93} height={29} viewBox="0 0 93 29">
+              <Path d="M78 0H93V29H83L90 9H82L78 0Z" fill="#2d8b38" opacity={0.45} />
+              <Path d="M0 0H93V4H0Z" fill="#195c2b" opacity={0.35} />
+              <Path d="M4 9h12l-3 4H8l-4-4zM9 14h10l-3 4H7l2-4z" fill="#ffffff" />
+              <Path d="M39 8V22" stroke="#d6e6d7" strokeWidth={0.6} />
             </Svg>
           </View>
-          <Text style={{ color: '#205b1d', fontSize: 8, fontWeight: 'bold', textAlign: 'center' }}>Pay with Wise</Text>
+          <View style={{ position: 'absolute', top: 0, left: 0, width: 93, height: 29, flexDirection: 'row', alignItems: 'center' }}>
+            <Text style={{ width: 37, textAlign: 'center', color: '#ffffff', fontSize: 11, fontWeight: 'bold', paddingLeft: 9 }}>WISE</Text>
+            <Text style={{ width: 56, textAlign: 'center', color: '#ffffff', fontSize: 7, fontWeight: 'bold', paddingLeft: 3 }}>Pay with Wise</Text>
+          </View>
         </Link>
-        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={[styles.action, { width: 119, backgroundColor: '#eff5ff', borderColor: '#bed4f9' }]}>
-          <Svg width={13} height={13} viewBox="0 0 24 24">
-            <Path d="M6 2h8l4 4v16H6zM14 2v5h5M12 10v8m-3-3 3 3 3-3" stroke="#1d4ed8" strokeWidth={1.8} fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </Svg>
-          <Text style={{ color: '#1d4ed8', fontSize: 8, fontWeight: 'bold' }}>Download Official Invoice</Text>
+        <Link src={`${baseUrl}/api/pdf/print/invoices/${encodeURIComponent(invoice.id)}?org=${encodeURIComponent(org.id)}&version=1`} style={{ width: 105, height: 29, borderRadius: 7, backgroundColor: '#e60020', position: 'relative', overflow: 'hidden', textDecoration: 'none' }}>
+          <View style={{ position: 'absolute', top: 0, left: 0 }}>
+            <Svg width={105} height={29} viewBox="0 0 105 29">
+              <Path d="M89 0h16v29H75L89 0Z" fill="#ff4351" opacity={0.4} />
+              <Path d="M0 0h105v4H0Z" fill="#ff6972" opacity={0.2} />
+              <Path d="M58 6v17" stroke="#ffffff" strokeWidth={0.65} opacity={0.85} />
+              <Path d="M69 10v9m-4-4 4 4 4-4M64 22h10" stroke="#ffffff" strokeWidth={1.6} fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            </Svg>
+          </View>
+          <View style={{ position: 'absolute', left: 3, top: 6, width: 53 }}>
+            <Text style={{ color: '#ffffff', fontSize: 7.4, fontWeight: 'bold', textAlign: 'center' }}>sourcing.center</Text>
+            <Text style={{ color: '#ffffff', fontSize: 4.3, textAlign: 'center', marginTop: 2 }}>by Seven Color Trading</Text>
+          </View>
+          <View style={{ position: 'absolute', left: 76, top: 7, width: 27 }}>
+            <Text style={{ color: '#ffffff', fontSize: 7.1, fontWeight: 'bold', textAlign: 'center' }}>Download</Text>
+            <Text style={{ color: '#ffffff', fontSize: 7.1, fontWeight: 'bold', textAlign: 'center' }}>Invoice</Text>
+          </View>
         </Link>
       </View>
       {invoice.notes ? <Text style={[styles.detail, { marginTop: 8 }]}>{invoice.notes}</Text> : null}
