@@ -66,6 +66,25 @@ const invoice: Invoice = {
 };
 
 describe('buildPdfDocument', () => {
+  it('renders Invoice Version 6 as a compact receipt linked to Version 1', async () => {
+    const downloadUrl =
+      'https://soloflow.practicalthings.store/api/pdf/public-invoice/dummy.signature';
+    const buffer = await renderToBuffer(
+      buildPdfDocument(
+        { type: 'invoices', invoice, org },
+        'http://localhost:3000',
+        6,
+        { wise: PNG, download: PNG },
+        downloadUrl,
+      ),
+    );
+    expect(buffer.subarray(0, 5).toString()).toBe('%PDF-');
+    const source = buffer.toString('latin1');
+    expect((source.match(/\/Type \/Page\b/g) ?? []).length).toBe(1);
+    expect(source).toContain('soloflow.practicalthings.store');
+    expect(source).not.toContain('localhost');
+  });
+
   it('generates a standalone Version 5 PDF with a public HTTPS Version 1 download link', async () => {
     const customerUrl = 'https://soloflow.practicalthings.store/api/pdf/public-invoice/valid_token.sig';
     const buffer = await renderToBuffer(
