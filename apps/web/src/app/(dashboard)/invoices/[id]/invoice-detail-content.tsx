@@ -271,6 +271,13 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                 </Button>
               ) : null}
               {!isNew && (
+                <Button asChild variant="outline" size="lg" className="border-red-300 text-red-700">
+                  <Link href={`/print/invoices/${encodeURIComponent(id)}?version=7&org=${encodeURIComponent(organizationId)}`}>
+                    Preview Invoice 7 · Red design
+                  </Link>
+                </Button>
+              )}
+              {!isNew && (
                 <>
                   <DownloadInvoicePdfButton
                     invoiceId={id}
