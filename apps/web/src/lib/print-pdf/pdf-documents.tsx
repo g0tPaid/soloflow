@@ -1318,13 +1318,9 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
       return (
         <Document>
           {version === 5 ? (
-            <>
-              <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} />
-              <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} />
-            </>
-          ) : (
-            <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version} />
-          )}
+            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} />
+          ) : null}
+          <InvoicePdfBody invoice={document.invoice} org={document.org} baseUrl={baseUrl} version={version === 5 ? undefined : version} />
         </Document>
       );
     case 'quotes':
