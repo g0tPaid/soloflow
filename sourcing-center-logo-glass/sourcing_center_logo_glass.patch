@@ -1,0 +1,205 @@
+From d4aa44c8fc6baf6673f46f8577568e4e602c2903 Mon Sep 17 00:00:00 2001
+From: Cursor Agent <cursoragent@cursor.com>
+Date: Fri, 11 Sep 2026 03:29:14 +0000
+Subject: [PATCH] Replace the black Seven Color mark with Apple-style glass.
+
+Keep the red 7 glyph, drop the black tile, and show a frosted glass plate behind the logo only.
+---
+ public/seven-color-badge.svg              | 17 ++++++++-
+ src/app/globals.css                       | 36 ++++++++++++++++++
+ src/components/brand/seven-color-mark.tsx | 25 +++++++-----
+ src/components/brand/sourcing-logo.tsx    | 46 +++++++++++------------
+ 4 files changed, 89 insertions(+), 35 deletions(-)
+
+diff --git a/public/seven-color-badge.svg b/public/seven-color-badge.svg
+index dcd3558..c975087 100644
+--- a/public/seven-color-badge.svg
++++ b/public/seven-color-badge.svg
+@@ -1,4 +1,17 @@
+ <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 100 100" role="img" aria-label="Seven Color">
+-  <rect width="100" height="100" rx="12" fill="#0A0A0A"/>
+-  <image href="/seven-color-mark-clear.png" x="18" y="12" width="64" height="76" preserveAspectRatio="xMidYMid meet"/>
++  <defs>
++    <linearGradient id="logoGlass" x1="18%" y1="0%" x2="82%" y2="100%">
++      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.92"/>
++      <stop offset="48%" stop-color="#eef5fc" stop-opacity="0.55"/>
++      <stop offset="100%" stop-color="#c4d8ec" stop-opacity="0.42"/>
++    </linearGradient>
++    <radialGradient id="logoSheen" cx="22%" cy="12%" r="70%">
++      <stop offset="0%" stop-color="#ffffff" stop-opacity="0.7"/>
++      <stop offset="55%" stop-color="#ffffff" stop-opacity="0"/>
++    </radialGradient>
++  </defs>
++  <rect width="100" height="100" rx="22" fill="url(#logoGlass)"/>
++  <rect width="100" height="100" rx="22" fill="url(#logoSheen)"/>
++  <rect width="99" height="99" x="0.5" y="0.5" rx="22" fill="none" stroke="#ffffff" stroke-opacity="0.62"/>
++  <image href="/seven-color-mark-clear.png" x="14" y="10" width="72" height="80" preserveAspectRatio="xMidYMid meet"/>
+ </svg>
+diff --git a/src/app/globals.css b/src/app/globals.css
+index 58a6f14..533c136 100644
+--- a/src/app/globals.css
++++ b/src/app/globals.css
+@@ -119,6 +119,42 @@ body {
+   }
+ }
+ 
++.logo-glass {
++  border-radius: 22%;
++  background:
++    radial-gradient(120% 80% at 18% 8%, rgba(255, 255, 255, 0.92), transparent 52%),
++    radial-gradient(90% 70% at 82% 100%, rgba(186, 214, 240, 0.42), transparent 55%),
++    linear-gradient(165deg, rgba(255, 255, 255, 0.78) 0%, rgba(236, 244, 252, 0.4) 48%, rgba(196, 216, 236, 0.34) 100%);
++  box-shadow:
++    inset 0 1px 0 rgba(255, 255, 255, 0.86),
++    inset 0 -10px 18px rgba(120, 152, 186, 0.14),
++    0 10px 24px rgba(15, 23, 42, 0.12);
++  border: 0.5px solid rgba(255, 255, 255, 0.62);
++  backdrop-filter: blur(18px) saturate(1.7);
++  -webkit-backdrop-filter: blur(18px) saturate(1.7);
++}
++
++.logo-glass::before {
++  content: "";
++  position: absolute;
++  inset: 0;
++  border-radius: inherit;
++  background: linear-gradient(135deg, rgba(255, 255, 255, 0.55) 0%, rgba(255, 255, 255, 0.04) 42%, transparent 62%);
++  pointer-events: none;
++}
++
++.dark .logo-glass {
++  background:
++    radial-gradient(120% 80% at 18% 8%, rgba(255, 255, 255, 0.22), transparent 52%),
++    radial-gradient(90% 70% at 82% 100%, rgba(80, 140, 200, 0.22), transparent 55%),
++    linear-gradient(165deg, rgba(255, 255, 255, 0.16) 0%, rgba(148, 176, 210, 0.12) 48%, rgba(40, 60, 90, 0.28) 100%);
++  box-shadow:
++    inset 0 1px 0 rgba(255, 255, 255, 0.28),
++    inset 0 -10px 18px rgba(0, 0, 0, 0.28),
++    0 10px 24px rgba(0, 0, 0, 0.35);
++  border-color: rgba(255, 255, 255, 0.22);
++}
++
+ .glass {
+   background: color-mix(in oklab, var(--paper-elevated) 72%, transparent);
+   backdrop-filter: blur(18px) saturate(1.2);
+diff --git a/src/components/brand/seven-color-mark.tsx b/src/components/brand/seven-color-mark.tsx
+index 19b8133..ef7ae65 100644
+--- a/src/components/brand/seven-color-mark.tsx
++++ b/src/components/brand/seven-color-mark.tsx
+@@ -1,7 +1,7 @@
+ import Image from "next/image";
+ import { cn } from "@/lib/utils";
+ 
+-/** Official Seven Color mark — red geometric 7 on transparent / white */
++/** Official Seven Color mark — red geometric 7 on Apple-style glass. */
+ export function SevenColorMark({
+   className,
+   size = 40,
+@@ -12,14 +12,19 @@ export function SevenColorMark({
+   title?: string;
+ }) {
+   return (
+-    <Image
+-      src="/seven-color-mark-clear.png"
+-      alt={title}
+-      width={size}
+-      height={size}
+-      className={cn("shrink-0 bg-transparent object-contain", className)}
+-      priority
+-      unoptimized
+-    />
++    <span
++      className={cn("logo-glass relative inline-flex shrink-0 items-center justify-center", className)}
++      style={{ width: size, height: size }}
++    >
++      <Image
++        src="/seven-color-mark-clear.png"
++        alt={title}
++        width={size}
++        height={size}
++        className="relative z-[1] h-[78%] w-[78%] object-contain"
++        priority
++        unoptimized
++      />
++    </span>
+   );
+ }
+diff --git a/src/components/brand/sourcing-logo.tsx b/src/components/brand/sourcing-logo.tsx
+index 8de27b0..7605e8c 100644
+--- a/src/components/brand/sourcing-logo.tsx
++++ b/src/components/brand/sourcing-logo.tsx
+@@ -14,8 +14,7 @@ type SourcingLogoProps = {
+ const BRAND_RED = "#E31C23";
+ 
+ /**
+- * Official sourcing.center wordmark — single-line serif.
+- * Black “sourcing” with red i-dot · red period · red “center”.
++ * Official sourcing.center wordmark with the Seven Color 7 on Apple glass.
+  */
+ export function SourcingLogo({
+   className,
+@@ -30,29 +29,32 @@ export function SourcingLogo({
+         ? "text-3xl leading-none"
+         : "text-[1.2rem] leading-none sm:text-[1.35rem]";
+ 
+-  const byMark = size === "hero" ? 26 : 22;
++  const sideMark = size === "hero" ? 64 : size === "footer" ? 40 : 36;
+   const ink = onDark ? "text-white" : "text-ink";
+ 
+   return (
+     <span className={cn("inline-flex flex-col leading-none", className)}>
+-      <span
+-        className={cn(
+-          "font-logo inline-flex items-baseline font-bold tracking-[-0.03em]",
+-          word,
+-        )}
+-        aria-hidden
+-      >
+-        <span className={ink}>sourc</span>
+-        <span className={cn("relative inline-block", ink)}>
+-          ı
+-          <span
+-            className="absolute left-1/2 top-[0.08em] h-[0.2em] w-[0.2em] -translate-x-1/2 rounded-full"
+-            style={{ backgroundColor: BRAND_RED }}
+-          />
++      <span className="inline-flex items-center gap-3 sm:gap-4">
++        <SevenColorMark size={sideMark} />
++        <span
++          className={cn(
++            "font-logo inline-flex items-baseline font-bold tracking-[-0.03em]",
++            word,
++          )}
++          aria-hidden
++        >
++          <span className={ink}>sourc</span>
++          <span className={cn("relative inline-block", ink)}>
++            ı
++            <span
++              className="absolute left-1/2 top-[0.08em] h-[0.2em] w-[0.2em] -translate-x-1/2 rounded-full"
++              style={{ backgroundColor: BRAND_RED }}
++            />
++          </span>
++          <span className={ink}>ng</span>
++          <span style={{ color: BRAND_RED }}>.</span>
++          <span style={{ color: BRAND_RED }}>center</span>
+         </span>
+-        <span className={ink}>ng</span>
+-        <span style={{ color: BRAND_RED }}>.</span>
+-        <span style={{ color: BRAND_RED }}>center</span>
+       </span>
+ 
+       {showByline ? (
+@@ -63,9 +65,7 @@ export function SourcingLogo({
+             size === "hero" ? "mt-2.5 text-xs sm:mt-3 sm:text-sm" : "text-xs",
+           )}
+         >
+-          <span>by</span>
+-          <SevenColorMark size={byMark} />
+-          <span>Seven Color Trading · China</span>
++          <span>by Seven Color Trading · China</span>
+         </span>
+       ) : null}
+ 
+-- 
+2.43.0
+
