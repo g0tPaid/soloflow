@@ -27,18 +27,18 @@ const styles = StyleSheet.create({
   footer: { marginTop: 10, alignItems: 'center' },
 });
 
-export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, downloadUrl, documentType = 'invoice' }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string }; downloadUrl?: string; documentType?: 'invoice' | 'quote' }) {
+export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, downloadUrl, documentType = 'invoice', repMarkets = false }: { invoice: Invoice; org: Organization; baseUrl: string; buttonImages?: { wise: string; download: string }; downloadUrl?: string; documentType?: 'invoice' | 'quote'; repMarkets?: boolean }) {
   const isQuote = documentType === 'quote';
   if (!isQuote && (!downloadUrl || !downloadUrl.startsWith('https://soloflow.practicalthings.store/api/pdf/public-invoice/'))) {
     throw new Error('A secure public Invoice Version 1 download link is required.');
   }
-  const data = getMobileInvoiceData(invoice, org);
+  const data = getMobileInvoiceData(invoice, org, repMarkets);
 
   return (
     <Page size={{ width: RECEIPT_WIDTH }} style={styles.page} wrap={false}>
       <View style={styles.center}>
-        <SourcingBrand wordmarkOnly />
-        <Text style={styles.brand}>{data.organizationName}</Text>
+        {repMarkets ? <Text style={{ fontFamily: 'Times-Bold', fontSize: 20, letterSpacing: -0.6, color: '#DC2626' }}>www.rep.markets</Text> : <SourcingBrand wordmarkOnly />}
+        {data.organizationName ? <Text style={styles.brand}>{data.organizationName}</Text> : null}
         {data.address ? <Text style={styles.detail}>{data.address}</Text> : null}
         {data.contact ? <Text style={styles.detail}>{data.contact}</Text> : null}
         {data.taxId ? <Text style={styles.detail}>TRN {data.taxId}</Text> : null}
@@ -98,7 +98,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
       <View style={styles.footer}>
         {!isQuote ? <InvoiceTrackingQr accent="#18181b" background="#ffffff" /> : null}
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
-        <Image src={sevenColorMark} style={{ width: 24, height: 24, marginTop: 8, objectFit: 'contain' }} />
+        {!repMarkets ? <Image src={sevenColorMark} style={{ width: 24, height: 24, marginTop: 8, objectFit: 'contain' }} /> : null}
       </View>
     </Page>
   );
