@@ -11,7 +11,14 @@ export function MobileInvoiceView({ invoice, organization, documentType = 'invoi
   const barcode = buildInvoiceBarcode(invoice.number, invoice.id);
 
   return (
-    <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label={isQuote ? "Mobile quote" : "Mobile invoice"}>
+    <article className="invoice-print relative isolate overflow-hidden mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label={isQuote ? "Mobile quote" : "Mobile invoice"}>
+      {repMarkets ? (
+        <div aria-hidden="true" className="pointer-events-none absolute inset-0 z-10 flex flex-col items-center justify-around overflow-hidden select-none">
+          {[0, 1, 2].map((i) => (
+            <span key={i} className="whitespace-nowrap font-serif text-[clamp(22px,7vw,37px)] font-bold text-red-600 opacity-[0.12] -rotate-[30deg]">www.rep.markets</span>
+          ))}
+        </div>
+      ) : null}
       <header className="space-y-1 text-center">
         {repMarkets ? <p className="mb-2 font-serif text-[24px] font-bold leading-none tracking-[-0.03em] text-[#DC2626]">www.rep.markets</p> : <p className="mb-2 text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold tracking-tight">
           sourcing<span className="text-[#e4001b]">.center</span>

@@ -100,6 +100,13 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
         {data.website ? <Text style={styles.detail}>{data.website}</Text> : null}
         {!repMarkets ? <Image src={sevenColorMark} style={{ width: 24, height: 24, marginTop: 8, objectFit: 'contain' }} /> : null}
       </View>
+      {repMarkets ? (
+        <View style={{ position: 'absolute', top: 0, bottom: 0, left: 0, right: 0, alignItems: 'center', justifyContent: 'space-around' }}>
+          {[0, 1, 2].map((i) => (
+            <Text key={i} style={{ fontFamily: 'Times-Bold', fontSize: 25, color: '#DC2626', opacity: 0.12, transform: 'rotate(-30deg)', textAlign: 'center' }}>www.rep.markets</Text>
+          ))}
+        </View>
+      ) : null}
     </Page>
   );
 }
