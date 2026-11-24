@@ -48,6 +48,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   invoicesV5: FileText,
   invoicesV6: FileText,
   invoicesV7Preview: FileText,
+  invoicesV8: FileText,
   quotes: FileSpreadsheet,
   quotesV5: FileSpreadsheet,
   expenses: Receipt,
@@ -72,6 +73,7 @@ const sidebarModules = NAV_MODULES.flatMap((item) =>
         { ...item, key: 'invoicesV5', label: 'Invoice 5 · Mobile', href: '/invoices-v5' },
         { ...item, key: 'invoicesV6', label: 'Invoice 6 · Modern Receipt', href: '/invoices-v6' },
         { ...item, key: 'invoicesV7Preview', label: 'Invoice 7 · Design Preview', href: '/invoices-v7' },
+        { ...item, key: 'invoicesV8', label: 'Invoice 8 · Rep.markets', href: '/invoices-v8' },
       ]
     : item.key === 'quotes'
     ? [
