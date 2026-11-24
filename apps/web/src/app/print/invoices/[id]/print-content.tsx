@@ -26,7 +26,8 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   const sharePhone = searchParams.get('phone');
   const embed = searchParams.get('embed') === '1';
   const receiptVersion = invoicePdfVersion(searchParams.get('version'));
-  const mobileInvoice = receiptVersion === 5;
+  const repMarkets = receiptVersion === 8;
+  const mobileInvoice = receiptVersion === 5 || repMarkets;
   const modernInvoice = receiptVersion === 6;
   const previewV7 = searchParams.get('version') === '7';
   const { data: session, status: sessionStatus } = useSession();
@@ -148,7 +149,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
   }
 
   const org = orgDetail ?? organization;
-  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${modernInvoice ? '-v6-redesign' : mobileInvoice ? '-v5' : ''}.pdf`;
+  const safeFilename = `${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}${modernInvoice ? '-v6-redesign' : repMarkets ? '-v8' : mobileInvoice ? '-v5' : ''}.pdf`;
   const whatsappMessage = buildWhatsAppMessage(invoice);
 
   return (
@@ -161,7 +162,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         </div>
       ) : (
         <PrintPageToolbar
-          backHref={modernInvoice ? '/invoices-v6' : `${mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
+          backHref={modernInvoice ? '/invoices-v6' : `${repMarkets ? '/invoices-v8' : mobileInvoice ? '/invoices-v5' : '/invoices'}/${id}`}
           backLabel={modernInvoice ? 'Back to Invoice 6 list' : 'Back to invoice'}
           editHref={modernInvoice ? `/invoices-v6/${encodeURIComponent(id)}?edit=1` : undefined}
           documentType="invoices"
@@ -169,7 +170,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
           organizationId={organizationId}
           organization={org}
           filename={safeFilename}
-          invoiceVersion={modernInvoice ? 6 : mobileInvoice ? 5 : undefined}
+          invoiceVersion={modernInvoice ? 6 : repMarkets ? 8 : mobileInvoice ? 5 : undefined}
           whatsappMessage={whatsappMessage}
           whatsappPhone={sharePhone ?? invoice.customer?.phone ?? undefined}
           emailSubject={`Invoice ${invoice.number}`}
@@ -177,7 +178,7 @@ export function InvoicePrintPageContent({ params }: { params: Promise<{ id: stri
         />
       ))}
 
-      {previewV7 ? <InvoiceV7View invoice={invoice} organization={org} /> : modernInvoice ? <InvoiceV6View invoice={invoice} organization={org} /> : mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} /> : <InvoicePrintView invoice={invoice} org={org} />}
+      {previewV7 ? <InvoiceV7View invoice={invoice} organization={org} /> : modernInvoice ? <InvoiceV6View invoice={invoice} organization={org} /> : mobileInvoice ? <MobileInvoiceView invoice={invoice} organization={org} repMarkets={repMarkets} /> : <InvoicePrintView invoice={invoice} org={org} />}
 
       <style jsx global>{`
         @media print {
