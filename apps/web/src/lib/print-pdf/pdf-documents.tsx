@@ -1318,8 +1318,8 @@ export function buildPdfDocument(document: LoadedPrintDocument, baseUrl: string,
     case 'invoices':
       return (
         <Document>
-          {version === 5 ? (
-            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
+          {version === 5 || version === 8 ? (
+            <MobileInvoicePdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} repMarkets={version === 8} />
           ) : version === 6 ? (
             <InvoiceV6Pdf invoice={document.invoice} org={document.org} baseUrl={baseUrl} buttonImages={buttonImages} downloadUrl={downloadUrl} />
           ) : (
