@@ -74,12 +74,12 @@ export async function generatePrintPdf(
     const downloadUrl = `${baseUrl}/api/pdf/print/quotes/${encodeURIComponent(id)}?org=${encodeURIComponent(organizationId ?? '')}&version=5`;
     return renderToBuffer(buildPdfDocument(document, baseUrl, version, { wise, download: '' }, downloadUrl));
   }
-  if ((version === 5 || version === 6) && document.type === 'invoices') {
+  if ((version === 5 || version === 6 || version === 8) && document.type === 'invoices') {
     const asset = async (filename: string, kind: 'wise' | 'download') => {
       const bytes = await readFile(path.join(process.cwd(), 'public', filename));
       const { data, info } = await sharp(bytes).ensureAlpha().raw().toBuffer({ resolveWithObject: true });
       const clean = isolateInvoiceButton(data, info.width, info.height);
-      const art = version === 5
+      const art = version === 5 || version === 8
         ? widenV5Button(clean.pixels, clean.width, clean.height, kind)
         : { pixels: recolorV6Button(clean.pixels, kind), width: clean.width, height: clean.height };
       const cropped = await sharp(art.pixels, {
