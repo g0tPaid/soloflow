@@ -66,6 +66,7 @@ const LIST_ACTIONS = [
 const NAV_ACTIONS = [
   { href: DROPSHIPPER_INVOICE_PATH, label: 'Invoice 4 · Dropshippers', icon: FileText },
   { href: '/invoices-v5', label: 'Invoice 5 · Mobile', icon: FileText },
+  { href: '/invoices-v8', label: 'Invoice 8 · Rep.markets', icon: FileText },
   { href: '/invoices-v7', label: 'Invoice 7 · Red Design Preview', icon: FileText },
   { href: '/customers', label: 'Customers', icon: Users },
   { href: '/vendors', label: 'Vendors', icon: Contact },

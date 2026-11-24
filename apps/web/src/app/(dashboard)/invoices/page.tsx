@@ -321,8 +321,8 @@ export default function InvoicesPage() {
       <div className="space-y-3">
         <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
           <div>
-            <h1 className="text-2xl font-medium tracking-tight">{v7PreviewList ? 'Invoice 7 · Preview' : dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
-            <p className="text-sm text-muted-foreground">{v7PreviewList ? 'Choose an invoice to review the new red design. Version 7 PDF is not enabled yet.' : version === 6 ? 'Modern 80 mm receipts, optimized for phones' : version === 5 ? 'Mobile receipt invoices' : 'Create and manage invoices'}</p>
+            <h1 className="text-2xl font-medium tracking-tight">{v7PreviewList ? 'Invoice 7 · Preview' : version === 8 ? 'Invoice 8 · Rep.markets' : dropshippingPartner ? DROPSHIPPING_PARTNER_INVOICE_TITLE : `Invoice ${version ?? 1}`}</h1>
+            <p className="text-sm text-muted-foreground">{v7PreviewList ? 'Choose an invoice to review the new red design. Version 7 PDF is not enabled yet.' : version === 6 ? 'Modern 80 mm receipts, optimized for phones' : version === 8 ? 'Rep.markets mobile receipt invoices' : version === 5 ? 'Mobile receipt invoices' : 'Create and manage invoices'}</p>
           </div>
           {organizationId && (
             <Button asChild>

@@ -44,7 +44,7 @@ export async function renderInvoicePdfFile(
   const printOrg = usesBrandedInvoiceLayout(version)
     ? await prepareTransparentSignature(prepared.org, transparentSignature)
     : prepared.org;
-  const buttonImages = (version === 5 || version === 6)
+  const buttonImages = (version === 5 || version === 6 || version === 8)
     ? await (async () => {
         const asset = async (filename: string, kind: 'wise' | 'download') => {
           const response = await fetch(`${origin}/${encodeURIComponent(filename)}`);
@@ -60,7 +60,7 @@ export async function renderInvoicePdfFile(
             context.drawImage(bitmap, 0, 0);
             const { data } = context.getImageData(0, 0, canvas.width, canvas.height);
             const clean = isolateInvoiceButton(data, canvas.width, canvas.height);
-            const art = version === 5
+            const art = version === 5 || version === 8
               ? widenV5Button(clean.pixels, clean.width, clean.height, kind)
               : { pixels: recolorV6Button(clean.pixels, kind), width: clean.width, height: clean.height };
             const crop = document.createElement('canvas');
@@ -86,7 +86,7 @@ export async function renderInvoicePdfFile(
       })()
     : undefined;
   let downloadUrl: string | undefined;
-  if (version === 5 || version === 6) {
+  if (version === 5 || version === 6 || version === 8) {
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
       throw new Error('An internet connection is required to create a working customer invoice download link.');
     }

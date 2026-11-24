@@ -5,18 +5,18 @@ import { sevenColorMark } from '@/lib/print-pdf/sourcing-brand-mark';
 import { trackingQrPath, trackingUrl } from '@/lib/print-pdf/invoice-tracking-qr-data';
 import { getMobileInvoiceData } from '@/lib/print-pdf/mobile-invoice-data';
 
-export function MobileInvoiceView({ invoice, organization, documentType = 'invoice' }: { invoice: Invoice; organization?: Organization | null; documentType?: 'invoice' | 'quote' }) {
+export function MobileInvoiceView({ invoice, organization, documentType = 'invoice', repMarkets = false }: { invoice: Invoice; organization?: Organization | null; documentType?: 'invoice' | 'quote'; repMarkets?: boolean }) {
   const isQuote = documentType === 'quote';
-  const data = getMobileInvoiceData(invoice, organization);
+  const data = getMobileInvoiceData(invoice, organization, repMarkets);
   const barcode = buildInvoiceBarcode(invoice.number, invoice.id);
 
   return (
     <article className="invoice-print mx-auto w-full max-w-sm bg-white px-5 py-6 text-sm text-zinc-900 print:max-w-none" aria-label={isQuote ? "Mobile quote" : "Mobile invoice"}>
       <header className="space-y-1 text-center">
-        <p className="mb-2 text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold tracking-tight">
+        {repMarkets ? <p className="mb-2 font-serif text-[24px] font-bold leading-none tracking-[-0.03em] text-[#DC2626]">www.rep.markets</p> : <p className="mb-2 text-[clamp(1.65rem,8vw,2.25rem)] font-extrabold tracking-tight">
           sourcing<span className="text-[#e4001b]">.center</span>
-        </p>
-        <p className="text-xs text-zinc-500">{data.organizationName}</p>
+        </p>}
+        {data.organizationName ? <p className="text-xs text-zinc-500">{data.organizationName}</p> : null}
         {data.address ? <p className="text-xs">{data.address}</p> : null}
         {data.contact ? <p className="break-words text-xs">{data.contact}</p> : null}
         {data.taxId ? <p className="text-xs">TRN {data.taxId}</p> : null}
@@ -80,7 +80,7 @@ export function MobileInvoiceView({ invoice, organization, documentType = 'invoi
         </a> : null}
         {data.website ? <p className="break-words text-xs">{data.website}</p> : null}
         {/* eslint-disable-next-line @next/next/no-img-element */}
-        <img src={sevenColorMark} alt="Seven Color" className="h-8 w-8 object-contain" />
+        {!repMarkets ? <img src={sevenColorMark} alt="Seven Color" className="h-8 w-8 object-contain" /> : null}
       </footer>
     </article>
   );

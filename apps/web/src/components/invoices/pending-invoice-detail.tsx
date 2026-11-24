@@ -54,9 +54,9 @@ export function PendingInvoiceDetail({
               filename={`${invoice.number.replace(/[^a-zA-Z0-9-_]/g, '_')}.pdf`}
             />
           ) : null}
-          {organizationId && invoicePath === '/invoices-v5' ? (
+          {organizationId && (invoicePath === '/invoices-v5' || invoicePath === '/invoices-v8') ? (
             <Link
-              href={`/print/invoices/${invoice.id}?version=5&org=${encodeURIComponent(organizationId)}`}
+              href={`/print/invoices/${invoice.id}?version=${invoicePath === '/invoices-v8' ? 8 : 5}&org=${encodeURIComponent(organizationId)}`}
               className="text-sm text-primary hover:underline"
             >
               Preview mobile invoice
