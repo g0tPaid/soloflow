@@ -52,7 +52,19 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
           <InvoiceBarcode number={invoice.number} id={invoice.id} maxWidth={166} height={19} scale={1.12} />
         </View>
       </View>
-      {data.shipTo ? (
+      {!isQuote && data.dropshipOrder ? (
+        <View style={{ marginTop: 8, padding: 6, borderRadius: 4, backgroundColor: '#f4f4f5', borderWidth: 0.5, borderColor: '#d4d4d8' }}>
+          <Text style={styles.label}>DROPSHIPPER CUSTOMER · SHIP TO</Text>
+          <Text style={styles.detail}><Text style={styles.label}>Order: </Text>{data.dropshipOrder.orderNumber || 'Not entered'}</Text>
+          <Text style={styles.detail}><Text style={styles.label}>Recipient: </Text>{data.dropshipOrder.name || 'Not entered'}</Text>
+          <Text style={styles.detail}><Text style={styles.label}>Address: </Text>{data.dropshipOrder.address.join('\n') || 'Not entered'}</Text>
+          {data.dropshipOrder.phone ? <Text style={styles.detail}><Text style={styles.label}>Phone: </Text>{data.dropshipOrder.phone}</Text> : null}
+          {data.dropshipOrder.method ? <Text style={styles.detail}><Text style={styles.label}>Shipping method: </Text>{data.dropshipOrder.method}</Text> : null}
+          {data.dropshipOrder.carrier ? <Text style={styles.detail}><Text style={styles.label}>Carrier: </Text>{data.dropshipOrder.carrier}</Text> : null}
+          {data.dropshipOrder.weight ? <Text style={styles.detail}><Text style={styles.label}>Weight: </Text>{data.dropshipOrder.weight}</Text> : null}
+          {data.dropshipOrder.tracking ? <Text style={styles.detail}><Text style={styles.label}>Tracking: </Text>{data.dropshipOrder.tracking}</Text> : null}
+        </View>
+      ) : data.shipTo ? (
         <View style={{ marginTop: 8, padding: 6, borderRadius: 4, backgroundColor: '#f4f4f5' }}>
           <Text style={styles.label}>Ship to</Text>
           {data.shipTo.name ? <Text style={[styles.detail, styles.label]}>{data.shipTo.name}</Text> : null}
