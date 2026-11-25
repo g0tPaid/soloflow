@@ -1,4 +1,4 @@
-import { invoiceAmountPaid, invoiceBalanceDue } from '@flowbooks/shared';
+import { invoiceAmountPaid, invoiceBalanceDue, isDropshippingPartnerInvoice } from '@flowbooks/shared';
 import type { Invoice, Organization } from '@/lib/api';
 import { parseStoredLineItem } from '@/lib/line-items';
 import { formatAddressLines, parseBranding } from '@/lib/organization-branding';
@@ -15,12 +15,25 @@ export function getMobileInvoiceData(invoice: Invoice, organization?: Organizati
     day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC',
   });
 
+  const shipTo = getInvoiceShipTo(invoice);
+  const dropshipOrder = !repMarkets && (isDropshippingPartnerInvoice(invoice) || invoice.customer?.isDropshipper) ? {
+    name: shipTo?.name,
+    address: shipTo?.address ?? [],
+    orderNumber: invoice.partnerOrderNumber?.trim(),
+    phone: invoice.shipmentContact?.phone?.trim(),
+    carrier: invoice.shipmentCarrier?.trim(),
+    weight: invoice.shipmentWeightKg != null && Number(invoice.shipmentWeightKg) > 0 ? `${invoice.shipmentWeightKg} kg` : undefined,
+    tracking: invoice.internationalTrackingNumber?.trim(),
+    method: invoice.shippingMethod === 'AIR' ? 'Air' : invoice.shippingMethod === 'SEA' ? 'Sea' : invoice.shippingMethod === 'LOCAL' ? 'Local delivery' : undefined,
+  } : null;
+
   return {
     date,
     organizationName: repMarkets ? '' : organization?.name ?? 'Your Company',
     address: repMarkets ? 'Putian, Xiamen, CHINA' : formatAddressLines(branding.address).join(' · '),
     customerAddress: formatAddressLines(invoice.customer?.address ?? undefined),
-    shipTo: getInvoiceShipTo(invoice),
+    shipTo,
+    dropshipOrder,
     contact: repMarkets ? branding.phone : [branding.phone, branding.email].filter(Boolean).join(' · '),
     taxId: repMarkets ? undefined : branding.trn,
     website: repMarkets ? 'www.rep.markets' : branding.website,

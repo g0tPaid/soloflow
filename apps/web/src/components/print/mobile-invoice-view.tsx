@@ -44,7 +44,19 @@ export function MobileInvoiceView({ invoice, organization, documentType = 'invoi
           <p className="max-w-full break-all font-mono text-xs">{barcode.value}</p>
         </div>
       </header>
-      {data.shipTo ? (
+      {!isQuote && data.dropshipOrder ? (
+        <section aria-label="Dropshipper customer delivery" className="mt-3 space-y-1 rounded-lg border border-zinc-300 bg-zinc-100 px-3 py-2 text-xs">
+          <p className="font-bold uppercase tracking-wide">Dropshipper customer · Ship to</p>
+          <p className="break-words"><strong>Order:</strong> {data.dropshipOrder.orderNumber || 'Not entered'}</p>
+          <p className="break-words"><strong>Recipient:</strong> {data.dropshipOrder.name || 'Not entered'}</p>
+          <p className="whitespace-pre-line break-words"><strong>Address:</strong> {data.dropshipOrder.address.join('\n') || 'Not entered'}</p>
+          {data.dropshipOrder.phone ? <p className="break-words"><strong>Phone:</strong> {data.dropshipOrder.phone}</p> : null}
+          {data.dropshipOrder.method ? <p><strong>Shipping method:</strong> {data.dropshipOrder.method}</p> : null}
+          {data.dropshipOrder.carrier ? <p className="break-words"><strong>Carrier:</strong> {data.dropshipOrder.carrier}</p> : null}
+          {data.dropshipOrder.weight ? <p><strong>Weight:</strong> {data.dropshipOrder.weight}</p> : null}
+          {data.dropshipOrder.tracking ? <p className="break-words"><strong>Tracking:</strong> {data.dropshipOrder.tracking}</p> : null}
+        </section>
+      ) : data.shipTo ? (
         <section aria-label="Ship to" className="mt-3 rounded-lg bg-zinc-100 px-3 py-2 text-xs">
           <p className="font-semibold">Ship to</p>
           {data.shipTo.name ? <p className="mt-1 break-words font-bold">{data.shipTo.name}</p> : null}
