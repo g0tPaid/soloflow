@@ -14,6 +14,7 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
 
   onModuleInit() {
     if (!process.env.PARTNER_SHIPMENT_PHOTO_KEY || !process.env.STAFF_SHIPMENT_SYNC_CUSTOMER_ID) return;
+    void this.run();
     this.timer = setInterval(() => void this.run(), 20_000);
     this.timer.unref();
   }
@@ -31,9 +32,9 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
   }
 
   private async syncPartnerLabels(organizationId: string) {
-    if (Date.now() - this.lastPartnerSync < 60_000) return;
+    if (Date.now() - this.lastPartnerSync < 15_000) return;
     const customers = await this.prisma.customer.findMany({
-      where: { organizationId, dropshipperNumber: { not: null } },
+      where: { organizationId, isActive: true, isDropshipper: true, dropshipperNumber: { not: null } },
       select: { dropshipperNumber: true, dropshipperPrefix: true, name: true },
     });
     const partners = customers.flatMap((customer) => customer.dropshipperNumber && customer.name.trim() ? [{
@@ -43,6 +44,7 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
     }] : []);
     const response = await this.send({ partners });
     if (response.ok) this.lastPartnerSync = Date.now();
+    else this.logger.warn(`Dropshipper ID sync returned HTTP ${response.status}; will retry.`);
   }
 
   private async run() {
@@ -54,7 +56,7 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
         select: { organizationId: true },
       });
       if (!anchor) return;
-      await this.syncPartnerLabels(anchor.organizationId).catch(() => undefined);
+      await this.syncPartnerLabels(anchor.organizationId).catch(() => this.logger.warn('Dropshipper ID sync failed; will retry.'));
       const invoices = await this.prisma.invoice.findMany({
         where: {
           organizationId: anchor.organizationId,
