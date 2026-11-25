@@ -196,6 +196,26 @@ export class InvoicesService {
 
 
 
+  async deleteInvoice(organizationId: string, id: string) {
+    const result = await this.prisma.invoice.deleteMany({
+      where: {
+        id,
+        organizationId,
+        status: { in: [InvoiceStatus.DRAFT, InvoiceStatus.SENT, InvoiceStatus.VIEWED, InvoiceStatus.OVERDUE] },
+        amountPaid: 0,
+        fulfillmentStatus: null,
+        localTrackingNumber: null,
+        internationalTrackingNumber: null,
+        payments: { none: {} },
+        fulfillmentEvents: { none: {} },
+      },
+    });
+    if (!result.count) {
+      throw new BadRequestException('Only unpaid invoices without payment or fulfillment history can be deleted.');
+    }
+    return { deleted: true };
+  }
+
   async findOne(organizationId: string, id: string) {
     const invoice = await this.readInvoice(organizationId, id);
     if (!invoice) throw new NotFoundException('Invoice not found');
