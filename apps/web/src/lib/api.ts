@@ -1050,6 +1050,12 @@ export const api = {
         token,
         organizationId,
       }),
+    delete: (token: string, organizationId: string, id: string) =>
+      apiFetch<{ deleted: boolean }>(`/invoices/${encodeURIComponent(id)}`, {
+        method: 'DELETE',
+        token,
+        organizationId,
+      }),
     convert: (token: string, organizationId: string, id: string) =>
       apiFetch<{ quote: Quote }>(`/invoices/${id}/convert`, {
         method: 'POST',

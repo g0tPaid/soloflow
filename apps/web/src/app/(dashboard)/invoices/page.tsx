@@ -6,9 +6,10 @@ import { usePathname, useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
 import { useInfiniteQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote } from 'lucide-react';
+import { Plus, FileText, Pencil, Download, Loader2, FileInput, Banknote, Trash2 } from 'lucide-react';
 import { api, type Invoice, type InvoiceStatus } from '@/lib/api';
 import { dedupeInvoicePages, loadInvoiceList } from '@/lib/offline/invoice-list';
+import { getOfflineStore } from '@/lib/offline/store';
 import { offlineQueryOptions } from '@/lib/offline/network';
 import { PendingSyncBadge } from '@/components/invoices/pending-sync-badge';
 import { useSyncStatus } from '@/components/offline/sync-provider';
@@ -57,6 +58,13 @@ function invoicePayState(invoice: Invoice) {
   const isPartial = !closed && !isPaid && paidAmount > 0.005;
   const canRecordPayment = !closed && !isPaid;
   return { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment, closed };
+}
+
+function canDeleteInvoice(invoice: Invoice) {
+  return ['DRAFT', 'SENT', 'VIEWED', 'OVERDUE'].includes(invoice.status)
+    && invoiceAmountPaid(invoice) <= 0
+    && !invoice.fulfillmentStatus && !invoice.localTrackingNumber && !invoice.internationalTrackingNumber
+    && !invoice.fulfillmentEvents?.length && !invoice.payments?.length;
 }
 
 function invoiceSurfaceClass(invoice: Invoice, layout: 'card' | 'row') {
@@ -185,6 +193,8 @@ export default function InvoicesPage() {
       : `${invoicePath}/${invoiceId}#edit-line-items`;
   const timeZone = organization?.settings?.timezone;
   const queryClient = useQueryClient();
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+  const [deleteError, setDeleteError] = useState('');
   const [convertingId, setConvertingId] = useState<string | null>(null);
   const [paymentInvoice, setPaymentInvoice] = useState<Invoice | null>(null);
   const [listFilter, setListFilter] = useState<InvoiceListFilter | null>(null);
@@ -290,6 +300,29 @@ export default function InvoicesPage() {
     statusMutation.mutate({ id, status });
   }
 
+  async function deleteInvoice(invoice: Invoice, event: React.MouseEvent) {
+    event.preventDefault();
+    event.stopPropagation();
+    if (!session?.accessToken || !organizationId || deletingId || !canDeleteInvoice(invoice)) return;
+    if (!window.confirm(`Permanently delete invoice ${invoice.number}? This cannot be undone.`)) return;
+    setDeletingId(invoice.id);
+    setDeleteError('');
+    try {
+      await api.invoices.delete(session.accessToken, organizationId, invoice.id);
+      await getOfflineStore().deleteInvoice(organizationId, invoice.id).catch(() => undefined);
+      queryClient.removeQueries({ queryKey: ['invoice-print', invoice.id, organizationId] });
+      await Promise.all([
+        refreshInvoiceQueries(),
+        queryClient.invalidateQueries({ queryKey: ['reports-vat', organizationId] }),
+        queryClient.invalidateQueries({ queryKey: ['inventory', organizationId] }),
+      ]);
+    } catch (error) {
+      setDeleteError(error instanceof Error ? error.message : 'Could not delete invoice.');
+    } finally {
+      setDeletingId(null);
+    }
+  }
+
   async function convertToQuote(id: string, event: React.MouseEvent) {
     event.preventDefault();
     event.stopPropagation();
@@ -367,6 +400,8 @@ export default function InvoicesPage() {
           </CardContent>
         </Card>
       )}
+
+      {deleteError ? <p role="alert" className="rounded-md border border-red-200 bg-red-50 p-3 text-sm text-red-700">{deleteError}</p> : null}
 
       {error && (
         <Card className="border-destructive/50">
@@ -486,6 +521,12 @@ export default function InvoicesPage() {
                         <Button asChild size="sm" variant="outline">
                           <Link href={`${invoicePath}/new?from=${invoice.id}`}>Use again</Link>
                         </Button>
+                        {canDeleteInvoice(invoice) && (
+                          <Button type="button" size="sm" variant="outline" className="gap-1.5 border-red-300 text-red-600 hover:bg-red-600 hover:text-white" disabled={!!deletingId || !!convertingId || statusMutation.isPending || fulfillmentMutation.isPending} onClick={(e) => void deleteInvoice(invoice, e)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === invoice.id ? 'Deleting…' : 'Delete'}
+                          </Button>
+                        )}
                         {canRecordPayment && (
                           <Button
                             type="button"
@@ -609,6 +650,12 @@ export default function InvoicesPage() {
                           {convertingId === invoice.id ? 'Converting…' : 'To quote'}
                         </Button>
                       )}
+                      {canDeleteInvoice(invoice) && (
+                          <Button type="button" size="sm" variant="outline" className="gap-1.5 border-red-300 text-red-600 hover:bg-red-600 hover:text-white" disabled={!!deletingId || !!convertingId || statusMutation.isPending || fulfillmentMutation.isPending} onClick={(e) => void deleteInvoice(invoice, e)}>
+                            <Trash2 className="h-3.5 w-3.5" />
+                            {deletingId === invoice.id ? 'Deleting…' : 'Delete'}
+                          </Button>
+                        )}
                       {canRecordPayment && (
                         <button
                           type="button"

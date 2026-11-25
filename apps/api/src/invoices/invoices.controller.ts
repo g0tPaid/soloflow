@@ -1,4 +1,4 @@
-import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
+import { Controller, Get, Post, Patch, Delete, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader, ApiOperation } from '@nestjs/swagger';
 import { InvoicesService } from './invoices.service';
 import { CreateInvoiceDto, CreatePaymentDto, UpdateInvoiceDto } from './dto/invoice.dto';
@@ -61,6 +61,12 @@ export class InvoicesController {
   @Post()
   create(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateInvoiceDto) {
     return this.invoicesService.create(orgId, dto);
+  }
+
+  @Delete(':id')
+  @ApiOperation({ summary: 'Delete an unpaid, unfulfilled invoice' })
+  deleteInvoice(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string) {
+    return this.invoicesService.deleteInvoice(orgId, id);
   }
 
   @Post(':id/convert')
