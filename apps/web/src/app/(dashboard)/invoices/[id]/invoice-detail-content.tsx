@@ -263,20 +263,13 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
                     </Button>
                   )}
               </div>
-              {invoicePath === '/invoices-v5' || invoicePath === '/invoices-v6' || invoicePath === '/invoices-v8' ? (
+              {invoicePath === '/invoices-v5' || invoicePath === '/invoices-v8' ? (
                 <Button asChild variant="outline" size="lg">
-                  <Link href={`/print/invoices/${id}?version=${invoicePath === '/invoices-v8' ? 8 : invoicePath === '/invoices-v6' ? 6 : 5}&org=${encodeURIComponent(organizationId)}`}>
-                    {invoicePath === '/invoices-v8' ? 'Preview Invoice 8 · Rep.markets' : invoicePath === '/invoices-v6' ? 'Preview Invoice 6' : 'Preview mobile invoice'}
+                  <Link href={`/print/invoices/${id}?version=${invoicePath === '/invoices-v8' ? 8 : 5}&org=${encodeURIComponent(organizationId)}`}>
+                    {invoicePath === '/invoices-v8' ? 'Preview Rep.markets Invoice' : 'Preview Mobile Invoice'}
                   </Link>
                 </Button>
               ) : null}
-              {!isNew && (
-                <Button asChild variant="outline" size="lg" className="border-red-300 text-red-700">
-                  <Link href={`/print/invoices/${encodeURIComponent(id)}?version=7&org=${encodeURIComponent(organizationId)}`}>
-                    Preview Invoice 7 · Red design
-                  </Link>
-                </Button>
-              )}
               {!isNew && (
                 <>
                   <DownloadInvoicePdfButton
