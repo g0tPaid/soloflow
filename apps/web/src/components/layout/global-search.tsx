@@ -29,7 +29,7 @@ type SearchHit = {
   href: string;
   title: string;
   subtitle: string;
-  kind: 'customer' | 'invoice';
+  kind: 'customer' | 'invoice' | 'expense';
   status?: string;
   amount?: string;
 };
@@ -72,6 +72,8 @@ export function GlobalSearch() {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState(0);
 
+  const expenseSearch = /^\/expenses(?:\/|$)/.test(pathname);
+  const searchLabel = expenseSearch ? 'Search expenses' : 'Search customers or invoices';
   const token = session?.accessToken;
   const workspaceReady = status === 'authenticated' && !!token && !!organizationId && isReady;
   const normalized = normalizeWorkspaceSearchQuery(debouncedQuery);
@@ -97,15 +99,26 @@ export function GlobalSearch() {
   }, []);
 
   const { data, isFetching, isError } = useQuery({
-    queryKey: ['workspace-search', organizationId, normalized],
-    queryFn: () => api.search.query(token!, organizationId!, normalized!),
+    queryKey: ['workspace-search', organizationId, normalized, expenseSearch],
+    queryFn: async (): Promise<SearchHit[]> => {
+      if (!expenseSearch) return workspaceSearchHits(await api.search.query(token!, organizationId!, normalized!));
+      const [invoiceCosts, operating] = await Promise.all([
+        api.expenses.list(token!, organizationId!, { search: normalized!, limit: 10 }),
+        api.expenses.listOperating(token!, organizationId!, { search: normalized!, limit: 10 }),
+      ]);
+      return [
+        ...invoiceCosts.data.map((row) => ({ key: `expense:${row.id}`, href: `/expenses/${row.id}`, title: row.number, subtitle: row.customer?.name ?? row.vendor?.name ?? 'Invoice customer costs', kind: 'expense' as const, status: row.status, amount: formatCurrency(row.totalCost, row.currency) })),
+        ...operating.data.map((row) => ({ key: `operating:${row.id}`, href: `/expenses?category=${row.category}&search=${encodeURIComponent(row.description)}`, title: row.description, subtitle: [row.payee, row.reference].filter(Boolean).join(' · ') || row.category, kind: 'expense' as const, amount: formatCurrency(row.amount, row.currency) })),
+      ];
+    },
     enabled: canSearch,
     staleTime: 15_000,
   });
 
-  const hits = useMemo(() => (canSearch ? workspaceSearchHits(data) : []), [canSearch, data]);
+  const hits = useMemo(() => (canSearch ? (data ?? []) : []), [canSearch, data]);
   const customerHits = hits.filter((hit) => hit.kind === 'customer');
   const invoiceHits = hits.filter((hit) => hit.kind === 'invoice');
+  const expenseHits = hits.filter((hit) => hit.kind === 'expense');
   const showPanel = open && query.trim().length > 0;
   const activeHit = hits[activeIndex];
 
@@ -151,12 +164,12 @@ export function GlobalSearch() {
       <Search className="pointer-events-none absolute left-3 top-1/2 z-10 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
       <Input
         role="combobox"
-        aria-label="Search customers or invoices"
+        aria-label={searchLabel}
         aria-expanded={showPanel}
         aria-controls={listId}
         aria-autocomplete="list"
         aria-activedescendant={showPanel && activeHit ? `${listId}-${activeHit.key}` : undefined}
-        placeholder="Search customers or invoices"
+        placeholder={searchLabel}
         autoComplete="off"
         spellCheck={false}
         value={query}
@@ -190,9 +203,10 @@ export function GlobalSearch() {
           ) : !normalized || (isFetching && !data) ? (
             <p className="px-3 py-3 text-sm text-muted-foreground">Searching…</p>
           ) : hits.length === 0 ? (
-            <p className="px-3 py-3 text-sm text-muted-foreground">No matching customers or invoices</p>
+            <p className="px-3 py-3 text-sm text-muted-foreground">{expenseSearch ? 'No matching expenses' : 'No matching customers or invoices'}</p>
           ) : (
             <div className="py-1">
+              <SearchGroup label="Expenses" hits={expenseHits} listId={listId} activeKey={activeHit?.key} onSelect={go} />
               <SearchGroup label="Customers" hits={customerHits} listId={listId} activeKey={activeHit?.key} onSelect={go} />
               <SearchGroup label="Invoices" hits={invoiceHits} listId={listId} activeKey={activeHit?.key} onSelect={go} />
             </div>
