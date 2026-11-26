@@ -33,6 +33,7 @@ export function MobileInvoiceView({ invoice, organization, documentType = 'invoi
         <p>{data.date}</p>
         {isQuote && invoice.dueDate ? <p className="text-xs font-semibold">Valid until: {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</p> : null}
         {invoice.customer?.name ? <p>{isQuote ? 'Prepared for:' : 'Bill to:'} <strong>{invoice.customer.name}</strong></p> : null}
+        {!isQuote && invoice.customer?.isDropshipper && invoice.customer.dropshipperNumber ? <p>Customer ID: {[invoice.customer.dropshipperPrefix, invoice.customer.dropshipperNumber].filter(Boolean).join('-')}</p> : null}
         {data.customerAddress.length ? (
           <p className="whitespace-pre-line break-words text-xs text-zinc-700">{data.customerAddress.join('\n')}</p>
         ) : null}

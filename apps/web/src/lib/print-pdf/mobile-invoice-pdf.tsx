@@ -46,6 +46,7 @@ export function MobileInvoicePdf({ invoice, org, baseUrl, buttonImages, download
         <Text style={styles.detail}>{data.date}</Text>
         {isQuote && invoice.dueDate ? <Text style={styles.detail}>Valid until: {new Date(invoice.dueDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric', timeZone: 'UTC' })}</Text> : null}
         {invoice.customer?.name ? <Text style={styles.detail}>{isQuote ? 'Prepared for:' : 'Bill to:'} <Text style={styles.label}>{invoice.customer.name}</Text></Text> : null}
+        {!isQuote && invoice.customer?.isDropshipper && invoice.customer.dropshipperNumber ? <Text style={styles.detail}>Customer ID: {[invoice.customer.dropshipperPrefix, invoice.customer.dropshipperNumber].filter(Boolean).join('-')}</Text> : null}
         {data.customerAddress.length ? <Text style={styles.detail}>{data.customerAddress.join('\n')}</Text> : null}
         {!isQuote && data.status ? <Text style={styles.label}>{data.status}</Text> : null}
         <View style={{ marginTop: 7 }}>
