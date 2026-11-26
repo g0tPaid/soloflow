@@ -704,6 +704,9 @@ function InvoicePdfBody({
                 <Text style={{ fontSize: 7, letterSpacing: 1, color: colors.dark, marginBottom: 2 }}>BILL TO</Text>
               ) : null}
               <Text style={styles.billToName}>{customer?.name}</Text>
+              {isInvoice && (highlightDropshipper || dropshippingPartner || customer?.isDropshipper) && customer?.dropshipperNumber ? (
+                <Text style={styles.billToTrn}>Customer ID: {[customer.dropshipperPrefix, customer.dropshipperNumber].filter(Boolean).join('-')}</Text>
+              ) : null}
               {customer?.taxId?.trim() ? (
                 <Text style={styles.billToTrn}>TRN : {customer.taxId.trim()}</Text>
               ) : null}
