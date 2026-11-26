@@ -6,10 +6,13 @@ import { TopBar } from '@/components/layout/sidebar';
 
 const push = vi.fn();
 const searchQuery = vi.fn();
+const expenseSearch = vi.fn();
+const operatingSearch = vi.fn();
+let pathname = '/dashboard';
 
 vi.mock('next/navigation', () => ({
   useRouter: () => ({ push }),
-  usePathname: () => '/dashboard',
+  usePathname: () => pathname,
 }));
 
 vi.mock('next-auth/react', () => ({
@@ -22,6 +25,7 @@ vi.mock('@/hooks/use-organization', () => ({
 
 vi.mock('@/lib/api', () => ({
   api: {
+    expenses: { list: (...args: unknown[]) => expenseSearch(...args), listOperating: (...args: unknown[]) => operatingSearch(...args) },
     search: {
       query: (...args: unknown[]) => searchQuery(...args),
     },
@@ -84,7 +88,10 @@ describe('TopBar', () => {
 
 describe('GlobalSearch', () => {
   beforeEach(() => {
+    pathname = '/dashboard';
     push.mockReset();
+    expenseSearch.mockReset();
+    operatingSearch.mockReset();
     searchQuery.mockReset();
     searchQuery.mockResolvedValue(results);
   });
@@ -113,6 +120,19 @@ describe('GlobalSearch', () => {
 
     fireEvent.click(screen.getByRole('option', { name: 'INV-1042, Acme Corp · sent' }));
     expect(push).toHaveBeenCalledWith('/invoices/i1');
+  });
+
+  it('searches expenses on the expenses page and opens the expense record', async () => {
+    pathname = '/expenses';
+    expenseSearch.mockResolvedValue({ data: [{ id: 'i1', number: 'INV-1042', customer: { name: 'Acme Corp' }, status: 'PAID', totalCost: 20, currency: 'USD' }] });
+    operatingSearch.mockResolvedValue({ data: [] });
+    renderSearch();
+    fireEvent.change(screen.getByRole('combobox', { name: 'Search expenses' }), { target: { value: 'acme' } });
+    const result = await screen.findByRole('option', { name: 'INV-1042, Acme Corp' });
+    expect(result).toHaveAttribute('href', '/expenses/i1');
+    expect(searchQuery).not.toHaveBeenCalled();
+    fireEvent.click(result);
+    expect(push).toHaveBeenCalledWith('/expenses/i1');
   });
 
   it('opens a customer result on the view card, not the editor', async () => {

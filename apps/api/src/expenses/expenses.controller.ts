@@ -1,7 +1,7 @@
 import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } from '@nestjs/common';
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { ExpensesService } from './expenses.service';
-import { CreateExpenseDto, UpdateExpenseCostsDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseCostsDto, CreateOperatingExpenseDto } from './dto/expense.dto';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
@@ -18,13 +18,24 @@ export class ExpensesController {
     @Headers(TENANT_HEADER) orgId: string,
     @Query('page') page?: number,
     @Query('limit') limit?: number,
+    @Query('search') search?: string,
   ) {
-    return this.expensesService.findAll(orgId, page, limit);
+    return this.expensesService.findAll(orgId, page, limit, search);
   }
 
   @Post()
   create(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateExpenseDto) {
     return this.expensesService.create(orgId, dto);
+  }
+
+  @Get('operating')
+  listOperating(@Headers(TENANT_HEADER) orgId: string, @Query('page') page?: number, @Query('limit') limit?: number, @Query('category') category?: string, @Query('search') search?: string) {
+    return this.expensesService.listOperating(orgId, page, limit, category, search);
+  }
+
+  @Post('operating')
+  createOperating(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateOperatingExpenseDto) {
+    return this.expensesService.createOperating(orgId, dto);
   }
 
   @Get(':id')

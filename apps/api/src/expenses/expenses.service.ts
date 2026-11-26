@@ -1,8 +1,8 @@
 import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
 import { PrismaService } from '../prisma/prisma.service';
-import { CreateExpenseDto, UpdateExpenseCostsDto } from './dto/expense.dto';
+import { CreateExpenseDto, UpdateExpenseCostsDto, CreateOperatingExpenseDto, OPERATING_EXPENSE_CATEGORIES } from './dto/expense.dto';
 import { normalizePagination } from '../common/pagination';
-import { InvoiceStatus } from '@flowbooks/database';
+import { InvoiceStatus, Prisma } from '@flowbooks/database';
 import {
   convertCurrency,
   normalizeCostCurrency,
@@ -57,12 +57,19 @@ export class ExpensesService {
     return trimmed;
   }
 
-  async findAll(organizationId: string, page?: number, limit?: number) {
+  async findAll(organizationId: string, page?: number, limit?: number, search?: string) {
     const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
 
+    const term = search?.trim().slice(0, 200);
+    const contains = { contains: term, mode: 'insensitive' as const };
+    const where: Prisma.InvoiceWhereInput = { organizationId, ...(term ? { OR: [
+      { number: contains }, { notes: contains }, { customer: { name: contains } },
+      { vendor: { name: contains } }, { items: { some: { OR: [{ name: contains }, { description: contains }] } } },
+      { partnerOrderNumber: contains }, { endRecipientName: contains },
+    ] } : {}) };
     const [invoices, total] = await Promise.all([
       this.prisma.invoice.findMany({
-        where: { organizationId },
+        where,
         skip,
         take: limitNum,
         orderBy: { createdAt: 'desc' },
@@ -72,7 +79,7 @@ export class ExpensesService {
           items: { select: { costAmount: true } },
         },
       }),
-      this.prisma.invoice.count({ where: { organizationId } }),
+      this.prisma.invoice.count({ where }),
     ]);
 
     const data = invoices.map((invoice) => this.toExpenseSummary(invoice));
@@ -86,6 +93,32 @@ export class ExpensesService {
         totalPages: Math.ceil(total / limitNum),
       },
     };
+  }
+
+  async listOperating(organizationId: string, page?: number, limit?: number, category?: string, search?: string) {
+    const { page: pageNum, limit: limitNum, skip } = normalizePagination(page, limit);
+    if (category && !OPERATING_EXPENSE_CATEGORIES.some((value) => value === category)) throw new BadRequestException('Invalid expense category');
+    const term = search?.trim().slice(0, 200);
+    const contains = { contains: term, mode: 'insensitive' as const };
+    const where: Prisma.OperatingExpenseWhereInput = { organizationId, ...(category ? { category } : {}), ...(term ? { OR: [
+      { description: contains }, { payee: contains }, { reference: contains }, { notes: contains },
+    ] } : {}) };
+    const [rows, total] = await Promise.all([
+      this.prisma.operatingExpense.findMany({ where, skip, take: limitNum, orderBy: [{ expenseDate: 'desc' }, { createdAt: 'desc' }] }),
+      this.prisma.operatingExpense.count({ where }),
+    ]);
+    return { data: rows.map((row) => ({ ...row, amount: Number(row.amount) })), pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } };
+  }
+
+  async createOperating(organizationId: string, dto: CreateOperatingExpenseDto) {
+    const description = dto.description.trim();
+    if (!description || !/^[A-Z]{3}$/.test(dto.currency.toUpperCase()) || dto.amount >= 10000000000) throw new BadRequestException('Enter a valid description, currency and amount');
+    const row = await this.prisma.operatingExpense.create({ data: {
+      organizationId, category: dto.category, description, payee: dto.payee?.trim() || null,
+      reference: dto.reference?.trim() || null, notes: dto.notes?.trim() || null,
+      expenseDate: new Date(dto.expenseDate), currency: dto.currency.toUpperCase(), amount: dto.amount,
+    } });
+    return { ...row, amount: Number(row.amount) };
   }
 
   async findOne(organizationId: string, id: string) {
@@ -222,8 +255,14 @@ export class ExpensesService {
       }
     }
 
-    const { rates, costCurrency, fxEnabled } = await this.loadCostSettings(organizationId);
+    const { rates: baseRates, costCurrency, fxEnabled: orgFxEnabled } = await this.loadCostSettings(organizationId);
     const currency = invoice.currency || 'USD';
+    const costRateCurrency = (dto.costRateCurrency ?? invoice.costRateCurrency ?? '').toUpperCase();
+    const costRateCny = Number(dto.costRateCny ?? invoice.costRateCny ?? 0);
+    const manual = costRateCny > 0 && costRateCurrency !== 'CNY' && Boolean(baseRates[costRateCurrency]);
+    if ((dto.costRateCurrency !== undefined || dto.costRateCny !== undefined) && (!manual || costRateCny >= 100000000)) throw new BadRequestException('Enter a valid currency and positive CNY exchange rate');
+    const rates = manual ? { ...baseRates, CNY: costRateCny * baseRates[costRateCurrency] } : baseRates;
+    const fxEnabled = manual || orgFxEnabled;
     const costById = new Map(dto.items.map((row) => [row.id, row]));
 
     // unitCostCny / shippingCostCny store amounts in the org's costCurrency
@@ -312,7 +351,7 @@ export class ExpensesService {
 
       const updated = await tx.invoice.update({
         where: { id },
-        data: { shippingCost, shippingCostCny, totalCost },
+        data: { shippingCost, shippingCostCny, totalCost, ...(manual ? { costRateCurrency, costRateCny } : {}) },
         include: {
           customer: true,
           vendor: true,

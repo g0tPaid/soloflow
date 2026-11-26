@@ -38,6 +38,17 @@ export class UpdateExpenseCostsDto {
   @Type(() => ExpenseLineItemDto)
   items!: ExpenseLineItemDto[];
 
+  @IsOptional()
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  costRateCurrency?: string;
+
+  @IsOptional()
+  @IsNumber({ maxDecimalPlaces: 6 })
+  @Min(0.000001)
+  costRateCny?: number;
+
   @ApiProperty({ required: false })
   @IsOptional()
   @IsNumber()
@@ -153,4 +164,42 @@ export class CreateExpenseDto {
   @ValidateNested({ each: true })
   @Type(() => CreateExpenseItemDto)
   items!: CreateExpenseItemDto[];
+}
+
+export const OPERATING_EXPENSE_CATEGORIES = ['EMPLOYEE', 'OFFICE', 'MARKETING'] as const;
+export class CreateOperatingExpenseDto {
+  @IsIn(OPERATING_EXPENSE_CATEGORIES)
+  category!: typeof OPERATING_EXPENSE_CATEGORIES[number];
+
+  @IsString()
+  @MinLength(1)
+  @MaxLength(200)
+  description!: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  payee?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(200)
+  reference?: string;
+
+  @IsOptional()
+  @IsString()
+  @MaxLength(2000)
+  notes?: string;
+
+  @IsDateString()
+  expenseDate!: string;
+
+  @IsString()
+  @MinLength(3)
+  @MaxLength(3)
+  currency!: string;
+
+  @IsNumber({ maxDecimalPlaces: 2 })
+  @Min(0.01)
+  amount!: number;
 }

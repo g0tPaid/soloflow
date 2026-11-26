@@ -22,7 +22,7 @@ export class DashboardService {
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
 
-    const [paidSales, paidCostRows, outstandingGroups, customerCount, productCount] =
+    const [paidSales, paidCostRows, outstandingGroups, customerCount, productCount, operatingCostRows] =
       await Promise.all([
         // Revenue: only Paid customer invoices this month
         this.prisma.invoice.groupBy({
@@ -57,6 +57,7 @@ export class DashboardService {
         }),
         this.prisma.customer.count({ where: { organizationId, isActive: true } }),
         this.prisma.product.count({ where: { organizationId, isActive: true } }),
+        this.prisma.operatingExpense.groupBy({ by: ['currency'], where: { organizationId, expenseDate: { gte: startOfMonth, lte: now } }, _sum: { amount: true } }),
       ]);
 
     const toDisplay = (
@@ -86,7 +87,7 @@ export class DashboardService {
     );
     const expenses = roundMoney(
       toDisplay(
-        paidCostRows.map((row) => ({ currency: row.currency, totalCost: row._sum.totalCost })),
+        [...paidCostRows.map((row) => ({ currency: row.currency, totalCost: row._sum.totalCost })), ...operatingCostRows.map((row) => ({ currency: row.currency, totalCost: row._sum.amount }))],
         'totalCost',
       ),
     );
