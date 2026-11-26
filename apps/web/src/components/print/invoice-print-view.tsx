@@ -264,6 +264,10 @@ export function InvoicePrintView({
                   {customer?.name}
                 </p>
 
+                {isInvoice && (dropshippingPartner || customer?.isDropshipper) && customer?.dropshipperNumber ? (
+                  <p className="mt-1 text-[11px] font-semibold text-slate-700">Customer ID: {[customer.dropshipperPrefix, customer.dropshipperNumber].filter(Boolean).join('-')}</p>
+                ) : null}
+
                 {customer?.taxId?.trim() ? (
                   <p className="mt-1 text-[11px] font-semibold tracking-wide text-slate-700">
                     TRN : {customer.taxId.trim()}
