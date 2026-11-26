@@ -381,6 +381,19 @@ export interface Quote {
   items?: QuoteItem[];
 }
 
+export type OperatingExpenseCategory = 'EMPLOYEE' | 'OFFICE' | 'MARKETING';
+export interface OperatingExpense {
+  id: string;
+  category: OperatingExpenseCategory;
+  description: string;
+  payee?: string | null;
+  reference?: string | null;
+  notes?: string | null;
+  expenseDate: string;
+  currency: string;
+  amount: number;
+}
+export type CreateOperatingExpenseInput = Omit<OperatingExpense, 'id'>;
 export interface ExpenseSummary {
   id: string;
   number: string;
@@ -398,6 +411,8 @@ export interface ExpenseSummary {
 }
 
 export interface ExpenseDetail extends Invoice {
+  costRateCurrency?: string | null;
+  costRateCny?: string | number | null;
   revenue: number;
   customerShipping: number;
   shippingCost: number;
@@ -1163,11 +1178,15 @@ export const api = {
       }),
   },
   expenses: {
-    list: (token: string, organizationId: string, params?: { page?: number; limit?: number }) =>
+    list: (token: string, organizationId: string, params?: { page?: number; limit?: number; search?: string }) =>
       apiFetch<PaginatedResult<ExpenseSummary>>(
         `/expenses${buildQuery(params)}`,
         { token, organizationId },
       ),
+    listOperating: (token: string, organizationId: string, params?: { page?: number; limit?: number; category?: OperatingExpenseCategory; search?: string }) =>
+      apiFetch<PaginatedResult<OperatingExpense>>(`/expenses/operating${buildQuery(params)}`, { token, organizationId }),
+    createOperating: (token: string, organizationId: string, data: CreateOperatingExpenseInput) =>
+      apiFetch<OperatingExpense>('/expenses/operating', { token, organizationId, method: 'POST', body: JSON.stringify(data) }),
     get: (token: string, organizationId: string, id: string) =>
       apiFetch<ExpenseDetail>(`/expenses/${id}`, { token, organizationId }),
     create: (token: string, organizationId: string, data: CreateExpenseInput) =>
