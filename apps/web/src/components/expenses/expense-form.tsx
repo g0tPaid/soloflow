@@ -20,6 +20,7 @@ import {
   type FxRates,
   type UpdateExpenseCostsInput,
   SHIPPING_TERMS,
+  CURRENCIES,
 } from '@flowbooks/shared';
 
 function shippingTermsLabel(terms?: string | null) {
@@ -91,10 +92,17 @@ export function ExpenseForm({
   fxEnabled = true,
   onSubmit,
 }: Props) {
-  const rates = useMemo(() => parseFxRates(fxRates), [fxRates]);
+  const baseRates = useMemo(() => parseFxRates(fxRates), [fxRates]);
+  const defaultRateCurrency = expense.currency === 'CNY' ? 'USD' : expense.currency;
+  const [rateCurrency, setRateCurrency] = useState(expense.costRateCurrency || defaultRateCurrency);
+  const [rateInput, setRateInput] = useState(() => String(expense.costRateCny ?? roundMoney(convertCurrencyMaybe(1, expense.costRateCurrency || defaultRateCurrency, 'CNY', baseRates), 6)));
+  const manualRate = Number(rateInput);
+  const validRate = Number.isFinite(manualRate) && manualRate > 0 && manualRate < 100000000 && rateCurrency !== 'CNY' && !!baseRates[rateCurrency];
+  const rates = useMemo(() => validRate ? { ...baseRates, CNY: manualRate * baseRates[rateCurrency] } : baseRates, [baseRates, manualRate, rateCurrency, validRate]);
+  const effectiveFx = fxEnabled || validRate;
   const entryCurrency = useMemo(() => normalizeCostCurrency(costCurrency), [costCurrency]);
   const [rows, setRows] = useState<CostRow[]>(() =>
-    toCostRows(expense, rates, entryCurrency, fxEnabled),
+    toCostRows(expense, baseRates, entryCurrency, fxEnabled),
   );
   const [shippingCostEntry, setShippingCostEntry] = useState(() => {
     const existing = Number(expense.shippingCostCny ?? 0);
@@ -137,16 +145,21 @@ export function ExpenseForm({
           : 0,
       );
     }
-  }, [expense, rates, entryCurrency, fxEnabled]);
+  }, [expense, baseRates, entryCurrency, fxEnabled]);
+
+  useEffect(() => {
+    setRateCurrency(expense.costRateCurrency || defaultRateCurrency);
+    setRateInput(String(expense.costRateCny ?? roundMoney(convertCurrencyMaybe(1, expense.costRateCurrency || defaultRateCurrency, 'CNY', baseRates), 6)));
+  }, [expense.id, expense.costRateCurrency, expense.costRateCny, defaultRateCurrency, baseRates]);
 
   const revenue = Number(expense.total);
   const customerShipping = Number(expense.shipping ?? expense.customerShipping ?? 0);
   const shippingCost = roundMoney(
-    convertCurrencyMaybe(shippingCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
+    convertCurrencyMaybe(shippingCostEntry, entryCurrency, expense.currency, rates, effectiveFx),
   );
   const itemsCost = rows.reduce((sum, row) => {
     const unitCost = roundMoney(
-      convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
+      convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, effectiveFx),
     );
     return sum + calcLineCost(row.quantity, unitCost);
   }, 0);
@@ -158,7 +171,7 @@ export function ExpenseForm({
   function updateUnitCostEntry(index: number, unitCostEntry: number) {
     const nextEntry = Math.max(0, unitCostEntry);
     const nextUnitCost = roundMoney(
-      convertCurrencyMaybe(nextEntry, entryCurrency, expense.currency, rates, fxEnabled),
+      convertCurrencyMaybe(nextEntry, entryCurrency, expense.currency, rates, effectiveFx),
     );
     setRows((prev) =>
       prev.map((row, i) =>
@@ -169,16 +182,19 @@ export function ExpenseForm({
   }
 
   async function handleSave() {
+    if (!validRate) { setError('Enter a positive exchange rate'); return; }
     setSubmitting(true);
     setError('');
     setSaved(false);
     try {
       await onSubmit({
+        costRateCurrency: rateCurrency,
+        costRateCny: roundMoney(manualRate, 6),
         items: rows.map((row) => ({
           id: row.id,
           unitCostCny: row.unitCostEntry,
           unitCost: roundMoney(
-            convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
+            convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, effectiveFx),
           ),
         })),
         shippingCostCny: Math.max(0, shippingCostEntry),
@@ -274,6 +290,11 @@ export function ExpenseForm({
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="flex flex-wrap items-end gap-3 rounded-lg border bg-muted/30 p-3">
+            <div className="space-y-1"><Label htmlFor="cost-rate-currency">Rate currency</Label><select id="cost-rate-currency" className="h-9 rounded-md border bg-background px-3 text-sm" value={rateCurrency} onChange={(e) => { setRateCurrency(e.target.value); setRateInput(String(roundMoney(convertCurrencyMaybe(1, e.target.value, 'CNY', baseRates), 6))); setSaved(false); }}>{CURRENCIES.filter((currency) => currency.code !== 'CNY').map((currency) => <option key={currency.code} value={currency.code}>{currency.code}</option>)}</select></div>
+            <div className="space-y-1"><Label htmlFor="cost-rate-cny">Rate (CNY per 1 {rateCurrency})</Label><Input id="cost-rate-cny" className="w-40" type="number" min="0.000001" step="0.000001" value={rateInput} onChange={(e) => { setRateInput(e.target.value); setSaved(false); }} /></div>
+            <p className="pb-2 text-sm text-muted-foreground">1 {rateCurrency} = {validRate ? rateInput : '—'} CNY · saved with this invoice</p>
+          </div>
           <div className="hidden overflow-x-auto md:block">
             <table className="w-full min-w-[860px] border-collapse text-sm">
               <thead>
@@ -291,7 +312,7 @@ export function ExpenseForm({
                 {rows.map((row, index) => {
                   const imageSrc = resolveImageSrc(row.imageUrl);
                   const unitCost = roundMoney(
-                    convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
+                    convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, effectiveFx),
                   );
                   const lineCost = calcLineCost(row.quantity, unitCost);
                   return (
@@ -352,7 +373,7 @@ export function ExpenseForm({
             {rows.map((row, index) => {
               const imageSrc = resolveImageSrc(row.imageUrl);
               const unitCost = roundMoney(
-                convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, fxEnabled),
+                convertCurrencyMaybe(row.unitCostEntry, entryCurrency, expense.currency, rates, effectiveFx),
               );
               const lineCost = calcLineCost(row.quantity, unitCost);
               return (
