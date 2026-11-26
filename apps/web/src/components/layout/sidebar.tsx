@@ -42,12 +42,8 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   vendors: Contact,
   products: Package,
   invoices: FileText,
-  invoicesV2: FileText,
-  invoicesV3: FileText,
   dropshipperInvoices: FileText,
   invoicesV5: FileText,
-  invoicesV6: FileText,
-  invoicesV7Preview: FileText,
   invoicesV8: FileText,
   quotes: FileSpreadsheet,
   quotesV5: FileSpreadsheet,
@@ -67,13 +63,9 @@ const sidebarModules = NAV_MODULES.flatMap((item) =>
   item.key === 'invoices'
     ? [
         { ...item, label: 'Invoice 1' },
-        { ...item, key: 'invoicesV2', label: 'Invoice 2', href: '/invoices-v2' },
-        { ...item, key: 'invoicesV3', label: 'Invoice 3', href: '/invoices-v3' },
-        { ...item, key: 'dropshipperInvoices', label: 'Invoice 4 · Dropshippers', href: DROPSHIPPER_INVOICE_PATH },
-        { ...item, key: 'invoicesV5', label: 'Invoice 5 · Mobile', href: '/invoices-v5' },
-        { ...item, key: 'invoicesV6', label: 'Invoice 6 · Modern Receipt', href: '/invoices-v6' },
-        { ...item, key: 'invoicesV7Preview', label: 'Invoice 7 · Design Preview', href: '/invoices-v7' },
-        { ...item, key: 'invoicesV8', label: 'Invoice 8 · Rep.markets', href: '/invoices-v8' },
+        { ...item, key: 'dropshipperInvoices', label: 'Dropshippers Invoice', href: DROPSHIPPER_INVOICE_PATH },
+        { ...item, key: 'invoicesV5', label: 'Mobile Invoice', href: '/invoices-v5' },
+        { ...item, key: 'invoicesV8', label: 'Rep.markets Invoice', href: '/invoices-v8' },
       ]
     : item.key === 'quotes'
     ? [

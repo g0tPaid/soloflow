@@ -28,6 +28,15 @@ const nextConfig: NextConfig = {
       { protocol: 'https', hostname: '**' },
     ],
   },
+  // Retired invoice designs are no longer offered in the dashboard.
+  // Preserve invoice IDs and query parameters when opening old bookmarks.
+  async redirects() {
+    return [2, 3, 6, 7].map((version) => ({
+      source: `/invoices-v${version}/:path*`,
+      destination: '/invoices/:path*',
+      permanent: false,
+    }));
+  },
   async rewrites() {
     if (!apiOrigin) return [];
     return [
