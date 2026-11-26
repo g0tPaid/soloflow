@@ -20,8 +20,9 @@ export function DownloadInvoicePdfButton({
   filename?: string;
   size?: 'default' | 'lg';
 }) {
-  const preferredVersion = invoiceVersionForPath(usePathname()) ?? 1;
-  const versions: (1 | InvoicePdfVersion)[] = [preferredVersion, ...([1, 2, 3, 5, 6, 8] as const).filter((version) => version !== preferredVersion)];
+  const routeVersion = invoiceVersionForPath(usePathname());
+  const preferredVersion = routeVersion === 4 || routeVersion === 5 || routeVersion === 8 ? routeVersion : 1;
+  const versions: (1 | InvoicePdfVersion)[] = [preferredVersion, ...([1, 5, 8] as const).filter((version) => version !== preferredVersion)];
   const { organization } = useOrganizationId();
   const [busy, setBusy] = useState<1 | InvoicePdfVersion | null>(null);
   const [error, setError] = useState('');
@@ -72,7 +73,7 @@ export function DownloadInvoicePdfButton({
           onClick={() => void handleDownload(version)}
         >
           {busy === version ? <Loader2 className="h-4 w-4 animate-spin" /> : <Download className="h-4 w-4" />}
-          {busy === version ? 'Preparing PDF…' : version === 1 ? 'Download PDF (Version 1)' : `Invoice Version ${version}`}
+          {busy === version ? 'Preparing PDF…' : version === 1 ? 'Download PDF (Version 1)' : version === 4 ? 'Dropshippers Invoice' : version === 5 ? 'Mobile Invoice' : 'Rep.markets Invoice'}
         </Button>
       ))}
       {error ? <p className="text-right text-[11px] text-red-600">{error}</p> : null}
