@@ -366,6 +366,8 @@ export const updateQuoteSchema = z.object({
 });
 
 export const updateExpenseCostsSchema = z.object({
+  costRateCurrency: z.string().length(3).optional(),
+  costRateCny: z.number().positive().optional(),
   items: z
     .array(
       z.object({
