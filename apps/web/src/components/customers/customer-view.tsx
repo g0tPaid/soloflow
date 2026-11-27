@@ -96,8 +96,8 @@ export function CustomerView({
         <div>
           <p className="text-sm text-muted-foreground">{customer.isDropshipper ? 'Dropshipping partner' : 'Customer'}</p>
           <h1 className="text-2xl font-semibold tracking-tight">{customer.name}</h1>
-          {customer.isDropshipper && portalOrganizationId ? (
-            <DropshipPortalControls key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} />
+          {portalOrganizationId ? (
+            <DropshipPortalControls key={customer.id} customerId={customer.id} organizationId={portalOrganizationId} isDropshipper={customer.isDropshipper === true} />
           ) : null}
         </div>
         <div className="flex flex-col gap-2 sm:items-end">
