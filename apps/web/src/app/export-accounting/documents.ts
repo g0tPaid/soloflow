@@ -52,3 +52,36 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   pdf.save(`${ref}.pdf`);
 }
 
+
+// Reuses the same local font and A4 canvas layout; no customer data leaves the browser.
+export async function downloadTradeReport(title:string,ref:string,sections:{title:string;lines:string[]}[]) {
+  const pdf=new jsPDF({format:'a4',unit:'mm',compress:true});
+  const canvas=document.createElement('canvas');const ctx=canvas.getContext('2d');
+  if(!ctx)throw new Error('PDF rendering is unavailable');
+  if(document.fonts)await document.fonts.load('12px "Noto Sans SC"',[title,...sections.flatMap(s=>[s.title,...s.lines])].join('')).catch(()=>undefined);
+  let y=16;
+  const line=(text:string,size=10,bold=false)=>{
+    const height=size*.48+2, scale=3.78*3, max=176*scale;
+    const font=`${bold?'600':'400'} ${size*1.333*3}px "Noto Sans SC", "Microsoft YaHei", Arial, sans-serif`;
+    ctx.font=font;const rows:string[]=[];let row='';
+    for(const ch of text){if(ch==='\n'||ctx.measureText(row+ch).width>max){rows.push(row);row=ch==='\n'?'':ch;}else row+=ch;}rows.push(row);
+    for(const value of rows){if(y+height>275){pdf.addPage();y=16;}if(/^[\x20-\x7e]*$/.test(value)){pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(25,32,45);pdf.text(value,16,y+size*.35);}else{ctx.font=font;canvas.width=Math.max(1,Math.min(max,Math.ceil(ctx.measureText(value).width+8)));canvas.height=Math.ceil(height*scale);ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.font=font;ctx.textBaseline='middle';ctx.fillStyle='#19202d';ctx.fillText(value,3,canvas.height/2);pdf.addImage(canvas.toDataURL('image/png'),'PNG',16,y,canvas.width/scale,height);}y+=height;}
+  };
+  line(title,18,true);line('Reference: '+ref);
+  for(const section of sections){if(y>260){pdf.addPage();y=16;}y+=3;line(section.title,12,true);for(const value of section.lines)line(value);}
+  for(let page=1;page<=pdf.getNumberOfPages();page++){pdf.setPage(page);pdf.setFillColor(230,0,70);pdf.rect(0,0,210,3,'F');pdf.setFontSize(8);pdf.setTextColor(100,116,139);pdf.text(String(page)+' / '+pdf.getNumberOfPages(),194,290,{align:'right'});}
+  pdf.save(ref.replace(/[^a-zA-Z0-9_-]/g,'-')+'.pdf');
+}
+export async function downloadExportPaymentStatement(deal:Row,seller:Row,entries:Row[]) {
+  const reference=val(deal,'number');
+  const receipts=entries.filter(e=>['self_export','entrusted_export'].includes(val(e,'category'))&&(e.dealId===deal.id||[reference+' deposit',reference+' remaining payment received'].includes(val(e,'description'))));
+  const currency=val(deal,'currency');
+  const total=goodsTotal(deal)+n(deal,'freightCharge')+n(deal,'insuranceCharge')+n(deal,'otherCharge');
+  const paid=receipts.filter(e=>e.currency===currency).reduce((sum,e)=>sum+n(e,'amount'),0);
+  const other=receipts.filter(e=>e.currency!==currency);
+  await downloadTradeReport('Payment Statement / 收款对账单',reference+'-PS',[
+    {title:'Parties / 双方',lines:[val(seller,'name'),val(seller,'address'),'Buyer: '+val(deal,'customer'),val(deal,'customerAddress')]},
+    {title:'Recorded receipts / 收款记录',lines:receipts.length?receipts.map(e=>val(e,'date')+' | '+val(e,'currency')+' '+amt(n(e,'amount'))+' | '+val(e,'description')):['No recorded payments']},
+    {title:'Invoice balance / 欠款',lines:['Invoice value: '+currency+' '+amt(total),'Recorded in invoice currency: '+currency+' '+amt(paid),'Estimated balance: '+currency+' '+amt(total-paid),...(other.length?['Payments in other currencies require reconciliation; balance excludes them.']:[]),'Internal statement based on recorded receipts. Not a bank receipt or statutory tax invoice.']}
+  ]);
+}
