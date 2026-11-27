@@ -2,6 +2,7 @@ import { Controller, Get, Post, Patch, Body, Param, Query, UseGuards, Headers } 
 import { ApiTags, ApiBearerAuth, ApiHeader } from '@nestjs/swagger';
 import { ExpensesService } from './expenses.service';
 import { CreateExpenseDto, UpdateExpenseCostsDto, CreateOperatingExpenseDto } from './dto/expense.dto';
+import { TenantMemberGuard } from '../common/tenant-member.guard';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TENANT_HEADER } from '@flowbooks/shared';
 
@@ -36,6 +37,12 @@ export class ExpensesController {
   @Post('operating')
   createOperating(@Headers(TENANT_HEADER) orgId: string, @Body() dto: CreateOperatingExpenseDto) {
     return this.expensesService.createOperating(orgId, dto);
+  }
+
+  @Patch('operating/:id')
+  @UseGuards(TenantMemberGuard)
+  updateOperating(@Headers(TENANT_HEADER) orgId: string, @Param('id') id: string, @Body() dto: CreateOperatingExpenseDto) {
+    return this.expensesService.updateOperating(orgId, id, dto);
   }
 
   @Get(':id')
