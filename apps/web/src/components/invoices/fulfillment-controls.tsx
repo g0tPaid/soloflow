@@ -165,7 +165,7 @@ export function FulfillmentControls({
 
   return (
     <div className="space-y-2">
-      <div className="rounded-lg border bg-gradient-to-br from-background to-muted/40 px-2.5 py-2">
+      <div className="rounded-xl border border-white/60 bg-gradient-to-br from-background/90 to-muted/50 px-2.5 py-2 shadow-sm backdrop-blur-md dark:border-border">
         <div className="flex flex-wrap items-center justify-between gap-1">
           <p className="text-xs font-medium">Order fulfillment</p>
           <span className="text-[10px] text-muted-foreground">{stages.filter(stage => stage.state === 'completed').length} of {stages.length} completed</span>
@@ -182,11 +182,11 @@ export function FulfillmentControls({
             <div
               key={stage.value}
               className={cn(
-                'grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-lg border px-2 py-1 text-[11px] leading-tight',
+                'grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-xl border px-2 py-1 text-[11px] leading-tight shadow-sm',
                 stage.state==='in-progress'
-                  ? 'border-rose-300 bg-gradient-to-r from-rose-50 to-background text-rose-800 shadow-sm'
+                  ? 'border-rose-200 bg-gradient-to-br from-rose-50 to-rose-100 text-rose-800'
                   : stage.state==='completed'
-                    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
+                    ? 'border-emerald-200 bg-gradient-to-br from-emerald-50 to-emerald-100 text-emerald-800'
                     : 'border-input bg-background text-muted-foreground',
               )}
             >
