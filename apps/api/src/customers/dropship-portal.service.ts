@@ -42,13 +42,13 @@ export class DropshipPortalService {
     await this.requireManager(organizationId, userId);
     const { token, tokenHash, linkNonce } = newPortalLink();
     await this.prisma.$transaction(async (tx) => {
-      // Lock the customer row until link creation finishes, so disabling the flag wins
-      // whether it runs immediately before or after link creation.
+      // Lock the active customer row until link creation finishes, so deactivation
+      // or a customer-type change is serialized with link creation.
       const customer = await tx.customer.updateMany({
-        where: { id: customerId, organizationId, isActive: true, isDropshipper: true },
+        where: { id: customerId, organizationId, isActive: true },
         data: { updatedAt: new Date() },
       });
-      if (!customer.count) throw new NotFoundException('Active dropshipper not found');
+      if (!customer.count) throw new NotFoundException('Active customer not found');
       await tx.dropshipPortal.upsert({
         where: { customerId },
         create: { customerId, tokenHash, linkNonce },
@@ -61,7 +61,7 @@ export class DropshipPortalService {
   async current(organizationId: string, userId: string, customerId: string) {
     await this.requireManager(organizationId, userId);
     const portal = await this.prisma.dropshipPortal.findFirst({
-      where: { customerId, customer: { organizationId, isActive: true, isDropshipper: true } },
+      where: { customerId, customer: { organizationId, isActive: true } },
       select: { linkNonce: true, tokenHash: true },
     });
     const token = portal?.linkNonce ? tokenForNonce(portal.linkNonce) : null;
@@ -154,23 +154,27 @@ export class DropshipPortalService {
     }
     const tokenHash = hashPortalToken(token);
     const portal = await this.prisma.dropshipPortal.findFirst({
-      where: { tokenHash, customer: { isActive: true, isDropshipper: true } },
-      select: { customer: { select: { id: true, name: true, organizationId: true, dropshipperNumber: true, dropshipperPrefix: true } } },
+      where: { tokenHash, customer: { isActive: true } },
+      select: { customer: { select: { id: true, name: true, organizationId: true, isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true } } },
     });
     if (!portal) throw new NotFoundException();
     const { customer } = portal;
     const anchorId = process.env.STAFF_SHIPMENT_SYNC_CUSTOMER_ID;
-    const sourcingEnabled = anchorId ? Boolean(await this.prisma.customer.findFirst({
+    const sourcingEnabled = customer.isDropshipper && anchorId ? Boolean(await this.prisma.customer.findFirst({
       where: { id: anchorId, organizationId: customer.organizationId }, select: { id: true },
     })) : false;
     const pageSize = 20;
-    const stock = await this.stockRows(customer.organizationId, customer.id, tokenHash);
+    // Stock and externally imported staff history are a separate dropshipper-only dataset.
+    const stock = customer.isDropshipper ? await this.stockRows(customer.organizationId, customer.id, tokenHash) : [];
     const stockByProduct = new Map(stock.map((row) => [row.id, row]));
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        ...partnerInvoices(customer.organizationId, customer.id, complete && scope === 'all'),
+        ...(customer.isDropshipper
+          ? partnerInvoices(customer.organizationId, customer.id, complete && scope === 'all')
+          : { organizationId: customer.organizationId, customerId: customer.id, vendorId: null,
+              ...(complete && scope === 'all' ? {} : { status: { notIn: ['CANCELLED', 'VOID'] as ('CANCELLED' | 'VOID')[] } }) }),
         ...(scope === 'shipped' ? shippedFilter : {}),
-        customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
+        customer: { isActive: true, isDropshipper: customer.isDropshipper, dropshipPortal: { tokenHash } },
       },
       orderBy: [{ issueDate: 'desc' }, { id: 'desc' }],
       ...(complete ? {} : { skip: offset, take: pageSize + 1 }),
@@ -197,15 +201,16 @@ export class DropshipPortalService {
     });
     return {
       partner: customer.name,
-      sourceCustomer: { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix, sourcingEnabled },
-      importedShipments: (await this.prisma.dropshipImportedShipment.findFirst({
+      sourceCustomer: customer.isDropshipper ? { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix, sourcingEnabled } : undefined,
+      importedShipments: customer.isDropshipper ? (await this.prisma.dropshipImportedShipment.findFirst({
         where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
         select: { rows: true },
-      }))?.rows ?? [],
+      }))?.rows ?? [] : [],
       stock,
       hasMore: !complete && invoices.length > pageSize,
       shipments: (complete ? invoices : invoices.slice(0, pageSize)).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
         ...invoice,
+        endRecipientName: invoice.endRecipientName || (!customer.isDropshipper ? customer.name : null),
         awaiting: !shippedStages.some((stage) => stage === invoice.fulfillmentStatus) &&
           !(invoice.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' &&
             invoice.shippingMethod === 'LOCAL' && invoice.localTrackingNumber !== null),
