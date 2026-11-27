@@ -13,7 +13,8 @@ import { Card, CardContent } from '@/components/ui/card';
 
 export default function CustomersPage() {
   const { data: session, status } = useSession();
-  const { organizationId, isReady, error: orgError } = useOrganizationId();
+  const { organizationId, organization, isReady, error: orgError } = useOrganizationId();
+  const canManageLinks = organization?.role === 'OWNER' || organization?.role === 'ADMIN';
 
   const token = session?.accessToken;
   const canFetch = status === 'authenticated' && !!token && !!organizationId;
@@ -135,7 +136,7 @@ export default function CustomersPage() {
                   <p className="mt-0.5 text-sm text-primary">Add TRN Number →</p>
                 )}
               </div>
-              <span className="text-sm text-muted-foreground">View →</span>
+              <span className="flex flex-col gap-1 text-right text-sm text-muted-foreground">{canManageLinks ? <span className="text-primary font-medium">Private order link</span> : null}<span>View →</span></span>
             </Link>
           ))}
         </div>
