@@ -29,6 +29,7 @@ type Shipment = {
   status?: string;
   staffTrackingStatus?: string;
   shippedAt: string | null;
+  shipmentUpdatedAt?: string | null;
   shipmentWeightKg: string | null;
   partnerOrderNumber: string | null;
   endRecipientName: string | null;
@@ -106,6 +107,10 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
   const shipped = shipment.shippedAt ? new Intl.DateTimeFormat('en', {
     day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Shanghai',
   }).format(new Date(shipment.shippedAt)) : null;
+  const updated = shipment.shipmentUpdatedAt && Number.isFinite(Date.parse(shipment.shipmentUpdatedAt))
+    ? new Intl.DateTimeFormat('en-GB', {
+        day: 'numeric', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Shanghai', timeZoneName: 'short',
+      }).format(new Date(shipment.shipmentUpdatedAt)) : null;
   return '<article><header><div><p class="eyebrow">Invoice ' + escapeHtml(shipment.number) + '</p>' +
     '<h2>' + escapeHtml(shipment.partnerOrderNumber ? 'Order ' + shipment.partnerOrderNumber : shipment.number) + '</h2></div>' +
     '<span class="badge' + (shipment.awaiting || inactive ? ' awaiting' : '') + '">' + escapeHtml(status) + '</span></header>' +
@@ -115,7 +120,7 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
       shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) + detail('Invoice date', shipment.issueDate ? shipment.issueDate.slice(0, 10) : null) +
     detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
     detail('Carrier status', shipment.staffTrackingStatus || null) +
-    detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
+    detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + detail('Last shipment update', updated) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
     (Number(shipment.discount) > 0 ? detail('Discount', price(shipment.discount)) : '') +
     (Number(shipment.taxAmount) > 0 ? detail('Tax', price(shipment.taxAmount)) : '') +
