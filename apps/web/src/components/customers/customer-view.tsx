@@ -1,12 +1,13 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FULFILLMENT_STATUSES, type FulfillmentStatus } from '@flowbooks/shared';
+import { FULFILLMENT_STATUSES, formatFulfillmentHistoryTimestamp, type FulfillmentStatus } from '@flowbooks/shared';
 import { api } from '@/lib/api';
 import { DropshipShipmentImport } from '@/components/customers/dropship-shipment-import';
 import { DropshipStock } from '@/components/customers/dropship-stock';
 import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
 import { Check, FilePlus, Pencil } from 'lucide-react';
+import { FulfillmentHistoryList } from '@/components/invoices/fulfillment-controls';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
 import { Button } from '@/components/ui/button';
@@ -77,7 +78,8 @@ function ShipmentStatusControls({ invoice, organizationId }: { invoice: Invoice;
       await queryClient.invalidateQueries({ queryKey: ['invoice', organizationId, invoice.id] });
     },
   });
-  const selected = mutation.isSuccess ? mutation.data.fulfillmentStatus : invoice.fulfillmentStatus;
+  const selected = invoice.fulfillmentStatus;
+  const lastUpdate = [...(invoice.fulfillmentEvents ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
   const options: { value: FulfillmentStatus | null; label: string }[] = [
     { value: null, label: 'Awaiting shipment' },
     ...FULFILLMENT_STATUSES.map(stage => ({
@@ -106,6 +108,8 @@ function ShipmentStatusControls({ invoice, organizationId }: { invoice: Invoice;
         })}
       </div>
       <p role="status" className="text-xs text-muted-foreground">{mutation.isPending ? 'Saving…' : mutation.isSuccess ? 'Saved · customer link updates automatically.' : 'Select the current stage to update the customer link.'}</p>
+      {lastUpdate ? <p className="text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, 'Asia/Shanghai')}</p> : null}
+      <FulfillmentHistoryList history={invoice.fulfillmentEvents} timeZone="Asia/Shanghai" />
       {mutation.isError ? <p role="alert" className="text-xs text-destructive">{mutation.error.message}</p> : null}
     </div>
   );
