@@ -59,5 +59,12 @@ describe('Exporter Module 2 workspace', () => {
     await expect(controller.save('org1',actor,{revision:0,data:{...empty(),deals:[{id:'a',number:'M2-A',step:1,extraItems:'[{"qty":-1}]'}]}})).rejects.toBeInstanceOf(BadRequestException);
     expect(db.$transaction).not.toHaveBeenCalled();
   });
+  it('issues a numbered snapshot and records the audit in the same transaction', async()=>{
+    const data={...empty(),profile:{name:'Sample exporter',address:'Sample address',uscc:'91350200MAE8W9E67A'},deals:[{id:'a',number:'M2-A',step:2,customer:'Sample buyer',customerAddress:'Sample address',customerCountry:'UAE',product:'Sample motor',unit:'pcs',qty:1,unitPrice:100,currency:'USD',date:'2026-11-27',incoterm:'FCA Xiamen',paymentTerms:'Advance'}]};
+    const {controller,tx}=fixture('OWNER');
+    tx.$queryRaw.mockResolvedValueOnce([{revision:1,data}]).mockResolvedValueOnce([{revision:2,data}]);
+    const result=await controller.issue('org1',actor,{revision:1,dealId:'a',kind:'Proforma Invoice'});
+    expect(result.document.number).toBe('M2-PI-000001');expect(result.document.deal.unitPrice).toBe(100);expect(tx.$executeRaw).toHaveBeenCalledTimes(1);
+  });
 });
 
