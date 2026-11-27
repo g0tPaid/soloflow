@@ -6,7 +6,7 @@ const token = 'x'.repeat(43);
 const path = 'https://soloflow.example/api/v1/partner-shipments/' + token;
 const params = { params: Promise.resolve({ token }) };
 
-afterEach(() => vi.unstubAllGlobals());
+afterEach(() => { vi.unstubAllGlobals(); vi.unstubAllEnvs(); });
 
 describe('private partner shipment view', () => {
   it('shows the selected layout, shipment details and charges with HTML escaping', async () => {
@@ -95,6 +95,32 @@ describe('private partner shipment view', () => {
     expect(upstream).toHaveBeenCalledTimes(2);
   });
 
+  it('combines imported history and live staff orders without duplicates and shows current statuses', async () => {
+    vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');
+    const row = (order: string, tracking: string, status = 'Unknown') => ({
+      order, tracking, status, recipient: 'Example', carrier: 'DHL', origin: 'China', destination: 'US', postcode: '',
+    });
+    const upstream = vi.fn()
+      .mockResolvedValueOnce(Response.json({
+        partner: 'Partner', hasMore: false, shipments: [],
+        sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: true },
+        importedShipments: [row('#100', 'WAITING'), row('#101', 'TRACK101')],
+      }))
+      .mockResolvedValueOnce(Response.json({ shipments: [row('100', 'TRACK100', 'In Transit'), row('102', 'TRACK102', 'Delivered')] }))
+      .mockResolvedValueOnce(Response.json({ photos: [[], [], []] }));
+    vi.stubGlobal('fetch', upstream);
+    const response = await GET(new Request(path), params);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain('3 orders');
+    expect(html).toContain('In Transit');
+    expect(html).toContain('Delivered');
+    expect(html).toContain('Order 102');
+    expect(html).toContain('Order #101');
+    expect(html).not.toContain('WAITING');
+    expect(upstream).toHaveBeenNthCalledWith(2, 'https://sourcing.center/api/partner-shipment-orders',
+      expect.objectContaining({ body: JSON.stringify({ number: '0042', prefix: 'A' }), cache: 'no-store' }));
+  });
   it('returns 404 for a revoked link', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
     const response = await GET(new Request(path), params);
