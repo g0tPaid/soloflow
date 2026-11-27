@@ -2,7 +2,7 @@ import { FULFILLMENT_STATUS_VALUES, type FulfillmentStatus } from './constants';
 
 /**
  * Coarse invoices-list guide. Payment chips use invoice payment status.
- * Delivery chips group the seven fulfillment stages: still moving vs received/done.
+ * Delivery chips group the fulfillment stages: still moving vs received/done.
  */
 export const INVOICE_LIST_FILTERS = [
   { id: 'all', label: 'All' },
@@ -23,6 +23,7 @@ const CANCELED_STATUSES = ['CANCELLED', 'VOID'] as const;
 const ON_THE_WAY_STATUSES = [
   'AWAITING_PAYMENT',
   'LOCAL_ORDERING_COMPLETED',
+  'WAREHOUSE_RECEIVED',
   'QC_COMPLETED',
   'SHIPPED_TO_CHINA_CENTER',
   'SHIPPED_INTERNATIONAL',

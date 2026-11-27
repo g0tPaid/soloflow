@@ -22,6 +22,8 @@ describe('UpdateInvoiceDto fulfillmentStatus', () => {
   it('still accepts a stage and rejects an unknown one', async () => {
     const selected = await pipe.transform({ fulfillmentStatus: 'QC_COMPLETED' }, metadata);
     expect(selected.fulfillmentStatus).toBe('QC_COMPLETED');
+    const warehouse = await pipe.transform({ fulfillmentStatus: 'WAREHOUSE_RECEIVED' }, metadata);
+    expect(warehouse.fulfillmentStatus).toBe('WAREHOUSE_RECEIVED');
     await expect(pipe.transform({ fulfillmentStatus: 'SHIPPED' }, metadata)).rejects.toBeInstanceOf(
       BadRequestException,
     );

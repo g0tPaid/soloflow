@@ -201,6 +201,7 @@ export type ShippingTerms = (typeof SHIPPING_TERMS)[number]['value'];
 export const FULFILLMENT_STATUS_VALUES = [
   'AWAITING_PAYMENT',
   'LOCAL_ORDERING_COMPLETED',
+  'WAREHOUSE_RECEIVED',
   'QC_COMPLETED',
   'SHIPPED_TO_CHINA_CENTER',
   'SHIPPED_INTERNATIONAL',
@@ -213,6 +214,7 @@ export type FulfillmentStatus = (typeof FULFILLMENT_STATUS_VALUES)[number];
 export const FULFILLMENT_STATUSES: { value: FulfillmentStatus; label: string }[] = [
   { value: 'AWAITING_PAYMENT', label: 'Awaiting payment' },
   { value: 'LOCAL_ORDERING_COMPLETED', label: 'Local ordering completed' },
+  { value: 'WAREHOUSE_RECEIVED', label: 'Reached warehouse' },
   { value: 'QC_COMPLETED', label: 'QC completed' },
   { value: 'SHIPPED_TO_CHINA_CENTER', label: 'Shipped out to shipping center in China' },
   { value: 'SHIPPED_INTERNATIONAL', label: 'Went out international' },

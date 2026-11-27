@@ -20,16 +20,19 @@ describe('fulfillment', () => {
     expect(shipmentProgressLabel(null,'SENT')).toBe('Awaiting payment');
     expect(shipmentProgressLabel(null,'PAID')).toBe('Local ordering in progress');
     expect(shipmentProgress(null,'PAID')[0].state).toBe('completed');
-    expect(shipmentProgressLabel('LOCAL_ORDERING_COMPLETED','PAID')).toBe('Quality check in progress');
+    expect(shipmentProgressLabel('LOCAL_ORDERING_COMPLETED','PAID')).toBe('Awaiting warehouse arrival');
+    expect(shipmentProgressLabel('WAREHOUSE_RECEIVED','PAID')).toBe('Quality check in progress');
+    expect(shipmentProgress('QC_COMPLETED','PAID').find(s=>s.value==='WAREHOUSE_RECEIVED')?.state).toBe('completed');
     expect(shipmentProgressLabel('SHIPPED_INTERNATIONAL','PAID')).toBe('Awaiting reception');
     expect(shipmentProgressLabel('ORDER_COMPLETED','PAID')).toBe('Order completed');
     expect(shipmentProgressLabel('SHIPPED_TO_CHINA_CENTER','PAID','LOCAL')).toBe('Awaiting reception');
     expect(shipmentProgress('SHIPPED_TO_CHINA_CENTER','PAID','LOCAL').some(s=>s.value==='SHIPPED_INTERNATIONAL')).toBe(false);
   });
-  it('keeps the seven stages in merchant order', () => {
+  it('keeps the eight stages in merchant order', () => {
     expect(FULFILLMENT_STATUS_VALUES).toEqual([
       'AWAITING_PAYMENT',
       'LOCAL_ORDERING_COMPLETED',
+      'WAREHOUSE_RECEIVED',
       'QC_COMPLETED',
       'SHIPPED_TO_CHINA_CENTER',
       'SHIPPED_INTERNATIONAL',
@@ -39,7 +42,7 @@ describe('fulfillment', () => {
     expect(fulfillmentRank(null)).toBe(-1);
     expect(fulfillmentRank('AWAITING_PAYMENT')).toBe(0);
     expect(fulfillmentStatusLabel('AWAITING_PAYMENT')).toBe('Awaiting payment');
-    expect(fulfillmentRank('ORDER_COMPLETED')).toBe(6);
+    expect(fulfillmentRank('ORDER_COMPLETED')).toBe(7);
     expect(fulfillmentStatusLabel(null)).toBe('Not started');
     expect(fulfillmentStatusLabel('QC_COMPLETED')).toBe('QC completed');
   });
@@ -98,7 +101,7 @@ describe('fulfillment', () => {
         { status: 'QC_COMPLETED', action: 'ON', createdAt },
         'Asia/Dubai',
       ),
-    ).toMatch(/3\. QC completed turned on/);
+    ).toMatch(/4\. QC completed turned on/);
   });
 
   it('rejects tracking numbers before the matching ship step', () => {

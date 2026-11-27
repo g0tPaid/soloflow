@@ -41,6 +41,13 @@ describe('FulfillmentControls', () => {
     expect(onStatusChange).toHaveBeenCalledWith('SHIPPED_TO_CHINA_CENTER');
   });
 
+  it('marks warehouse arrival complete before quality check', () => {
+    const { onStatusChange } = renderControls('LOCAL_ORDERING_COMPLETED');
+    expect(screen.getByText('3. Awaiting warehouse arrival')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Reached warehouse — Completed' }));
+    expect(onStatusChange).toHaveBeenCalledWith('WAREHOUSE_RECEIVED');
+  });
+
   it('shows fulfillment history with on and off timestamps', () => {
     render(
       <FulfillmentControls
@@ -67,7 +74,7 @@ describe('FulfillmentControls', () => {
     );
     expect(screen.getByText(/Last shipment update:/)).toHaveTextContent(/23 Sept? 2026|23 Sep 2026/);
     fireEvent.click(screen.getByText(/Shipment update history/));
-    expect(screen.getByText(/3\. QC completed turned on/)).toHaveTextContent(/UTC/);
+    expect(screen.getByText(/4\. QC completed turned on/)).toHaveTextContent(/UTC/);
     expect(screen.getByText(/2\. Local ordering completed turned off/)).toBeInTheDocument();
   });
 
