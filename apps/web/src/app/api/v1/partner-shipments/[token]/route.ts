@@ -83,6 +83,10 @@ function detail(label: string, value: string | null) {
   return '<div><dt>' + escapeHtml(label) + '</dt><dd>' + escapeHtml(value) + '</dd></div>';
 }
 
+function trackShipmentButton() {
+  return '<a class="track-shipment" href="https://www.sourcing.center/track" target="_blank" rel="noopener noreferrer">Track shipment <span aria-hidden="true">↗</span></a>';
+}
+
 function shipmentCard(shipment: Shipment, photos: string[]) {
   const currency = shipment.currency;
   const price = (amount: string) => money(amount, currency);
@@ -124,7 +128,7 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
     (Number(shipment.discount) > 0 ? detail('Discount', price(shipment.discount)) : '') +
     (Number(shipment.taxAmount) > 0 ? detail('Tax', price(shipment.taxAmount)) : '') +
-    detail('Total', price(shipment.total)) + '</dl>' + shipmentPhotos(photos) + '</article>';
+    detail('Total', price(shipment.total)) + '</dl>' + (tracking && !inactive ? trackShipmentButton() : '') + shipmentPhotos(photos) + '</article>';
 }
 
 type Stock = { name: string; sku: string | null; imageUrl: string | null; allocated: string; shipped: string; remaining: string };
@@ -149,7 +153,7 @@ function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid', photos
       '</h2><span class="badge">' + escapeHtml(row.status && row.status !== 'Unknown' ? row.status : validTracking(row.tracking) ? 'Tracking recorded' : 'Tracking pending') + '</span></header>' +
       '<dl class="details">' + detail('Recipient', row.recipient) + detail('Origin', row.origin) +
       detail('Destination', row.destination) + detail('Postcode', row.postcode) + detail('Carrier', row.carrier) +
-      detail('Tracking number', validTracking(row.tracking) ? row.tracking : 'Pending') + '</dl>' + shipmentPhotos(photos[index] ?? []) + '</article>').join('') + '</div></section>';
+      detail('Tracking number', validTracking(row.tracking) ? row.tracking : 'Pending') + '</dl>' + (validTracking(row.tracking) ? trackShipmentButton() : '') + shipmentPhotos(photos[index] ?? []) + '</article>').join('') + '</div></section>';
 }
 
 const sourcingOrigin = 'https://sourcing.center';
@@ -252,6 +256,7 @@ function shipmentPhotos(paths: string[]) {
 }
 
 const styles = `
+.track-shipment{display:inline-flex;align-items:center;justify-content:center;gap:8px;background:#8e1744;border:1px solid #8e1744;color:#fff;border-radius:12px;padding:10px 16px;font-weight:700;text-decoration:none;line-height:1.4;margin-top:16px;min-height:44px}.track-shipment:hover{background:#701237}.track-shipment:focus-visible{outline:3px solid #d894ae;outline-offset:3px}.top .track-shipment{margin-top:8px}
 *{box-sizing:border-box}body{margin:0;background:#f7f6f5;color:#251b21;font:15px/1.5 system-ui,sans-serif}
 /* Subtle, non-interactive Sourcing Center watermark across the customer shipment portal. */
 body::after{content:"";position:fixed;inset:0;z-index:9999;pointer-events:none;user-select:none;background-repeat:repeat;background-size:360px 190px;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='360' height='190' viewBox='0 0 360 190'%3E%3Ctext x='180' y='95' transform='rotate(-30 180 95)' text-anchor='middle' font-family='Arial,sans-serif' font-size='21' font-weight='600' fill='%23251b21' fill-opacity='.11'%3Ewww.sourcing.center%3C/text%3E%3C/svg%3E")}
@@ -337,7 +342,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       '<div class="top"><div><h1>Welcome, <span class="partner-name">' +
       escapeHtml(data.partner) + '</span></h1>' +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
-      '</div>' + nav + '</div>' +
+      '</div><div>' + nav + trackShipmentButton() + '</div></div>' +
       '<p class="partner">' + (data.shipments.length + history.length) + ' orders · Updates automatically every 30 seconds</p>' +
       (live === null ? '<p class="partner">Live staff tracking is temporarily unavailable. Showing saved order history.</p>' : '') +
       '<section aria-label="All shipments" class="shipments ' + view + '">' +
