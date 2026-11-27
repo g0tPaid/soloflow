@@ -6,7 +6,7 @@ import { TenantMemberGuard } from '../common/tenant-member.guard';
 
 type Actor = { user: { sub: string } };
 type Snapshot = { revision: number; data: unknown };
-const empty = () => ({ entries: [], customers: [], suppliers: [], products: [], deals: [], roadmap: [], gates: [], defaultRate: 7.15 });
+const empty = () => ({ entries: [], customers: [], suppliers: [], products: [], deals: [], imports: [], roadmap: [], gates: [], defaultRate: 7.15 });
 const categories = ['self_export','entrusted_export','vat_refund','procurement','customs_freight','operating'];
 const currencies = ['CNY','USD','EUR','GBP','AED'];
 
@@ -14,7 +14,7 @@ function validate(data: unknown) {
   const bad = () => { throw new BadRequestException('Invalid or oversized Module 2 workspace'); };
   if (!data || typeof data !== 'object' || Array.isArray(data)) return bad();
   const d = data as Record<string, unknown>;
-  const keys = ['entries','customers','suppliers','products','deals','roadmap','gates','defaultRate','profile'];
+  const keys = ['entries','customers','suppliers','products','deals','imports','roadmap','gates','defaultRate','profile'];
   if (Object.keys(d).some(k => !keys.includes(k)) || JSON.stringify(d).length > 2_000_000) return bad();
   const positive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1e12;
   const percentage = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
@@ -46,6 +46,20 @@ function validate(data: unknown) {
       if (['entries','suppliers','products','deals'].includes(k) && ['vatRate','refundRate'].some(f => item[f] !== undefined && !percentage(item[f]))) return bad();
       if (['customers','suppliers','products'].includes(k) && (!text(item.name) || !item.name.trim())) return bad();
       if (k === 'deals' && (!Number.isInteger(item.step) || item.step < 1 || item.step > 6 || !text(item.number, 80))) return bad();
+    }
+  }
+  if (d.imports !== undefined) {
+    if (!Array.isArray(d.imports) || d.imports.length > 5000) return bad();
+    const ids = new Set<string>();
+    const numeric = ['qty','unitCost','rate','freightCny','insuranceCny','dutyCny','importVatCny','otherCny','paidCny','receivedQty'];
+    for (const item of d.imports) {
+      if (!item || typeof item !== 'object' || Array.isArray(item) || !text(item.id,80) || !item.id || ids.has(item.id)) return bad();
+      ids.add(item.id);
+      if (Object.keys(item).length > 40 || Object.values(item).some(v => !(text(v) || (typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 1e12)))) return bad();
+      if (!text(item.number,80) || !item.number || !text(item.date,10) || !/^\d{4}-\d{2}-\d{2}$/.test(item.date) || !text(item.supplier) || !item.supplier.trim() || !text(item.product) || !item.product.trim() || !currencies.includes(item.currency) || !['Draft','Ordered','In transit','Customs clearance','Received'].includes(item.status)) return bad();
+      if (numeric.some(k => typeof item[k] !== 'number' || !Number.isFinite(item[k]) || item[k] < 0 || item[k] > 1e12) || !positive(item.qty) || !positive(item.unitCost) || !positive(item.rate) || (item.currency === 'CNY' && item.rate !== 1)) return bad();
+      const landed = item.qty * item.unitCost * item.rate + item.freightCny + item.insuranceCny + item.dutyCny + item.importVatCny + item.otherCny;
+      if (!Number.isFinite(landed) || landed > 1e12 || item.paidCny > landed || item.receivedQty > item.qty || (item.status === 'Received' && item.receivedQty !== item.qty)) return bad();
     }
   }
   for (const k of ['roadmap','gates']) { const list = d[k]; if (!Array.isArray(list) || list.length > 100 || list.some(v => !text(v, 100))) return bad(); }
