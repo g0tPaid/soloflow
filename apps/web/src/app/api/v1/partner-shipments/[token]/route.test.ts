@@ -75,6 +75,8 @@ describe('private partner shipment view', () => {
     const html = await (await GET(new Request(path), params)).text();
     expect(html).toContain('Payment completed');
     expect(html).toContain('Local ordering in progress');
+    expect(html).toContain('1 of 7 completed');
+    expect(html).toContain('class="in-progress" aria-current="step"');
     expect(html).not.toContain('Awaiting payment');
   });
 
