@@ -4,6 +4,7 @@ import { NextResponse } from 'next/server';
 
 type Port = {code:string;name:string;country:string;subdivision:string};
 const source='https://raw.githubusercontent.com/datasets/un-locode/main/data/code-list.csv';
+export const dynamic='force-dynamic';
 let cache:{expires:number;rows:Port[]}|undefined;
 function csvLine(line:string):string[]{
   const fields:string[]=[];let field='',quoted=false;
@@ -13,7 +14,7 @@ function csvLine(line:string):string[]{
 export async function GET(){
   if(cache&&cache.expires>Date.now())return NextResponse.json({ports:cache.rows,source:'UN/LOCODE'},{headers:{'Cache-Control':'public, max-age=3600'}});
   try{
-    const response=await fetch(source,{next:{revalidate:86400},signal:AbortSignal.timeout(15000)});
+    const response=await fetch(source,{cache:'no-store',signal:AbortSignal.timeout(15000)});
     if(!response.ok)throw new Error('Directory unavailable');
     const data=await response.text();const rows=new Map<string,Port>();
     for(const line of data.split(/\r?\n/)){
