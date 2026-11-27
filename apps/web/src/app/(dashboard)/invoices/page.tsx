@@ -498,7 +498,7 @@ export default function InvoicesPage() {
                     </td>
                     <td className="px-3 py-3">
                       <div className="space-y-2">
-                        <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
+                        <FulfillmentStatusBadge status={invoice.fulfillmentStatus} invoiceStatus={invoice.status} shippingMethod={invoice.shippingMethod} />
                         {!unsynced && invoice.status !== 'CANCELLED' && invoice.status !== 'VOID' ? (
                           <details className="min-w-[240px] rounded-lg border p-2">
                             <summary className="cursor-pointer text-xs font-semibold text-primary">Update shipment status</summary>
@@ -508,6 +508,8 @@ export default function InvoicesPage() {
                     layout="compact"
                     disabled={fulfillmentMutation.isPending}
                     status={invoice.fulfillmentStatus}
+                    invoiceStatus={invoice.status}
+                    shippingMethod={invoice.shippingMethod}
                     localTrackingNumber={invoice.localTrackingNumber}
                     internationalTrackingNumber={invoice.internationalTrackingNumber}
                     saving={
@@ -600,7 +602,7 @@ export default function InvoicesPage() {
                         onRetry={() => void requestSync()}
                         retrying={syncing}
                       />
-                      <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
+                      <FulfillmentStatusBadge status={invoice.fulfillmentStatus} invoiceStatus={invoice.status} shippingMethod={invoice.shippingMethod} />
                       <PaymentStatePill invoice={invoice} />
                     </div>
                     <p className="text-sm text-muted-foreground">
@@ -740,6 +742,8 @@ export default function InvoicesPage() {
                     layout="compact"
                     disabled={invoice.status === 'CANCELLED' || invoice.status === 'VOID' || fulfillmentMutation.isPending}
                     status={invoice.fulfillmentStatus}
+                    invoiceStatus={invoice.status}
+                    shippingMethod={invoice.shippingMethod}
                     localTrackingNumber={invoice.localTrackingNumber}
                     internationalTrackingNumber={invoice.internationalTrackingNumber}
                     saving={

@@ -1,13 +1,13 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { FULFILLMENT_STATUSES, formatFulfillmentHistoryTimestamp, type FulfillmentStatus } from '@flowbooks/shared';
+import { type FulfillmentStatus } from '@flowbooks/shared';
 import { api } from '@/lib/api';
 import { DropshipShipmentImport } from '@/components/customers/dropship-shipment-import';
 import { DropshipStock } from '@/components/customers/dropship-stock';
 import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
-import { Check, FilePlus, Pencil } from 'lucide-react';
-import { FulfillmentHistoryList } from '@/components/invoices/fulfillment-controls';
+import { FilePlus, Pencil } from 'lucide-react';
+import { FulfillmentControls } from '@/components/invoices/fulfillment-controls';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
 import { Button } from '@/components/ui/button';
@@ -69,47 +69,21 @@ function ShipmentStatusControls({ invoice, organizationId }: { invoice: Invoice;
   const { data: session } = useSession();
   const queryClient = useQueryClient();
   const mutation = useMutation({
-    mutationFn: (fulfillmentStatus: FulfillmentStatus | null) => {
+    mutationFn: (data: { fulfillmentStatus?: FulfillmentStatus | null; localTrackingNumber?: string | null; internationalTrackingNumber?: string | null }) => {
       if (!session?.accessToken) throw new Error('Please sign in again.');
-      return api.invoices.update(session.accessToken, organizationId, invoice.id, { fulfillmentStatus });
+      return api.invoices.update(session.accessToken, organizationId, invoice.id, data);
     },
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
       await queryClient.invalidateQueries({ queryKey: ['invoice', organizationId, invoice.id] });
+      await queryClient.invalidateQueries({ queryKey: ['customer-activity', organizationId] });
     },
   });
-  const selected = invoice.fulfillmentStatus;
-  const lastUpdate = [...(invoice.fulfillmentEvents ?? [])].sort((a, b) => Date.parse(b.createdAt) - Date.parse(a.createdAt))[0];
-  const options: { value: FulfillmentStatus | null; label: string }[] = [
-    { value: null, label: 'Awaiting shipment' },
-    ...FULFILLMENT_STATUSES.map(stage => ({
-      ...stage,
-      label: stage.value === 'SHIPPED_INTERNATIONAL' ||
-        (stage.value === 'SHIPPED_TO_CHINA_CENTER' && invoice.shippingMethod === 'LOCAL')
-        ? 'Shipped · awaiting reception' : stage.label,
-    })).filter(stage => invoice.shippingMethod !== 'LOCAL' || stage.value !== 'SHIPPED_INTERNATIONAL'),
-  ];
-
   return (
     <div className="space-y-2 border-t px-3 py-3">
       <p className="text-xs font-semibold text-muted-foreground">Shipment status · {invoice.number}</p>
-      <div role="group" aria-label={`Shipment status for ${invoice.number}`} className="flex flex-wrap gap-2">
-        {options.map(({ value, label }) => {
-          const active = (selected ?? null) === value;
-          return (
-            <Button key={value ?? 'pending'} type="button" size="sm" variant={active ? 'default' : 'outline'}
-              className={active ? 'h-auto gap-1 whitespace-normal bg-[#E40046] py-1.5 text-white hover:bg-[#c4003c]' : 'h-auto gap-1 whitespace-normal py-1.5'}
-              aria-pressed={active} disabled={mutation.isPending || !session?.accessToken}
-              onClick={() => { if (!active) mutation.mutate(value); }}>
-              {active ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}
-              {label}
-            </Button>
-          );
-        })}
-      </div>
-      <p role="status" className="text-xs text-muted-foreground">{mutation.isPending ? 'Saving…' : mutation.isSuccess ? 'Saved · customer link updates automatically.' : 'Select the current stage to update the customer link.'}</p>
-      {lastUpdate ? <p className="text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, 'Asia/Shanghai')}</p> : null}
-      <FulfillmentHistoryList history={invoice.fulfillmentEvents} timeZone="Asia/Shanghai" />
+      <FulfillmentControls idPrefix={`customer-${invoice.id}`} layout="compact" status={invoice.fulfillmentStatus} invoiceStatus={invoice.status} shippingMethod={invoice.shippingMethod} localTrackingNumber={invoice.localTrackingNumber} internationalTrackingNumber={invoice.internationalTrackingNumber} history={invoice.fulfillmentEvents} timeZone="Asia/Shanghai" saving={mutation.isPending} disabled={!session?.accessToken} onStatusChange={fulfillmentStatus=>mutation.mutate({fulfillmentStatus})} onTrackingSave={tracking=>mutation.mutate(tracking)}/>
+      <p role="status" className="text-xs text-muted-foreground">{mutation.isPending ? 'Saving…' : mutation.isSuccess ? 'Saved · customer link updates automatically.' : 'Choose In progress or Completed for each shipment stage.'}</p>
       {mutation.isError ? <p role="alert" className="text-xs text-destructive">{mutation.error.message}</p> : null}
     </div>
   );

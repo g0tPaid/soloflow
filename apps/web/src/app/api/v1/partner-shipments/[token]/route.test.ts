@@ -65,7 +65,7 @@ describe('private partner shipment view', () => {
     expect(upstream).toHaveBeenCalledWith(expect.stringContaining('page=1&status=all'), expect.anything());
   });
 
-  it('keeps paid orders with no fulfillment stage awaiting shipment', async () => {
+  it('shows payment completed and local ordering in progress for a paid order', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
       partner: 'Partner', hasMore: false, shipments: [{
         number: 'INV-PAID', status: 'PAID', awaiting: true, fulfillmentStatus: null,
@@ -73,7 +73,8 @@ describe('private partner shipment view', () => {
       }],
     })));
     const html = await (await GET(new Request(path), params)).text();
-    expect(html).toContain('Awaiting shipment');
+    expect(html).toContain('Payment completed');
+    expect(html).toContain('Local ordering in progress');
     expect(html).not.toContain('Awaiting payment');
   });
 

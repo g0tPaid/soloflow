@@ -1,5 +1,5 @@
 import { randomBytes } from 'node:crypto';
-import { fulfillmentStatusLabel } from '@flowbooks/shared';
+import { shipmentProgress, shipmentProgressLabel } from '@flowbooks/shared';
 import { getServerApiBaseUrl } from '@/lib/server-api-url';
 
 export const dynamic = 'force-dynamic';
@@ -104,19 +104,16 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
   }).join('');
   const tracking = shipment.internationalTrackingNumber || (shipment.shippingMethod === 'LOCAL' ? shipment.localTrackingNumber : null);
   const inactive = shipment.status === 'CANCELLED' || shipment.status === 'VOID';
-  const status = inactive ? (shipment.status === 'VOID' ? 'Void' : 'Cancelled') :
-    (shipment.fulfillmentStatus === 'SHIPPED_INTERNATIONAL' ||
-      (shipment.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' && shipment.shippingMethod === 'LOCAL')) ? 'Shipped · awaiting reception' :
-    shipment.fulfillmentStatus ? fulfillmentStatusLabel(shipment.fulfillmentStatus) :
-      shipment.status && ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'OVERDUE'].includes(shipment.status) ? 'Awaiting payment' : 'Awaiting shipment';
+  const status = shipmentProgressLabel(shipment.fulfillmentStatus,shipment.status,shipment.shippingMethod);
+  const progress = inactive ? '' : '<ol class="shipment-progress" aria-label="Order progress">'+shipmentProgress(shipment.fulfillmentStatus,shipment.status,shipment.shippingMethod).map(stage=>'<li class="'+stage.state+'"><span class="progress-icon" aria-hidden="true">'+(stage.state==='completed'?'✓':'')+'</span><span>'+escapeHtml(stage.label)+'</span></li>').join('')+'</ol>';
   return '<article><header><div><p class="eyebrow">Invoice ' + escapeHtml(shipment.number) + '</p>' +
     '<h2>' + escapeHtml(shipment.partnerOrderNumber ? 'Order ' + shipment.partnerOrderNumber : shipment.number) + '</h2></div>' +
     '<span class="badge' + (shipment.awaiting || inactive ? ' awaiting' : '') + '">' + escapeHtml(status) + '</span></header>' +
-    '<dl class="details">' + detail('Recipient', shipment.endRecipientName || 'Not provided') +
+    progress + '<dl class="details">' + detail('Recipient', shipment.endRecipientName || 'Not provided') +
     detail('Delivery address', [shipment.endRecipientAddress, shipment.shipmentContact?.addressLine2,
       [shipment.shipmentContact?.city, shipment.shipmentContact?.region, shipment.shipmentContact?.postcode].filter(Boolean).join(' '),
       shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) +
-    detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (status === 'Awaiting payment' ? 'Awaiting payment' : shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
+    detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || 'Not yet available') +
     detail('Carrier status', shipment.staffTrackingStatus || null) +
     detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Invoice date', shipment.issueDate ? shipment.issueDate.slice(0, 10) : null) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
@@ -265,6 +262,7 @@ nav a{color:#781538;border:1px solid #e6d7dd;background:#fff;border-radius:999px
 @media(prefers-reduced-motion:no-preference){.partner-name{animation:welcome-name .65s ease-out both}}
 @keyframes welcome-name{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .attributes{white-space:pre-line;overflow-wrap:anywhere}.badge.awaiting{color:#795310;background:#fff1d5}
+.shipment-progress{display:grid;gap:7px;padding:12px;margin:0 0 16px;border:1px solid #eadfe5;border-radius:12px;list-style:none;background:#faf8f9}.shipment-progress li{display:flex;align-items:center;gap:9px;font-size:13px;color:#77808d}.shipment-progress li.completed{color:#18764b;font-weight:650}.shipment-progress li.in-progress{color:#b41649;font-weight:700}.progress-icon{width:18px;height:18px;border-radius:50%;border:1.5px solid #c8cbd0;display:grid;place-items:center;flex:none;font-size:12px}.completed .progress-icon{color:white;background:#198754;border-color:#198754}.in-progress .progress-icon{border:2px solid #f7c3d5;border-top-color:#e40046;animation:progress-spin .9s linear infinite}@keyframes progress-spin{to{transform:rotate(360deg)}}@media(prefers-reduced-motion:reduce){.in-progress .progress-icon{animation:none}}
 nav a[aria-current=true]{background:#8e1744;color:#fff}.shipments{display:grid;gap:14px;margin:22px 0}.grid{grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr))}
 article,.empty,.inventory{background:#fff;border:1px solid #ece4e7;border-radius:18px;padding:clamp(14px,3vw,24px);min-width:0}article header{margin-bottom:16px}.badge{font-size:12px;font-weight:700;color:#176145;background:#e7f6ed;border-radius:999px;padding:5px 10px}
 .details{display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,145px),1fr));gap:10px 16px}dt,small{color:#695c63;font-size:12px}dd{overflow-wrap:anywhere;white-space:pre-line;font-weight:600}
