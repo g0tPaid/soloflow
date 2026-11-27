@@ -140,7 +140,7 @@ describe('private partner shipment view', () => {
     vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');
     const upstream = vi.fn().mockResolvedValue(Response.json({
       partner: 'Regular Buyer', hasMore: false, stock: [], importedShipments: [],
-      shipments: [{ number: 'INV-REG-1', issueDate: '2026-11-27T00:00:00Z', status: 'PAID',
+      shipments: [{ number: 'INV-REG-1', issueDate: '2026-11-27T00:00:00Z', shippedAt: '2026-11-28T00:00:00Z', shipmentUpdatedAt: '2026-11-29T00:00:00Z', status: 'PAID',
         fulfillmentStatus: 'SHIPPED_INTERNATIONAL', currency: 'USD', subtotal: '10', shipping: '0',
         total: '10', discount: '0', taxAmount: '0', items: [] }],
     }));
@@ -151,6 +151,9 @@ describe('private partner shipment view', () => {
     expect(html).toContain('Regular Buyer');
     expect(html).toContain('INV-REG-1');
     expect(html).toContain('2026-11-27');
+    expect(html.match(/Invoice date/g)).toHaveLength(1);
+    expect(html).not.toContain('Last shipment update');
+    expect(html).not.toContain('Shipped on');
     expect(html).toContain('Updates automatically every 30 seconds');
     expect(html).not.toContain('Your stock');
     expect(upstream).toHaveBeenCalledTimes(1);
