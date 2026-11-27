@@ -515,6 +515,7 @@ enum PaymentMethod {
 }
 
 enum FulfillmentStatus {
+  AWAITING_PAYMENT
   LOCAL_ORDERING_COMPLETED
   QC_COMPLETED
   SHIPPED_TO_CHINA_CENTER

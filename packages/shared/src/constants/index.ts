@@ -199,6 +199,7 @@ export type ShippingTerms = (typeof SHIPPING_TERMS)[number]['value'];
 
 /** Customer-order fulfillment, in the order a merchant advances through them. */
 export const FULFILLMENT_STATUS_VALUES = [
+  'AWAITING_PAYMENT',
   'LOCAL_ORDERING_COMPLETED',
   'QC_COMPLETED',
   'SHIPPED_TO_CHINA_CENTER',
@@ -210,6 +211,7 @@ export const FULFILLMENT_STATUS_VALUES = [
 export type FulfillmentStatus = (typeof FULFILLMENT_STATUS_VALUES)[number];
 
 export const FULFILLMENT_STATUSES: { value: FulfillmentStatus; label: string }[] = [
+  { value: 'AWAITING_PAYMENT', label: 'Awaiting payment' },
   { value: 'LOCAL_ORDERING_COMPLETED', label: 'Local ordering completed' },
   { value: 'QC_COMPLETED', label: 'QC completed' },
   { value: 'SHIPPED_TO_CHINA_CENTER', label: 'Shipped out to shipping center in China' },

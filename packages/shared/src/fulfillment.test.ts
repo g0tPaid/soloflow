@@ -14,8 +14,9 @@ import {
 } from './fulfillment';
 
 describe('fulfillment', () => {
-  it('keeps the six stages in merchant order', () => {
+  it('keeps the seven stages in merchant order', () => {
     expect(FULFILLMENT_STATUS_VALUES).toEqual([
+      'AWAITING_PAYMENT',
       'LOCAL_ORDERING_COMPLETED',
       'QC_COMPLETED',
       'SHIPPED_TO_CHINA_CENTER',
@@ -24,7 +25,9 @@ describe('fulfillment', () => {
       'ORDER_COMPLETED',
     ]);
     expect(fulfillmentRank(null)).toBe(-1);
-    expect(fulfillmentRank('ORDER_COMPLETED')).toBe(5);
+    expect(fulfillmentRank('AWAITING_PAYMENT')).toBe(0);
+    expect(fulfillmentStatusLabel('AWAITING_PAYMENT')).toBe('Awaiting payment');
+    expect(fulfillmentRank('ORDER_COMPLETED')).toBe(6);
     expect(fulfillmentStatusLabel(null)).toBe('Not started');
     expect(fulfillmentStatusLabel('QC_COMPLETED')).toBe('QC completed');
   });
@@ -77,13 +80,13 @@ describe('fulfillment', () => {
         { status: 'LOCAL_ORDERING_COMPLETED', action: 'OFF', createdAt },
         'UTC',
       ),
-    ).toMatch(/1\. Local ordering completed turned off/);
+    ).toMatch(/2\. Local ordering completed turned off/);
     expect(
       formatFulfillmentHistoryLine(
         { status: 'QC_COMPLETED', action: 'ON', createdAt },
         'Asia/Dubai',
       ),
-    ).toMatch(/2\. QC completed turned on/);
+    ).toMatch(/3\. QC completed turned on/);
   });
 
   it('rejects tracking numbers before the matching ship step', () => {

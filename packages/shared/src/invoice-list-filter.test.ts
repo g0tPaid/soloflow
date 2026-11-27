@@ -45,6 +45,7 @@ describe('invoice list filters', () => {
 
   it('groups fulfillment stages into on the way and received', () => {
     expect(invoiceListFilterCriteria('on_the_way').fulfillmentStatuses).toEqual([
+      'AWAITING_PAYMENT',
       'LOCAL_ORDERING_COMPLETED',
       'QC_COMPLETED',
       'SHIPPED_TO_CHINA_CENTER',

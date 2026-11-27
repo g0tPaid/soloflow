@@ -21,27 +21,30 @@ function renderControls(status: FulfillmentStatus | null, layout: 'full' | 'comp
 }
 
 describe('FulfillmentControls', () => {
-  it('shows the six stages and sets the clicked one', () => {
+  it('shows the seven stages and sets the clicked one', () => {
     const { onStatusChange } = renderControls(null);
-    expect(screen.getByRole('button', { name: '1. Local ordering completed' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '2. QC completed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '1. Awaiting payment' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2. Local ordering completed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '3. QC completed' })).toBeInTheDocument();
     expect(
-      screen.getByRole('button', { name: '3. Shipped out to shipping center in China' }),
+      screen.getByRole('button', { name: '4. Shipped out to shipping center in China' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '4. Shipped · awaiting reception' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '5. Customer received' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '6. Order completed' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '5. Shipped · awaiting reception' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '6. Customer received' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '7. Order completed' })).toBeInTheDocument();
 
-    fireEvent.click(screen.getByRole('button', { name: '2. QC completed' }));
+    fireEvent.click(screen.getByRole('button', { name: '1. Awaiting payment' }));
+    expect(onStatusChange).toHaveBeenCalledWith('AWAITING_PAYMENT');
+    fireEvent.click(screen.getByRole('button', { name: '3. QC completed' }));
     expect(onStatusChange).toHaveBeenCalledWith('QC_COMPLETED');
   });
 
   it('turns the active stage off and still selects a different stage', () => {
     const { onStatusChange } = renderControls('LOCAL_ORDERING_COMPLETED');
-    fireEvent.click(screen.getByRole('button', { name: '1. Local ordering completed' }));
+    fireEvent.click(screen.getByRole('button', { name: '2. Local ordering completed' }));
     expect(onStatusChange).toHaveBeenCalledWith(null);
     fireEvent.click(
-      screen.getByRole('button', { name: '3. Shipped out to shipping center in China' }),
+      screen.getByRole('button', { name: '4. Shipped out to shipping center in China' }),
     );
     expect(onStatusChange).toHaveBeenCalledWith('SHIPPED_TO_CHINA_CENTER');
   });
@@ -72,13 +75,13 @@ describe('FulfillmentControls', () => {
     );
     expect(screen.getByText(/Last shipment update:/)).toHaveTextContent(/23 Sept? 2026|23 Sep 2026/);
     fireEvent.click(screen.getByText(/Shipment update history/));
-    expect(screen.getByText(/2\. QC completed turned on/)).toHaveTextContent(/UTC/);
-    expect(screen.getByText(/1\. Local ordering completed turned off/)).toBeInTheDocument();
+    expect(screen.getByText(/3\. QC completed turned on/)).toHaveTextContent(/UTC/);
+    expect(screen.getByText(/2\. Local ordering completed turned off/)).toBeInTheDocument();
   });
 
   it('marks the current stage and keeps tracking locked until shipping starts', () => {
     renderControls('QC_COMPLETED');
-    expect(screen.getByRole('button', { name: '2. QC completed' })).toHaveAttribute(
+    expect(screen.getByRole('button', { name: '3. QC completed' })).toHaveAttribute(
       'aria-pressed',
       'true',
     );
