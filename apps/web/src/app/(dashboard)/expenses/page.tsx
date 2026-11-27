@@ -5,7 +5,7 @@ import { Suspense, useEffect, useState } from 'react';
 import { useSearchParams } from 'next/navigation';
 import { useSession } from 'next-auth/react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
-import { Plus, Receipt, TrendingDown, TrendingUp } from 'lucide-react';
+import { Pencil, Plus, Receipt, TrendingDown, TrendingUp } from 'lucide-react';
 import { api, type OperatingExpenseCategory, type OperatingExpense } from '@/lib/api';
 import { formatCurrency } from '@/lib/utils';
 import { useOrganizationId } from '@/hooks/use-organization';
@@ -80,7 +80,7 @@ function ExpensesContent() {
         {categories.map((item) => <Button key={item.key} type="button" variant={category === item.key ? 'default' : 'outline'} className="h-auto min-h-12 whitespace-normal text-left" onClick={() => { setCategory(item.key); setPage(1); }}>{item.label}</Button>)}
       </div>
       <div className="flex flex-wrap items-center gap-3"><Input aria-label="Filter expenses" placeholder={invoiceCategory ? 'Search invoice number, customer, item or vendor' : 'Search description, payee or reference'} value={search} onChange={(event) => setSearch(event.target.value)} className="max-w-xl" />{search && <Button variant="outline" onClick={() => setSearch('')}>Clear</Button>}</div>
-      {!invoiceCategory && organizationId && session?.accessToken && operatingCategory && <OperatingExpenses key={operatingCategory} category={operatingCategory} token={session.accessToken} organizationId={organizationId} currency={businessCurrency} rows={operating.data?.data ?? []} loading={operating.isLoading} error={operating.error} />}
+      {!invoiceCategory && organizationId && session?.accessToken && operatingCategory && <OperatingExpenses key={`${organizationId}-${operatingCategory}`} category={operatingCategory} token={session.accessToken} organizationId={organizationId} currency={businessCurrency} rows={operating.data?.data ?? []} loading={operating.isLoading} error={operating.error} />}
       {invoiceCategory && <><Card className="border-orange-200 bg-orange-50/50 lg:hidden">
         <CardContent className="py-4 text-sm text-orange-950">
           <p className="font-medium">On phone: tap an invoice below, or Add expense</p>
@@ -195,6 +195,7 @@ function ExpensesContent() {
 function OperatingExpenses({ category, token, organizationId, currency, rows, loading, error }: { category: OperatingExpenseCategory; token: string; organizationId: string; currency: string; rows: OperatingExpense[]; loading: boolean; error: unknown }) {
   const queryClient = useQueryClient();
   const [open, setOpen] = useState(false);
+  const [editingId, setEditingId] = useState<string | null>(null);
   const [description, setDescription] = useState('');
   const [payee, setPayee] = useState('');
   const [reference, setReference] = useState('');
@@ -204,20 +205,35 @@ function OperatingExpenses({ category, token, organizationId, currency, rows, lo
   const [amount, setAmount] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  function resetForm() {
+    setEditingId(null); setDescription(''); setPayee(''); setReference(''); setNotes('');
+    setDate(new Date().toISOString().slice(0, 10)); setEntryCurrency(currency || 'USD'); setAmount(''); setMessage('');
+  }
+  function startEdit(row: OperatingExpense) {
+    if (busy) return;
+    setEditingId(row.id); setDescription(row.description); setPayee(row.payee ?? '');
+    setReference(row.reference ?? ''); setNotes(row.notes ?? '');
+    setDate(row.expenseDate.slice(0, 10)); setEntryCurrency(row.currency); setAmount(String(row.amount));
+    setMessage(''); setOpen(true);
+  }
+  function closeForm() {
+    setOpen(false); resetForm();
+  }
   async function save(event: React.FormEvent) {
     event.preventDefault();
     setMessage('');
     if (!description.trim() || !date || !Number.isFinite(Number(amount)) || Number(amount) <= 0) { setMessage('Enter a description, date and positive amount.'); return; }
     setBusy(true);
     try {
-      await api.expenses.createOperating(token, organizationId, { category, description, payee, reference, notes, expenseDate: date, currency: entryCurrency, amount: Number(amount) });
+      const data = { category, description, payee, reference, notes, expenseDate: date, currency: entryCurrency, amount: Number(amount) };
+      if (editingId) await api.expenses.updateOperating(token, organizationId, editingId, data);
+      else await api.expenses.createOperating(token, organizationId, data);
       await Promise.all([queryClient.invalidateQueries({ queryKey: ['operating-expenses', organizationId] }), queryClient.invalidateQueries({ queryKey: ['dashboard-metrics', organizationId] }), queryClient.invalidateQueries({ queryKey: ['workspace-search', organizationId] })]);
-      setOpen(false); setDescription(''); setPayee(''); setReference(''); setNotes(''); setAmount('');
+      closeForm();
     } catch (err) { setMessage(err instanceof Error ? err.message : 'Could not save expense'); } finally { setBusy(false); }
   }
-  return <div className="space-y-3">
-    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">{categories.find((item) => item.key === category)?.label}</h2><Button onClick={() => setOpen(!open)}>{open ? 'Close' : 'Add expense'}</Button></div>
-    {open && <Card><CardContent className="p-4"><form onSubmit={save} className="grid gap-4 sm:grid-cols-2">
+  const form = <form onSubmit={save} className="grid gap-4 sm:grid-cols-2" aria-label={editingId ? "Edit expense" : "Add expense"}>
+      <h3 className="font-semibold sm:col-span-2">{editingId ? "Edit expense" : "Add expense"}</h3>
       <div><Label htmlFor="operating-description">Description *</Label><Input id="operating-description" value={description} onChange={(e) => setDescription(e.target.value)} required maxLength={200} /></div>
       <div><Label htmlFor="operating-payee">Payee / employee / supplier</Label><Input id="operating-payee" value={payee} onChange={(e) => setPayee(e.target.value)} maxLength={200} /></div>
       <div><Label htmlFor="operating-date">Date *</Label><Input id="operating-date" type="date" value={date} onChange={(e) => setDate(e.target.value)} required /></div>
@@ -225,8 +241,17 @@ function OperatingExpenses({ category, token, organizationId, currency, rows, lo
       <div><Label htmlFor="operating-currency">Currency</Label><select id="operating-currency" value={entryCurrency} onChange={(e) => setEntryCurrency(e.target.value)} className="h-9 w-full rounded-md border bg-background px-3">{CURRENCIES.map((c) => <option key={c.code} value={c.code}>{c.code}</option>)}</select></div>
       <div><Label htmlFor="operating-amount">Amount *</Label><Input id="operating-amount" type="number" min="0.01" step="0.01" value={amount} onChange={(e) => setAmount(e.target.value)} required /></div>
       <div className="sm:col-span-2"><Label htmlFor="operating-notes">Notes</Label><Input id="operating-notes" value={notes} onChange={(e) => setNotes(e.target.value)} maxLength={2000} /></div>
-      {message && <p role="alert" className="sm:col-span-2 text-sm text-destructive">{message}</p>}<Button type="submit" disabled={busy}>{busy ? 'Saving…' : 'Save expense'}</Button>
-    </form></CardContent></Card>}
-    {loading ? <p>Loading…</p> : error ? <p className="text-destructive">Could not load expenses.</p> : rows.length === 0 ? <Card><CardContent className="p-6 text-center text-muted-foreground">No expenses found in this category.</CardContent></Card> : rows.map((row) => <Card key={row.id}><CardContent className="flex items-center justify-between gap-3 p-4"><div><p className="font-medium">{row.description}</p><p className="text-sm text-muted-foreground">{[formatDate(row.expenseDate), row.payee, row.reference].filter(Boolean).join(' · ')}</p>{row.notes && <p className="text-xs text-muted-foreground">{row.notes}</p>}</div><p className="font-semibold text-orange-700">{formatCurrency(row.amount, row.currency)}</p></CardContent></Card>)}
+      {message && <p role="alert" className="sm:col-span-2 text-sm text-destructive">{message}</p>}<div className="flex flex-wrap gap-2 sm:col-span-2"><Button type="submit" disabled={busy}>{busy ? 'Saving…' : editingId ? 'Save changes' : 'Save expense'}</Button><Button variant="outline" type="button" disabled={busy} onClick={closeForm}>Cancel</Button></div>
+    </form>;
+  return <div className="space-y-3">
+    <div className="flex flex-wrap items-center justify-between gap-2"><h2 className="text-lg font-semibold">{categories.find((item) => item.key === category)?.label}</h2><Button disabled={busy} onClick={() => { if (open && !editingId) closeForm(); else { resetForm(); setOpen(true); } }}>{open && !editingId ? 'Close' : 'Add expense'}</Button></div>
+    {open && !editingId && <Card><CardContent className="p-4">{form}</CardContent></Card>}
+    {loading ? <p>Loading…</p> : error ? <p className="text-destructive">Could not load expenses.</p> : rows.length === 0 ? <Card><CardContent className="p-6 text-center text-muted-foreground">No expenses found in this category.</CardContent></Card> : rows.map((row) => <Card key={row.id}><CardContent className="p-4">
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="min-w-0"><p className="font-medium">{row.description}</p><p className="text-sm text-muted-foreground">{[formatDate(row.expenseDate), row.payee, row.reference].filter(Boolean).join(' · ')}</p>{row.notes && <p className="text-xs text-muted-foreground">{row.notes}</p>}</div>
+        <div className="flex items-center gap-3"><p className="font-semibold text-orange-700">{formatCurrency(row.amount, row.currency)}</p><Button type="button" variant="outline" size="sm" className="gap-1.5" disabled={busy} onClick={() => editingId === row.id ? closeForm() : startEdit(row)} aria-label={`Edit expense: ${row.description}`}><Pencil className="h-4 w-4" />{editingId === row.id ? 'Close' : 'Edit'}</Button></div>
+      </div>
+      {open && editingId === row.id && <div className="mt-4 border-t pt-4">{form}</div>}
+    </CardContent></Card>)}
   </div>;
 }
