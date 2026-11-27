@@ -58,7 +58,7 @@ describe('private partner shipment view', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await GET(new Request(path), params);
     const html = await response.text();
-    for (const label of ['Welcome, <span class="partner-name"><span class="partner-name-letters">Javier Example', 'SPAIN-0042', 'partner-portal-logo.png', 'All shipments', 'Awaiting payment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
+    for (const label of ['Welcome, <span class="partner-name"><span class="partner-name-letters">Javier Example', 'SPAIN-0042', 'partner-portal-logo.webp', 'All shipments', 'Awaiting payment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
       expect(html).toContain(label);
     }
     expect(html).not.toContain('Awaiting shipment');
@@ -128,7 +128,7 @@ describe('private partner shipment view', () => {
       .mockResolvedValueOnce(Response.json({ shipments: [row('100', 'TRACK100', 'In Transit'), row('102', 'TRACK102', 'Delivered')] }))
       .mockResolvedValueOnce(Response.json({ photos: [[], [], []] }));
     vi.stubGlobal('fetch', upstream);
-    const response = await GET(new Request(path), params);
+    const response = await GET(new Request(path + '?enriched=1'), params);
     const html = await response.text();
     expect(response.status).toBe(200);
     expect(html).toContain('3 orders');
@@ -139,6 +139,51 @@ describe('private partner shipment view', () => {
     expect(html).not.toContain('WAITING');
     expect(upstream).toHaveBeenNthCalledWith(2, 'https://sourcing.center/api/partner-shipment-orders',
       expect.objectContaining({ body: JSON.stringify({ number: '0042', prefix: 'A' }), cache: 'no-store' }));
+  });
+
+  it('renders saved orders immediately, deferring external tracking and embedded images', async () => {
+    vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');
+    const inlinePhoto = 'data:image/png;base64,' + 'A'.repeat(240_000);
+    const payload = { partner: 'Partner', hasMore: false,
+      sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: true },
+      shipments: [{ number: 'INV-FIRST', status: 'PAID', currency: 'USD', subtotal: '10', shipping: '0',
+        total: '10', discount: '0', taxAmount: '0', items: [{ name: 'Chair', imageUrl: inlinePhoto, quantity: '1', unitPrice: '10', amount: '10' }] }] };
+    const upstream = vi.fn().mockResolvedValueOnce(Response.json(payload))
+      .mockResolvedValueOnce(Response.json(payload))
+      .mockResolvedValueOnce(Response.json({ shipments: [] }))
+      .mockResolvedValueOnce(Response.json({ photos: [[]] }));
+    vi.stubGlobal('fetch', upstream);
+    const first = await GET(new Request(path), params);
+    const html = await first.text();
+    expect(html).toContain('INV-FIRST');
+    expect(html).toContain('data-deferred="true"');
+    expect(html).toContain('Loading additional order details and photos');
+    expect(html).not.toContain(inlinePhoto);
+    expect(upstream).toHaveBeenCalledTimes(1);
+    const full = await GET(new Request(path + '?enriched=1'), params);
+    const fullHtml = await full.text();
+    expect(fullHtml).toContain(inlinePhoto);
+    expect(fullHtml.length - html.length).toBeGreaterThan(230_000);
+    expect(upstream).toHaveBeenCalledTimes(4);
+  });
+
+  it('avoids re-sending unchanged HTML but rechecks the private token on each refresh', async () => {
+    const payload = { partner: 'Partner', hasMore: false, shipments: [] };
+    const upstream = vi.fn().mockResolvedValueOnce(Response.json(payload))
+      .mockResolvedValueOnce(Response.json(payload))
+      .mockResolvedValueOnce(new Response(null, { status: 404 }));
+    vi.stubGlobal('fetch', upstream);
+    const full = await GET(new Request(path + '?enriched=1'), params);
+    const etag = full.headers.get('etag')!;
+    expect(etag).toMatch(/^W\/"[a-f0-9]{64}"$/);
+    const req = new Request(path + '?enriched=1', { headers: { 'If-None-Match': etag } });
+    const unchanged = await GET(req, params);
+    expect(unchanged.status).toBe(304);
+    expect(await unchanged.text()).toBe('');
+    expect(unchanged.headers.get('cache-control')).toBe('private, no-store');
+    const revoked = await GET(req, params);
+    expect(revoked.status).toBe(404);
+    expect(upstream).toHaveBeenCalledTimes(3);
   });
   it('renders regular customer invoices without reaching the external dropshipper history or photo endpoints', async () => {
     vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');

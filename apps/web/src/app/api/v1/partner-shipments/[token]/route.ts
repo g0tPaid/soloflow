@@ -1,4 +1,4 @@
-import { randomBytes } from 'node:crypto';
+import { createHash, randomBytes } from 'node:crypto';
 import { shipmentProgress, shipmentProgressLabel } from '@flowbooks/shared';
 import { getServerApiBaseUrl } from '@/lib/server-api-url';
 
@@ -87,14 +87,14 @@ function trackShipmentButton() {
   return '<a class="track-shipment" href="https://www.sourcing.center/track" target="_blank" rel="noopener noreferrer">Track shipment <span aria-hidden="true">↗</span></a>';
 }
 
-function shipmentCard(shipment: Shipment, photos: string[]) {
+function shipmentCard(shipment: Shipment, photos: string[], deferInlineImages = false) {
   const currency = shipment.currency;
   const price = (amount: string) => money(amount, currency);
   const products = shipment.items.map((item) => {
-    const image = imageUrl(item.imageUrl);
+    const image = deferInlineImages && item.imageUrl?.startsWith('data:') ? null : imageUrl(item.imageUrl);
     const title = item.name || item.description || 'Product';
     const photo = image
-      ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(title) + '" loading="lazy" referrerpolicy="no-referrer">'
+      ? '<img src="' + escapeHtml(image) + '" alt="' + escapeHtml(title) + '" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer">'
       : '<div class="photo" aria-hidden="true"></div>';
     return '<li>' + photo + '<div><strong>' + escapeHtml(title) + '</strong>' +
       (item.description?.trim() && item.description.trim() !== title.trim()
@@ -127,11 +127,11 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
 
 type Stock = { name: string; sku: string | null; imageUrl: string | null; allocated: string; shipped: string; remaining: string };
 
-function inventory(rows: Stock[]) {
+function inventory(rows: Stock[], deferInlineImages = false) {
   if (!rows.length) return '';
   return '<section class="inventory" aria-label="Partner stock"><h2>Your stock</h2><ul>' + rows.map((row) => {
-    const image = imageUrl(row.imageUrl);
-    const thumb = image ? '<img src="' + escapeHtml(image) + '" alt="" loading="lazy" referrerpolicy="no-referrer">' : '<div class="photo" aria-hidden="true"></div>';
+    const image = deferInlineImages && row.imageUrl?.startsWith('data:') ? null : imageUrl(row.imageUrl);
+    const thumb = image ? '<img src="' + escapeHtml(image) + '" alt="" width="48" height="48" loading="lazy" decoding="async" referrerpolicy="no-referrer">' : '<div class="photo" aria-hidden="true"></div>';
     return '<li>' + thumb + '<div><strong>' + escapeHtml(row.name) + '</strong>' +
       (row.sku ? '<small>' + escapeHtml(row.sku) + '</small>' : '') + '</div><dl class="totals">' +
       detail('Allocated', row.allocated) + detail('Shipped', row.shipped) + detail('In stock', row.remaining) + '</dl></li>';
@@ -153,6 +153,11 @@ function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid', photos
 const sourcingOrigin = 'https://sourcing.center';
 
 type SourceCustomer = { id: string; number: string | null; prefix: string | null; sourcingEnabled?: boolean };
+
+function hasStaffIntegration(customer: SourceCustomer | undefined) {
+  return Boolean(process.env.PARTNER_SHIPMENT_PHOTO_KEY && customer?.number &&
+    (customer.sourcingEnabled || customer.id === process.env.PARTNER_SHIPMENT_PHOTO_CUSTOMER_ID));
+}
 
 function validTracking(value: string | null | undefined) {
   const clean = (value ?? '').trim().toUpperCase();
@@ -245,7 +250,7 @@ function shipmentPhotos(paths: string[]) {
   return '<div class="shipment-photos" aria-label="Shipment photos">' + paths.map((path, index) => {
     const url = escapeHtml(sourcingOrigin + path);
     return '<a href="' + url + '" target="_blank" rel="noreferrer"><img src="' + url + '" alt="Shipment photo ' +
-      (index + 1) + '" loading="lazy" referrerpolicy="no-referrer"></a>';
+      (index + 1) + '" loading="lazy" decoding="async" referrerpolicy="no-referrer"></a>';
   }).join('') + '</div>';
 }
 
@@ -291,24 +296,32 @@ article::before,.inventory::before,.empty::before{content:"";position:absolute;i
 .badge{background:linear-gradient(165deg,#ffffffdd,#bdebd5aa 57%,#e5ffefbb);box-shadow:0 2px 5px #24674214,inset 0 1px 1px #fff;border:1px solid #ffffffed}.badge.awaiting{background:linear-gradient(165deg,#fffdf6e8,#f5d7a4aa,#fff4d3cc)}.shipments article .totals{background:linear-gradient(155deg,#ffffffa8,#ffffff35);border:1px solid #fff;box-shadow:0 2px 8px #593e6a13,inset 0 2px 1px #fff,inset 0 -1px 2px #ffffff88;border-radius:13px}
 nav a{background:linear-gradient(165deg,#ffffffdb,#ffffff42 57%,#ffffff99);border-color:#fff;box-shadow:0 4px 12px #4f243a1b,inset 0 2px 1px #fff,inset 0 -1px 2px #ffffff99;-webkit-backdrop-filter:blur(12px);backdrop-filter:blur(12px)}nav a[aria-current=true],.track-shipment{background:linear-gradient(170deg,#c65d88 0%,#a32b59 42%,#80163e 55%,#91204c 100%);border-color:#ab4b70;box-shadow:0 5px 12px #8e17443d,inset 0 2px 1px #ffffff9c,inset 0 -2px 2px #3e061b38}.track-shipment{border-radius:999px}.track-shipment:hover{background:linear-gradient(170deg,#b64c77,#751136)}
 @media(max-width:600px){article,.empty,.inventory{border-radius:19px}.progress-panel{border-radius:14px}}
+.loading-details{color:#695c63;font-size:12px;margin:6px 0}.loading-details a{color:#781538}
+/* Defer offscreen cards until needed; all order records remain in the document. */
+@supports (content-visibility:auto){.shipments.list article:not(:first-child){content-visibility:auto;contain-intrinsic-size:auto 300px}}
+@media(max-width:600px){article,.empty,.inventory{-webkit-backdrop-filter:blur(12px) saturate(135%);backdrop-filter:blur(12px) saturate(135%)}nav a{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}}
 .progress-panel .completed .progress-icon{width:16px;height:16px;border:0;background:linear-gradient(165deg,#34c759,#249d46);color:#fff;box-shadow:inset 0 1px 1px #ffffff70,0 1px 2px #166b3633}.ios-check{width:14px;height:14px;display:block}
 @media(prefers-reduced-transparency:reduce){body::before{display:none}article,.empty,.inventory{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}.progress-panel,.shipments article .totals{background:#faf6f8}.progress-panel .shipment-progress li,nav a{background:#fff}nav a[aria-current=true],.track-shipment{background:#8e1744}.progress-panel .shipment-progress li.completed{background:#e0f5e9}.progress-panel .shipment-progress li.in-progress{background:#fce4ef}}
 `;
 
-const refreshScript = `let busy=false;async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const response=await fetch(location.href,{cache:'no-store',credentials:'same-origin',redirect:'error'});if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}}catch{}finally{busy=false}}setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
+const refreshScript = `let busy=false,etag='';async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const url=new URL(location.href);url.searchParams.set('enriched','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',redirect:'error',headers:etag?{'If-None-Match':etag}:{}});if(response.status===304)return;if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}delete current.dataset.deferred;etag=response.headers.get('etag')||''}catch{}finally{busy=false}}if(document.querySelector('main[data-deferred]'))setTimeout(refreshOrders,100);setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
 
-function documentBody(content: string, status = 200) {
+function documentBody(content: string, status = 200, options: { deferred?: boolean; ifNoneMatch?: string | null } = {}) {
   const nonce = randomBytes(16).toString('base64');
   const live = status === 200;
+  // Weak ETag compares the rendered data and design, excluding the per-response CSP nonce.
+  const etag = live ? 'W/"' + createHash('sha256').update(content).update(styles).update(refreshScript).update(String(options.deferred ?? false)).digest('hex') + '"' : null;
+  if (etag && options.ifNoneMatch === etag) return new Response(null, { status: 304, headers: { ...headers, ETag: etag } });
   const html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>Customer orders &amp; shipments · SoloFlow</title><style>' + styles + '</style><body><main>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
-  return new Response(html, { status, headers: live ? { ...headers, 'Content-Security-Policy': headers['Content-Security-Policy'] + "; script-src 'nonce-" + nonce + "'; connect-src 'self'" } : headers });
+    '<title>Customer orders &amp; shipments · SoloFlow</title><style>' + styles + '</style><body><main' + (options.deferred ? ' data-deferred="true"' : '') + '>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
+  return new Response(html, { status, headers: live ? { ...headers, ETag: etag!, 'Content-Security-Policy': headers['Content-Security-Policy'] + "; script-src 'nonce-" + nonce + "'; connect-src 'self'" } : headers });
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
   const { token } = await params;
   const search = new URL(request.url).searchParams;
   const view = search.get('view') === 'grid' ? 'grid' : 'list';
+  const enriched = search.get('enriched') === '1';
   const unavailable = '<h1>Private shipment link unavailable</h1><p>Ask your supplier for a new link.</p>';
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return documentBody(unavailable, 404);
   try {
@@ -334,7 +347,10 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       data.hasMore = more.hasMore;
     }
     if (data.hasMore) throw new Error('Incomplete shipment history');
-    const live = await loadLiveStaffOrders(data.sourceCustomer);
+    const inlineImages = data.shipments.some(shipment => shipment.items.some(item => item.imageUrl?.startsWith('data:'))) ||
+      (data.stock ?? []).some(row => row.imageUrl?.startsWith('data:'));
+    const deferred = !enriched && (hasStaffIntegration(data.sourceCustomer) || inlineImages);
+    const live = deferred ? [] : await loadLiveStaffOrders(data.sourceCustomer);
     const history = mergeStaffOrders(data.shipments, data.importedShipments ?? [], live ?? []);
     const photoRows = [...history, ...data.shipments.map((shipment) => ({
       order: shipment.partnerOrderNumber || shipment.number,
@@ -342,7 +358,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     }))];
     const photos: string[][] = [];
     // The photo endpoint permits at most 2,000 order references per request.
-    for (let offset = 0; offset < photoRows.length; offset += 2000) {
+    for (let offset = 0; !deferred && offset < photoRows.length; offset += 2000) {
       const batch = photoRows.slice(offset, offset + 2000);
       const groups = await loadShipmentPhotos(data.sourceCustomer, batch);
       photos.push(...batch.map((_, i) => groups[i] ?? []));
@@ -354,18 +370,19 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const nav = '<nav aria-label="Shipment layout"><a aria-current="' + (view === 'list') + '" href="' + href('list') +
       '">List</a><a aria-current="' + (view === 'grid') + '" href="' + href('grid') + '">Grid</a></nav>';
     const cards = data.shipments.map((shipment, index) =>
-      shipmentCard(shipment, photos[history.length + index] ?? [])).join('');
-    return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.png" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
+      shipmentCard(shipment, photos[history.length + index] ?? [], deferred)).join('');
+    return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.webp" width="930" height="227" fetchpriority="high" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
       '<div class="top"><div><h1>Welcome, <span class="partner-name"><span class="partner-name-letters">' +
       escapeHtml(data.partner) + '</span></span></h1>' +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
       '</div><div>' + nav + trackShipmentButton() + '</div></div>' +
       '<p class="partner">' + (data.shipments.length + history.length) + ' orders · Updates automatically every 30 seconds</p>' +
+      (deferred ? '<p class="loading-details" role="status">Loading additional order details and photos… <noscript><a href="?view=' + view + '&amp;enriched=1">Load full details</a></noscript></p>' : '') +
       (live === null ? '<p class="partner">Live staff tracking is temporarily unavailable. Showing saved order history.</p>' : '') +
       '<section aria-label="All shipments" class="shipments ' + view + '">' +
-      (cards || (history.length ? '' : '<p class="empty">No orders yet.</p>')) +
+      (cards || (history.length || deferred ? '' : '<p class="empty">No orders yet.</p>')) +
       '</section>' +
-      importedHistory(history, view, photos) + inventory(data.stock ?? []));
+      importedHistory(history, view, photos) + inventory(data.stock ?? [], deferred), 200, { deferred, ifNoneMatch: request.headers.get('if-none-match') });
   } catch {
     return documentBody('<h1>Shipments are temporarily unavailable</h1><p>Please try again shortly.</p>', 503);
   }
