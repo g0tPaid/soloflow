@@ -110,15 +110,32 @@ export class ExpensesService {
     return { data: rows.map((row) => ({ ...row, amount: Number(row.amount) })), pagination: { page: pageNum, limit: limitNum, total, totalPages: Math.ceil(total / limitNum) } };
   }
 
-  async createOperating(organizationId: string, dto: CreateOperatingExpenseDto) {
+  private operatingExpenseData(dto: CreateOperatingExpenseDto) {
     const description = dto.description.trim();
     if (!description || !/^[A-Z]{3}$/.test(dto.currency.toUpperCase()) || dto.amount >= 10000000000) throw new BadRequestException('Enter a valid description, currency and amount');
-    const row = await this.prisma.operatingExpense.create({ data: {
-      organizationId, category: dto.category, description, payee: dto.payee?.trim() || null,
+    return {
+      category: dto.category, description, payee: dto.payee?.trim() || null,
       reference: dto.reference?.trim() || null, notes: dto.notes?.trim() || null,
       expenseDate: new Date(dto.expenseDate), currency: dto.currency.toUpperCase(), amount: dto.amount,
-    } });
+    };
+  }
+
+  async createOperating(organizationId: string, dto: CreateOperatingExpenseDto) {
+    const row = await this.prisma.operatingExpense.create({ data: { organizationId, ...this.operatingExpenseData(dto) } });
     return { ...row, amount: Number(row.amount) };
+  }
+
+  async updateOperating(organizationId: string, id: string, dto: CreateOperatingExpenseDto) {
+    const data = this.operatingExpenseData(dto);
+    try {
+      const row = await this.prisma.operatingExpense.update({ where: { id, organizationId }, data });
+      return { ...row, amount: Number(row.amount) };
+    } catch (error) {
+      if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2025') {
+        throw new NotFoundException('Expense not found');
+      }
+      throw error;
+    }
   }
 
   async findOne(organizationId: string, id: string) {
