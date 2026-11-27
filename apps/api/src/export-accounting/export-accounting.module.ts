@@ -17,6 +17,7 @@ function validate(data: unknown) {
   const keys = ['entries','customers','suppliers','products','deals','roadmap','gates','defaultRate'];
   if (Object.keys(d).some(k => !keys.includes(k)) || JSON.stringify(d).length > 2_000_000) return bad();
   const positive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1e12;
+  const percentage = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
   const text = (v: unknown, max = 2000) => typeof v === 'string' && v.length <= max;
   if (!positive(d.defaultRate)) return bad();
   for (const k of ['entries','customers','suppliers','products','deals']) {
@@ -28,6 +29,7 @@ function validate(data: unknown) {
       ids.add(item.id);
       if (Object.keys(item).length > 50 || Object.values(item).some(v => !(text(v) || (typeof v === 'number' && Number.isFinite(v) && Math.abs(v) <= 1e12) || typeof v === 'boolean'))) return bad();
       if (k === 'entries' && (!categories.includes(item.category) || !currencies.includes(item.currency) || !positive(item.amount) || !positive(item.rate) || (item.currency === 'CNY' && item.rate !== 1) || !text(item.description) || !/^\d{4}-\d{2}-\d{2}$/.test(item.date))) return bad();
+      if (['entries','suppliers','products','deals'].includes(k) && ['vatRate','refundRate'].some(f => item[f] !== undefined && !percentage(item[f]))) return bad();
       if (['customers','suppliers','products'].includes(k) && (!text(item.name) || !item.name.trim())) return bad();
       if (k === 'deals' && (!Number.isInteger(item.step) || item.step < 1 || item.step > 6 || !text(item.number, 80))) return bad();
     }
