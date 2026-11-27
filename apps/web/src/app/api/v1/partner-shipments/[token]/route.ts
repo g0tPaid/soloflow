@@ -100,7 +100,8 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
   const tracking = shipment.internationalTrackingNumber || (shipment.shippingMethod === 'LOCAL' ? shipment.localTrackingNumber : null);
   const inactive = shipment.status === 'CANCELLED' || shipment.status === 'VOID';
   const status = inactive ? (shipment.status === 'VOID' ? 'Void' : 'Cancelled') :
-    shipment.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' && shipment.shippingMethod === 'LOCAL' ? 'Shipped' :
+    (shipment.fulfillmentStatus === 'SHIPPED_INTERNATIONAL' ||
+      (shipment.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' && shipment.shippingMethod === 'LOCAL')) ? 'Shipped · awaiting reception' :
     shipment.fulfillmentStatus ? fulfillmentStatusLabel(shipment.fulfillmentStatus) : 'Awaiting shipment';
   const shipped = shipment.shippedAt ? new Intl.DateTimeFormat('en', {
     day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Shanghai',
