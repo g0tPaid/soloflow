@@ -164,21 +164,21 @@ export function FulfillmentControls({
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-2">
       <div>
-        <p className="text-sm font-medium">Order fulfillment</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-xs font-medium">Order fulfillment</p>
+        <p className="text-xs font-semibold text-primary">
           {shipmentProgressLabel(status,invoiceStatus,shippingMethod)}
         </p>
         {lastUpdate ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
       </div>
 
-      <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Fulfillment status">
+      <div className={cn('grid gap-1',layout==='full'&&'lg:grid-cols-2')} role="group" aria-label="Fulfillment status">
         {stages.map((stage, index) => (
             <div
               key={stage.value}
               className={cn(
-                'rounded-lg border px-3 py-2 text-xs sm:text-sm',
+                'grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-md border px-2 py-1 text-[11px] leading-tight',
                 stage.state==='in-progress'
                   ? 'border-red-600 bg-red-50 text-red-700 ring-1 ring-red-600'
                   : stage.state==='completed'
@@ -186,8 +186,8 @@ export function FulfillmentControls({
                     : 'border-input bg-background text-muted-foreground',
               )}
             >
-              <div className="flex items-center gap-1.5 font-medium">{stage.state==='completed' ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : stage.state==='in-progress' ? <LoaderCircle className="h-4 w-4 shrink-0 motion-safe:animate-spin" aria-hidden/> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}{index+1}. {stage.label}</div>
-              {stage.value==='AWAITING_PAYMENT'?<p className="mt-1 text-[11px]">Updates automatically when the invoice is paid.</p>:<div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" type="button" aria-label={`${stage.progressLabel} — In progress`} disabled={disabled||saving||stage.state==='in-progress'||(index===1&&invoiceStatus!=='PAID')} onClick={()=>onStatusChange(stage.previous)}>In progress</Button><Button size="sm" variant="outline" type="button" aria-label={`${stage.completedLabel} — Completed`} disabled={disabled||saving||stage.state==='completed'} onClick={()=>onStatusChange(stage.value)}>Completed</Button></div>}
+              <div className="flex min-w-0 items-center gap-1 font-medium">{stage.state==='completed' ? <Check className="h-3.5 w-3.5 shrink-0" aria-hidden /> : stage.state==='in-progress' ? <LoaderCircle className="h-3.5 w-3.5 shrink-0 motion-safe:animate-spin" aria-hidden/> : <span className="h-3.5 w-3.5 shrink-0 rounded border" aria-hidden />}{index+1}. {stage.label}</div>
+              {stage.value==='AWAITING_PAYMENT'?<span className="text-[10px] text-muted-foreground" title="Updates automatically when the invoice is paid">Automatic</span>:<div className="flex shrink-0 gap-1"><Button className="h-8 px-1.5 text-[10px]" size="sm" variant="outline" type="button" aria-label={`${stage.progressLabel} — In progress`} disabled={disabled||saving||stage.state==='in-progress'||(index===1&&invoiceStatus!=='PAID')} onClick={()=>onStatusChange(stage.previous)}>In progress</Button><Button className="h-8 px-1.5 text-[10px]" size="sm" variant="outline" type="button" aria-label={`${stage.completedLabel} — Completed`} disabled={disabled||saving||stage.state==='completed'} onClick={()=>onStatusChange(stage.value)}>Done</Button></div>}
             </div>
           ))}
       </div>
