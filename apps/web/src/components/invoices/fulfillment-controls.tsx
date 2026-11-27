@@ -1,12 +1,13 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { ChevronRight } from 'lucide-react';
+import { Check, ChevronRight } from 'lucide-react';
 import {
   FULFILLMENT_STATUSES,
   canEditInternationalTracking,
   canEditLocalTracking,
   formatFulfillmentHistoryLine,
+  formatFulfillmentHistoryTimestamp,
   fulfillmentRank,
   fulfillmentStatusLabel,
   nextFulfillmentSelection,
@@ -72,7 +73,7 @@ export function FulfillmentHistoryList({
       <summary className="cursor-pointer list-none text-sm font-medium text-foreground [&::-webkit-details-marker]:hidden">
         <span className="inline-flex items-center gap-1">
           <ChevronRight className="h-3.5 w-3.5 text-muted-foreground transition group-open:rotate-90" />
-          Fulfillment history
+          Shipment update history
           <span className="tabular-nums text-muted-foreground">({events.length})</span>
         </span>
       </summary>
@@ -135,6 +136,7 @@ export function FulfillmentControls({
   const localEditable = canEditLocalTracking(status);
   const internationalEditable = canEditInternationalTracking(status);
   const rank = fulfillmentRank(status);
+  const lastUpdate = sortedHistory(history)[0];
   const showLocal =
     layout === 'full' || localEditable || Boolean(normalizeTrackingNumber(localTrackingNumber));
   const showInternational =
@@ -164,9 +166,10 @@ export function FulfillmentControls({
       <div>
         <p className="text-sm font-medium">Order fulfillment</p>
         <p className="text-sm text-muted-foreground">
-          {fulfillmentStatusLabel(status)}
+          {status === 'SHIPPED_INTERNATIONAL' ? 'Shipped · awaiting reception' : status ? fulfillmentStatusLabel(status) : 'Awaiting shipment'}
           {rank >= 0 ? ` · step ${rank + 1} of ${FULFILLMENT_STATUSES.length}` : ''}
         </p>
+        {lastUpdate ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
       </div>
 
       <div className="flex flex-wrap gap-2" role="group" aria-label="Fulfillment status">
@@ -181,7 +184,7 @@ export function FulfillmentControls({
               disabled={disabled || saving}
               onClick={() => onStatusChange(nextFulfillmentSelection(status, stage.value))}
               className={cn(
-                'inline-flex items-center rounded-lg border px-3 py-2 text-left text-xs font-medium transition sm:text-sm',
+                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-left text-xs font-medium transition sm:text-sm',
                 isCurrent
                   ? 'border-red-600 bg-red-50 text-red-700 ring-1 ring-red-600'
                   : isDone
@@ -189,7 +192,8 @@ export function FulfillmentControls({
                     : 'border-input bg-background text-muted-foreground hover:border-red-200 hover:bg-red-50/50',
               )}
             >
-              {index + 1}. {stage.label}
+              {isCurrent || isDone ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}
+              {index + 1}. {stage.value === 'SHIPPED_INTERNATIONAL' ? 'Shipped · awaiting reception' : stage.label}
             </button>
           );
         })}
