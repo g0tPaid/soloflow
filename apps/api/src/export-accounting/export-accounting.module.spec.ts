@@ -3,7 +3,7 @@ import { ExportAccountingController } from './export-accounting.module';
 import type { PrismaService } from '../prisma/prisma.service';
 
 const actor = { user: { sub: 'staff1' } };
-const empty = () => ({ entries: [], customers: [], suppliers: [], products: [], deals: [], roadmap: [], gates: [], defaultRate: 7.15 });
+const empty = () => ({ entries: [], customers: [], suppliers: [], products: [], deals: [], imports: [], roadmap: [], gates: [], defaultRate: 7.15 });
 function fixture(role = 'OWNER', rows: unknown[] = []) {
   const tx = { $queryRaw: jest.fn().mockResolvedValue(rows), $executeRaw: jest.fn().mockResolvedValue(1) };
   const db = { organizationMember: { findUnique: jest.fn().mockResolvedValue({ role, user: { suspendedAt: null } }) }, $queryRaw: jest.fn().mockResolvedValue(rows), $transaction: jest.fn(async (run: (t: typeof tx) => unknown) => run(tx)) };
@@ -44,6 +44,15 @@ describe('Exporter Module 2 workspace', () => {
     const data = { ...empty(), profile: { id: 'seller', name: 'Example exporter' }, deals: [{ id:'a', number:'M2-A', step:1, extraItems:JSON.stringify([{ id:'item1', description:'Sample', model:'', hsCode:'1234567890', origin:'China', unit:'pcs', qty:2, unitPrice:12, unitCost:4 }]) }] };
     const { controller } = fixture('OWNER', [{revision:1,data}]);
     await expect(controller.save('org1',actor,{revision:0,data})).resolves.toEqual({revision:1,data});
+  });
+  it('accepts a valid import purchase and rejects invalid payment or receiving quantities', async () => {
+    const purchase = {id:'imp1',number:'IMP-1',date:'2026-11-27',supplier:'Sample supplier',product:'Sample product',currency:'USD',qty:10,unitCost:5,rate:7,freightCny:30,insuranceCny:0,dutyCny:20,importVatCny:10,otherCny:0,paidCny:100,receivedQty:0,status:'Ordered'};
+    const data = {...empty(),imports:[purchase]};
+    const {controller} = fixture('OWNER',[{revision:1,data}]);
+    await expect(controller.save('org1',actor,{revision:0,data})).resolves.toEqual({revision:1,data});
+    for (const patch of [{receivedQty:11},{paidCny:411},{rate:0},{status:'Received'}]) {
+      await expect(controller.save('org1',actor,{revision:0,data:{...data,imports:[{...purchase,...patch}]}})).rejects.toBeInstanceOf(BadRequestException);
+    }
   });
   it('rejects malformed item data', async () => {
     const {controller,db}=fixture();
