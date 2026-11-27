@@ -40,5 +40,15 @@ describe('Exporter Module 2 workspace', () => {
     await expect(controller.save('org1', actor, { revision: 0, data })).rejects.toBeInstanceOf(BadRequestException);
     expect(db.$transaction).not.toHaveBeenCalled();
   });
+  it('accepts a separate company profile and valid multi-item deal data', async () => {
+    const data = { ...empty(), profile: { id: 'seller', name: 'Example exporter' }, deals: [{ id:'a', number:'M2-A', step:1, extraItems:JSON.stringify([{ id:'item1', description:'Sample', model:'', hsCode:'1234567890', origin:'China', unit:'pcs', qty:2, unitPrice:12, unitCost:4 }]) }] };
+    const { controller } = fixture('OWNER', [{revision:1,data}]);
+    await expect(controller.save('org1',actor,{revision:0,data})).resolves.toEqual({revision:1,data});
+  });
+  it('rejects malformed item data', async () => {
+    const {controller,db}=fixture();
+    await expect(controller.save('org1',actor,{revision:0,data:{...empty(),deals:[{id:'a',number:'M2-A',step:1,extraItems:'[{"qty":-1}]'}]}})).rejects.toBeInstanceOf(BadRequestException);
+    expect(db.$transaction).not.toHaveBeenCalled();
+  });
 });
 
