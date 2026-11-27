@@ -20,6 +20,7 @@ import { InventoryModule } from './inventory/inventory.module';
 import { AdminModule } from './admin/admin.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { QueueModule } from './queue/queue.module';
+import { ExporterModule } from './exporter/exporter.module';
 
 const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
 
@@ -54,6 +55,7 @@ const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
     ReportsModule,
     AdminModule,
     MaintenanceModule,
+    ExporterModule,
   ],
 })
 export class AppModule {}

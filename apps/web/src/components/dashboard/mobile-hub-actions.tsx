@@ -16,6 +16,7 @@ import {
   Contact,
   FileSpreadsheet,
   Boxes,
+  Globe2,
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { DROPSHIPPER_INVOICE_PATH } from '@/lib/invoice-version';
@@ -64,6 +65,7 @@ const LIST_ACTIONS = [
 ] as const;
 
 const NAV_ACTIONS = [
+  { href: '/exporter', label: 'Exporter Module', icon: Globe2 },
   { href: DROPSHIPPER_INVOICE_PATH, label: 'Dropshippers Invoice', icon: FileText },
   { href: '/invoices-v5', label: 'Mobile Invoice', icon: FileText },
   { href: '/invoices-v8', label: 'Rep.markets Invoice', icon: FileText },

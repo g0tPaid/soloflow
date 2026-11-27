@@ -10,3 +10,4 @@ export * from './sales-invoice';
 export * from './customer-balance';
 export * from './order-status';
 export * from './workspace-search';
+export * from './exporter';
