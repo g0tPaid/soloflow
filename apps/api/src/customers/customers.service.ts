@@ -163,10 +163,12 @@ export class CustomersService {
               ? dropshipperPrefix?.toUpperCase() || null : undefined,
           },
         });
-        if (dto.isDropshipper === false) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
+        // A classification change changes the visible order scope; revoke the old link.
+        // Normal customer edits (including an unchanged false checkbox) retain the existing link.
+        if (existing.isDropshipper && !isDropshipper) await tx.dropshipPortal.deleteMany({ where: { customerId: id } });
         if (isDropshipper && !existing.isDropshipper) {
           const { linkNonce, tokenHash } = newPortalLink();
-          await tx.dropshipPortal.create({ data: { customerId: id, linkNonce, tokenHash } });
+          await tx.dropshipPortal.upsert({ where: { customerId: id }, create: { customerId: id, linkNonce, tokenHash }, update: { linkNonce, tokenHash, createdAt: new Date() } });
         }
         return customer;
       });
