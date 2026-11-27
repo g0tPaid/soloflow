@@ -37,6 +37,8 @@ describe('private partner shipment view', () => {
     }
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain(token);
+    expect(html).not.toContain('Pay with Wise');
+    expect(html).not.toContain('wise.com/pay');
     expect(upstream).toHaveBeenCalledWith(expect.stringContaining('/dropship-portal/shipments?page=1&status=all&complete=true'),
       expect.objectContaining({ method: 'POST', cache: 'no-store', body: JSON.stringify({ token }) }));
   });
