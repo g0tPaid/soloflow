@@ -26,6 +26,7 @@ type Shipment = {
   number: string;
   awaiting?: boolean;
   status?: string;
+  staffTrackingStatus?: string;
   shippedAt: string | null;
   shipmentWeightKg: string | null;
   partnerOrderNumber: string | null;
@@ -111,6 +112,7 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
       [shipment.shipmentContact?.city, shipment.shipmentContact?.region, shipment.shipmentContact?.postcode].filter(Boolean).join(' '),
       shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) +
     detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
+    detail('Carrier status', shipment.staffTrackingStatus || null) +
     detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +
     (Number(shipment.discount) > 0 ? detail('Discount', price(shipment.discount)) : '') +
@@ -131,21 +133,88 @@ function inventory(rows: Stock[]) {
   }).join('') + '</ul></section>';
 }
 
-type ImportedShipment = { order: string; tracking: string; recipient: string; carrier: string; origin: string; destination: string; postcode: string };
+type ImportedShipment = { order: string; tracking: string; recipient: string; carrier: string; origin: string; destination: string; postcode: string; status?: string };
 
 function importedHistory(rows: ImportedShipment[], view: 'list' | 'grid', photos: string[][]) {
   if (!rows.length) return '';
   return '<section aria-label="Imported shipment history"><h2>Imported shipment history</h2><div class="shipments ' + view + '">' +
     rows.map((row, index) => '<article><header><h2>' + escapeHtml(row.order ? 'Order ' + row.order : 'Shipment') +
-      '</h2><span class="badge">' + (row.tracking ? 'Tracking recorded' : 'Tracking pending') + '</span></header>' +
+      '</h2><span class="badge">' + escapeHtml(row.status && row.status !== 'Unknown' ? row.status : validTracking(row.tracking) ? 'Tracking recorded' : 'Tracking pending') + '</span></header>' +
       '<dl class="details">' + detail('Recipient', row.recipient) + detail('Origin', row.origin) +
       detail('Destination', row.destination) + detail('Postcode', row.postcode) + detail('Carrier', row.carrier) +
-      detail('Tracking number', row.tracking) + '</dl>' + shipmentPhotos(photos[index] ?? []) + '</article>').join('') + '</div></section>';
+      detail('Tracking number', validTracking(row.tracking) ? row.tracking : 'Pending') + '</dl>' + shipmentPhotos(photos[index] ?? []) + '</article>').join('') + '</div></section>';
 }
 
 const sourcingOrigin = 'https://sourcing.center';
 
 type SourceCustomer = { id: string; number: string | null; prefix: string | null; sourcingEnabled?: boolean };
+
+function validTracking(value: string | null | undefined) {
+  const clean = (value ?? '').trim().toUpperCase();
+  return clean && !/^(WAITING.*|PENDING|UNKNOWN|N\/?A|NONE|-)$/i.test(clean) ? clean : '';
+}
+function normalizedOrder(value: string | null | undefined) {
+  return (value ?? '').trim().replace(/^#+\s*/, '').toUpperCase();
+}
+function sameOrder(a: Pick<ImportedShipment, 'order' | 'tracking'>, b: Pick<ImportedShipment, 'order' | 'tracking'>) {
+  const first = validTracking(a.tracking);
+  const second = validTracking(b.tracking);
+  if (first && second && first === second) return true;
+  const order = normalizedOrder(a.order);
+  return Boolean(order && order === normalizedOrder(b.order) && (!first || !second));
+}
+function invoiceReference(shipment: Shipment) {
+  return { order: shipment.partnerOrderNumber || shipment.number, tracking: shipment.internationalTrackingNumber || shipment.localTrackingNumber || '' };
+}
+
+async function loadLiveStaffOrders(customer: SourceCustomer | undefined): Promise<ImportedShipment[] | null> {
+  const key = process.env.PARTNER_SHIPMENT_PHOTO_KEY;
+  const customerId = process.env.PARTNER_SHIPMENT_PHOTO_CUSTOMER_ID;
+  if (!key || !customer?.number || (!customer.sourcingEnabled && customer.id !== customerId)) return [];
+  try {
+    const response = await fetch(sourcingOrigin + '/api/partner-shipment-orders', {
+      method: 'POST', cache: 'no-store', redirect: 'error', signal: AbortSignal.timeout(5000),
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer ' + key },
+      body: JSON.stringify({ number: customer.number, prefix: customer.prefix ?? '' }),
+    });
+    if (!response.ok) return null;
+    const { shipments } = await response.json();
+    if (!Array.isArray(shipments)) return null;
+    const fields = ['order', 'tracking', 'recipient', 'carrier', 'origin', 'destination', 'postcode', 'status'] as const;
+    return shipments.filter((row: unknown): row is ImportedShipment => Boolean(row && typeof row === 'object' &&
+      fields.every((field) => typeof (row as Record<string, unknown>)[field] === 'string')));
+  } catch {
+    return null;
+  }
+}
+
+function mergeStaffOrders(invoices: Shipment[], imported: ImportedShipment[], live: ImportedShipment[]) {
+  const unmatched = imported.filter(row => !invoices.some(invoice => sameOrder(invoiceReference(invoice), row)));
+  const history: ImportedShipment[] = [];
+  for (const row of live) {
+    const invoice = invoices.find(invoice => sameOrder(invoiceReference(invoice), row));
+    if (invoice) {
+      if (row.status && row.status !== 'Unknown') invoice.staffTrackingStatus = row.status;
+      if (!validTracking(invoiceReference(invoice).tracking) && validTracking(row.tracking)) {
+        if (invoice.shippingMethod === 'LOCAL') invoice.localTrackingNumber = row.tracking;
+        else invoice.internationalTrackingNumber = row.tracking;
+      }
+      if (!invoice.shipmentCarrier && row.carrier) invoice.shipmentCarrier = row.carrier;
+      continue;
+    }
+    let index = unmatched.findIndex(previous => sameOrder(previous, row));
+    // If a single matching order was imported with a corrected tracking code,
+    // treat the live staff record as the current source rather than duplicating it.
+    if (index < 0 && normalizedOrder(row.order)) {
+      const matches = unmatched.map((previous, i) => ({ previous, i })).filter(({ previous }) => normalizedOrder(previous.order) === normalizedOrder(row.order));
+      const liveMatches = live.filter(candidate => normalizedOrder(candidate.order) === normalizedOrder(row.order));
+      if (matches.length === 1 && liveMatches.length === 1) index = matches[0].i;
+    }
+    const previous = index >= 0 ? unmatched.splice(index, 1)[0] : undefined;
+    history.push(previous ? { ...previous, ...Object.fromEntries(Object.entries(row).filter(([, value]) => value !== '')) } : row);
+  }
+  return [...history, ...unmatched];
+}
 
 async function loadShipmentPhotos(customer: SourceCustomer | undefined, rows: Pick<ImportedShipment, 'order' | 'tracking'>[]): Promise<string[][]> {
   const key = process.env.PARTNER_SHIPMENT_PHOTO_KEY;
@@ -237,7 +306,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       data.hasMore = more.hasMore;
     }
     if (data.hasMore) throw new Error('Incomplete shipment history');
-    const history = data.importedShipments ?? [];
+    const live = await loadLiveStaffOrders(data.sourceCustomer);
+    const history = mergeStaffOrders(data.shipments, data.importedShipments ?? [], live ?? []);
     const photoRows = [...history, ...data.shipments.map((shipment) => ({
       order: shipment.partnerOrderNumber || shipment.number,
       tracking: shipment.internationalTrackingNumber || shipment.localTrackingNumber || '',
@@ -262,7 +332,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       escapeHtml(data.partner) + '</span></h1>' +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
       '</div>' + nav + '</div>' +
-      '<p class="partner">' + data.shipments.length + ' orders · Updates automatically every 30 seconds</p>' +
+      '<p class="partner">' + (data.shipments.length + history.length) + ' orders · Updates automatically every 30 seconds</p>' +
+      (live === null ? '<p class="partner">Live staff tracking is temporarily unavailable. Showing saved order history.</p>' : '') +
       '<section aria-label="All shipments" class="shipments ' + view + '">' +
       (cards || (history.length ? '' : '<p class="empty">No orders yet.</p>')) +
       '</section>' +
