@@ -1,8 +1,9 @@
-import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Headers, Module, Put, Req, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, ConflictException, Controller, ForbiddenException, Get, Headers, Module, Post, Put, Req, UseGuards } from '@nestjs/common';
 import { TENANT_HEADER } from '@flowbooks/shared';
 import { PrismaService } from '../prisma/prisma.service';
 import { JwtAuthGuard } from '../auth/jwt-auth.guard';
 import { TenantMemberGuard } from '../common/tenant-member.guard';
+import { createTradeDocument, validateTradeChange, type TradeWorkspace } from './integrity';
 
 type Actor = { user: { sub: string } };
 type Snapshot = { revision: number; data: unknown };
@@ -14,7 +15,7 @@ function validate(data: unknown) {
   const bad = () => { throw new BadRequestException('Invalid or oversized Module 2 workspace'); };
   if (!data || typeof data !== 'object' || Array.isArray(data)) return bad();
   const d = data as Record<string, unknown>;
-  const keys = ['entries','customers','suppliers','products','deals','imports','roadmap','gates','defaultRate','profile'];
+  const keys = ['entries','customers','suppliers','products','deals','imports','roadmap','gates','defaultRate','profile','documents'];
   if (Object.keys(d).some(k => !keys.includes(k)) || JSON.stringify(d).length > 2_000_000) return bad();
   const positive = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v > 0 && v <= 1e12;
   const percentage = (v: unknown) => typeof v === 'number' && Number.isFinite(v) && v >= 0 && v <= 100;
@@ -73,6 +74,7 @@ export class ExportAccountingController {
   private async authorize(org: string, actor: Actor) {
     const member = await this.db.organizationMember.findUnique({ where: { organizationId_userId: { organizationId: org, userId: actor.user.sub } }, select: { role: true, user: { select: { suspendedAt: true } } } });
     if (!member || member.user?.suspendedAt || !['OWNER','ADMIN','ACCOUNTANT','MANAGER'].includes(member.role)) throw new ForbiddenException('Module 2 access restricted to owners, administrators, managers and accountants');
+    return member.role;
   }
   @Get('workspace') async get(@Headers(TENANT_HEADER) org: string, @Req() actor: Actor) {
     await this.authorize(org, actor);
@@ -80,17 +82,38 @@ export class ExportAccountingController {
     return rows[0] ?? { revision: 0, data: empty() };
   }
   @Put('workspace') async save(@Headers(TENANT_HEADER) org: string, @Req() actor: Actor, @Body() body: { revision?: unknown; data?: unknown }) {
-    await this.authorize(org, actor);
+    const role = await this.authorize(org, actor);
     if (typeof body?.revision !== 'number' || !Number.isSafeInteger(body.revision) || body.revision < 0) throw new BadRequestException('Invalid workspace revision');
-    const data = JSON.stringify(validate(body.data));
+    const next = validate(body.data);
+    const data = JSON.stringify(next);
     const expected = body.revision;
     return this.db.$transaction(async tx => {
+      const current = expected === 0 ? [] : await tx.$queryRaw<Snapshot[]>`SELECT revision, data FROM export_accounting_workspaces WHERE "organizationId" = ${org} AND revision = ${expected} FOR UPDATE`;
+      if (expected !== 0 && !current.length) throw new ConflictException('Another staff member saved this workspace. Reload the latest version before saving again.');
+      validateTradeChange((current[0]?.data ?? empty()) as TradeWorkspace, next, role);
       const result = expected === 0
         ? await tx.$queryRaw<Snapshot[]>`INSERT INTO export_accounting_workspaces ("organizationId", revision, data) VALUES (${org}, 1, ${data}::jsonb) ON CONFLICT ("organizationId") DO NOTHING RETURNING revision, data`
         : await tx.$queryRaw<Snapshot[]>`UPDATE export_accounting_workspaces SET revision = revision + 1, data = ${data}::jsonb, "updatedAt" = CURRENT_TIMESTAMP WHERE "organizationId" = ${org} AND revision = ${expected} RETURNING revision, data`;
       if (!result.length) throw new ConflictException('Another staff member saved this workspace. Reload the latest version before saving again.');
       await tx.$executeRaw`INSERT INTO export_accounting_history ("organizationId", revision, "actorId", data) VALUES (${org}, ${result[0].revision}, ${actor.user.sub}, ${data}::jsonb)`;
       return result[0];
+    });
+  }
+  @Post('documents') async issue(@Headers(TENANT_HEADER) org: string, @Req() actor: Actor, @Body() body: {revision?: number; dealId?: string; kind?: string}) {
+    await this.authorize(org,actor);
+    if (!Number.isSafeInteger(body?.revision) || Number(body.revision)<1 || typeof body.dealId!=='string' || typeof body.kind!=='string') throw new BadRequestException('Save the order before issuing.');
+    return this.db.$transaction(async tx=>{
+      const rows = await tx.$queryRaw<Snapshot[]>`SELECT revision, data FROM export_accounting_workspaces WHERE "organizationId" = ${org} AND revision = ${body.revision} FOR UPDATE`;
+      if (!rows.length) throw new ConflictException('Reload the latest workspace before issuing.');
+      const workspace = rows[0].data as TradeWorkspace;
+      const document = createTradeDocument(workspace,body.dealId!,body.kind!,actor.user.sub);
+      const next = {...workspace,documents:[...(Array.isArray(workspace.documents)?workspace.documents:[]),document]};
+      const data=JSON.stringify(next);
+      if(data.length>2_000_000) throw new BadRequestException('Workspace archive capacity reached.');
+      const result=await tx.$queryRaw<Snapshot[]>`UPDATE export_accounting_workspaces SET revision=revision+1,data=${data}::jsonb,"updatedAt"=CURRENT_TIMESTAMP WHERE "organizationId"=${org} AND revision=${body.revision} RETURNING revision,data`;
+      if(!result.length) throw new ConflictException('Reload the latest workspace before issuing.');
+      await tx.$executeRaw`INSERT INTO export_accounting_history ("organizationId", revision, "actorId", data) VALUES (${org}, ${result[0].revision}, ${actor.user.sub}, ${data}::jsonb)`;
+      return {workspace:result[0],document};
     });
   }
 }

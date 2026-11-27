@@ -38,7 +38,7 @@ export function amountInWords(amount:number,currency:string):string {
   const cents=Math.round(amount*100),whole=Math.floor(cents/100),minor=cents%100;
   return (currency+' '+say(whole)+(minor?' and '+String(minor).padStart(2,'0')+'/100':'')+' only').toUpperCase();
 }
-export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKind) {
+export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKind,forceDraft=false) {
   const missing=requiredDocumentFields(deal,seller,kind),packing=kind==='Packing List';
   const pdf=new jsPDF({format:'a4',unit:'mm',compress:true});
   const prefix=kind==='Proforma Invoice'?'PI':kind==='Commercial Invoice'?'CI':'PL';
@@ -79,7 +79,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   y+=draw(['USCC: '+(val(seller,'uscc')||'—'),val(seller,'phone'),val(seller,'email'),branded?'sourcing.center':''].filter(Boolean).join('  |  '),L,y,wide,8,false,muted,'center')+4;
   rule(y);y+=4;
   y+=draw(kind.toUpperCase()+' / '+names[kind],L,y,wide,15,true,navy,'center')+1;
-  if(sample||missing.length){const status=sample?'SAMPLE ONLY / 仅供演示 — NOT VALID FOR TRADE':'DRAFT / 草稿 — INCOMPLETE';rect(L,y,wide,8,'#fff1f2');draw(status,L+2,y+1.3,wide-4,9,true,accent,'center');y+=10;}
+  if(sample||missing.length||forceDraft){const status=sample?'SAMPLE ONLY / 仅供演示 — NOT VALID FOR TRADE':missing.length?'DRAFT / 草稿 — INCOMPLETE':'DRAFT / 草稿 — NOT ISSUED';rect(L,y,wide,8,'#fff1f2');draw(status,L+2,y+1.3,wide-4,9,true,accent,'center');y+=10;}
   const card=(heading:string,lines:string[],x:number,top:number,w:number,height:number)=>{rect(x,top,w,height,'#f8fafc',border);let t=top+3;t+=draw(heading,x+3,t,w-6,9,true,accent)+1;for(const line of lines)t+=draw(line,x+3,t,w-6,8.5,false,ink);};
   const lineCount=(lines:string[],w:number)=>lines.reduce((a,text)=>a+wrap(text,w-6,8.5).length*lh(8.5),0);
   const boxPair=(a:{heading:string;lines:string[]},b:{heading:string;lines:string[]})=>{
