@@ -14,10 +14,14 @@ export function requiredDocumentFields(deal: Row, seller: Row, kind:DocumentKind
   const missing:string[] = [];
   for(const [r,k,label] of [[seller,'name','Exporter legal name'],[seller,'address','Exporter address'],[seller,'uscc','Exporter USCC'],[deal,'customer','Buyer name'],[deal,'customerAddress','Buyer address'],[deal,'customerCountry','Buyer country'],[deal,'product','Product description'],[deal,'unit','Unit'],[deal,'date','Invoice date']] as const) if(!val(r,k).trim())missing.push(label);
   if(val(seller,'uscc').trim()&&!/^[0-9A-Z]{18}$/.test(val(seller,'uscc').trim().toUpperCase()))missing.push('Valid 18-character exporter USCC');
-  if(n(deal,'qty')<=0)missing.push('Positive quantity');
+  if(!val(deal,'number').trim())missing.push('Document reference');
+  if(!/^\d{4}-\d{2}-\d{2}$/.test(val(deal,'date')))missing.push('Valid document date');
+  if(n(deal,'qty')<=0||!Number.isFinite(n(deal,'qty')))missing.push('Positive quantity');
+  if(kind!=='Packing List'&&!/^[A-Z]{3}$/.test(val(deal,'currency')))missing.push('ISO currency code');
+  if(kind!=='Packing List'&&['unitPrice','freightCharge','insuranceCharge','otherCharge'].some(k=>!Number.isFinite(n(deal,k))||n(deal,k)<0))missing.push('Non-negative price and charges');
   if(kind!=='Packing List' && n(deal,'unitPrice')<=0)missing.push('Positive unit price');
-  if(kind==='Commercial Invoice')for(const [k,label] of [['hsCode','HS code'],['origin','Origin'],['incoterm','Incoterm'],['contractNo','Contract reference'],['portDestination','Destination'],['paymentTerms','Payment terms']] as const)if(!val(deal,k).trim())missing.push(label);
-  if(kind==='Packing List' && (n(deal,'cartons')<=0||n(deal,'grossWeight')<=0||n(deal,'grossWeight')<n(deal,'netWeight')))missing.push('Valid packaging and gross/net weights');
+  if(kind==='Commercial Invoice')for(const [k,label] of [['hsCode','HS code'],['origin','Origin'],['incoterm','Incoterm and named place'],['contractNo','Contract reference'],['portLoading','Port of loading'],['portDestination','Destination'],['paymentTerms','Payment terms']] as const)if(!val(deal,k).trim())missing.push(label);
+  if(kind==='Packing List' && (n(deal,'cartons')<=0||n(deal,'grossWeight')<=0||n(deal,'netWeight')<0||n(deal,'grossWeight')<n(deal,'netWeight')))missing.push('Valid packaging and gross/net weights');
   extraItems(deal).forEach((i,index)=>{if(!i.description.trim()||!i.unit.trim()||i.qty<=0||(kind!=='Packing List'&&i.unitPrice<=0)||(kind==='Commercial Invoice'&&(!i.hsCode.trim()||!i.origin.trim())))missing.push(`Complete additional item ${index+2}`);});
   return missing;
 }
@@ -38,8 +42,11 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
     for(const value of rows){if(y+rowHeight>275){pdf.addPage();y=17;}if(/^[\x20-\x7e]*$/.test(value)){pdf.setFont('helvetica',bold?'bold':'normal');pdf.setFontSize(size);pdf.setTextColor(25,32,45);pdf.text(value,16,y+size*.35);}else{ctx.font=font;const width=Math.min(max,Math.ceil(ctx.measureText(value).width+8));canvas.width=Math.max(1,width);canvas.height=Math.ceil(rowHeight*3.78*3);ctx.fillStyle='white';ctx.fillRect(0,0,canvas.width,canvas.height);ctx.font=font;ctx.textBaseline='middle';ctx.fillStyle='#19202d';ctx.fillText(value,3,canvas.height/2);pdf.addImage(canvas.toDataURL('image/png'),'PNG',16,y,canvas.width/(3.78*3),rowHeight);}y+=rowHeight;}
   };
   const section=(t:string)=>{y+=2;if(y>262){pdf.addPage();y=17;}pdf.setDrawColor(220,225,230);pdf.line(16,y,194,y);y+=3;line(t,11,true);};
-  line(`${kind} / ${names[kind]}`,19,true);if(missing.length)line('DRAFT - INCOMPLETE / 草稿',12,true);
-  line(`Document no. ${ref} | Date: ${val(deal,'date')} | Contract: ${val(deal,'contractNo')||'-'}`);
+  if(/seven\s*color|sourcing[.\s]*center/i.test(val(seller,'name'))){line('sourcing.center',18,true);}
+  line(val(seller,'name'),15,true);if(val(seller,'chineseName'))line(val(seller,'chineseName'),11,true);
+  line(val(seller,'address'),10);line('Unified Social Credit Code / 统一社会信用代码: '+(val(seller,'uscc')||'-'),10);
+  section(`${kind} / ${names[kind]}`);if(missing.length)line('DRAFT - INCOMPLETE / 草稿',12,true);
+  line(`Document no. ${ref} | Date: ${val(deal,'date')} | Contract: ${val(deal,'contractNo')||'-'}`);if(kind==='Proforma Invoice')line('Quotation / payment proposal only; not a final commercial invoice.');
   section('Exporter / 出口方');line(val(seller,'name'),12,true);if(val(seller,'chineseName'))line(val(seller,'chineseName'));line(`USCC: ${val(seller,'uscc')||'-'} | ${val(seller,'address')}`);line(`${val(seller,'contact')} | ${val(seller,'phone')} | ${val(seller,'email')}`);
   section('Buyer / 购买方');line(val(deal,'customer'),12,true);line(`${val(deal,'customerAddress')} | ${val(deal,'customerCountry')}`);line(`Tax ID: ${val(deal,'customerTaxId')||'-'} | ${val(deal,'customerContact')} | ${val(deal,'customerPhone')} | ${val(deal,'customerEmail')}`);
   section('Goods / 商品');line(`${val(deal,'product')} | Model: ${val(deal,'model')||'-'}`,12,true);line(`HS: ${val(deal,'hsCode')||'-'} | Origin: ${val(deal,'origin')||'-'} | Qty: ${n(deal,'qty')} ${val(deal,'unit')}`);
@@ -47,7 +54,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   for(const item of extraItems(deal)){line(`${item.description} | Model: ${item.model}`,11,true);line(`HS: ${item.hsCode} | Origin: ${item.origin} | Qty: ${item.qty} ${item.unit}`);if(kind!=='Packing List')line(`Unit price: ${currency} ${amt(item.unitPrice)} | Line amount: ${currency} ${amt(item.qty*item.unitPrice)}`);}
   if(kind!=='Packing List'){const goods=goodsTotal(deal);const total=goods+n(deal,'freightCharge')+n(deal,'insuranceCharge')+n(deal,'otherCharge');const c=currency;line(`Goods subtotal: ${c} ${amt(goods)}`);line(`Freight: ${c} ${amt(n(deal,'freightCharge'))} | Insurance: ${c} ${amt(n(deal,'insuranceCharge'))} | Other: ${c} ${amt(n(deal,'otherCharge'))}`);line(`TOTAL / 合计: ${c} ${amt(total)}`,14,true);line(`Trade term: ${val(deal,'incoterm')} | Payment: ${val(deal,'paymentTerms')}`);if(val(deal,'bankInfo'))line(`Payment instructions: ${val(deal,'bankInfo')}`);else if(val(seller,'bankName'))line(`Bank: ${val(seller,'bankName')} | Account: ${val(seller,'bankAccount')} | SWIFT: ${val(seller,'swift')}`);}
   section('Shipment / 运输');line(`Packages: ${n(deal,'cartons')} ${val(deal,'packageType')} | Net: ${n(deal,'netWeight')} kg | Gross: ${n(deal,'grossWeight')} kg | CBM: ${n(deal,'cbm')}`);line(`Marks: ${val(deal,'shippingMarks')} | Dimensions: ${val(deal,'dimensions')}`);line(`${val(deal,'portLoading')} to ${val(deal,'portDestination')} | Method: ${val(deal,'transportMethod')} | B/L or AWB: ${val(deal,'tracking')}`);
-  if(val(deal,'notes'))line(`Remarks: ${val(deal,'notes')}`);section('Document status / 单据说明');line('Commercial trade document only. Not an official Chinese VAT fapiao, tax certificate or customs declaration.');if(missing.length)line(`Missing information: ${missing.join('; ')}`);line('Authorized signatory: __________________');
+  if(val(deal,'notes'))line(`Remarks: ${val(deal,'notes')}`);section('Document status / 单据说明');line(kind==='Proforma Invoice'?'Proforma quotation only; not proof of payment or a customs declaration.':'Commercial supporting document; verify against actual goods, contract and customs declaration.');line('Not an official Chinese VAT fapiao or tax certificate / 非增值税发票。');if(missing.length)line(`Missing information: ${missing.join('; ')}`);line('Authorized signatory / 授权签字: __________________');line('Company seal (if applicable) / 公司盖章: __________________');
   for(let p=1;p<=pdf.getNumberOfPages();p++){pdf.setPage(p);pdf.setFillColor(230,0,70);pdf.rect(0,0,210,3,'F');pdf.setFontSize(8);pdf.setTextColor(100,116,139);pdf.text(ref,16,290);pdf.text(`${p}/${pdf.getNumberOfPages()}`,194,290,{align:'right'});}
   pdf.save(`${ref}.pdf`);
 }
