@@ -66,6 +66,7 @@ const LIST_ACTIONS = [
 
 const NAV_ACTIONS = [
   { href: '/exporter', label: 'Exporter Module', icon: Globe2 },
+  { href: '/export-accounting', label: 'Exporter Module 2', icon: Receipt },
   { href: DROPSHIPPER_INVOICE_PATH, label: 'Dropshippers Invoice', icon: FileText },
   { href: '/invoices-v5', label: 'Mobile Invoice', icon: FileText },
   { href: '/invoices-v8', label: 'Rep.markets Invoice', icon: FileText },

@@ -11,6 +11,27 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Exporter Module 2: separate versioned accounting workspace.
+model ExportAccountingWorkspace {
+  organizationId String @id
+  revision Int
+  data Json
+  updatedAt DateTime @default(now()) @updatedAt
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@map("export_accounting_workspaces")
+}
+
+model ExportAccountingHistory {
+  organizationId String
+  revision Int
+  actorId String
+  data Json
+  createdAt DateTime @default(now())
+  organization Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  @@id([organizationId, revision])
+  @@map("export_accounting_history")
+}
+
 // Exporter module: intentionally independent of accounting records.
 model ExporterProfile {
   organizationId String @id
@@ -208,6 +229,8 @@ model Organization {
   stockMovements    StockMovement[]
   payments          Payment[]
   operatingExpenses OperatingExpense[]
+  exportAccountingWorkspace ExportAccountingWorkspace?
+  exportAccountingHistory ExportAccountingHistory[]
 
   @@map("organizations")
 }

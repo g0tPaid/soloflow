@@ -21,6 +21,7 @@ import { AdminModule } from './admin/admin.module';
 import { MaintenanceModule } from './maintenance/maintenance.module';
 import { QueueModule } from './queue/queue.module';
 import { ExporterModule } from './exporter/exporter.module';
+import { ExportAccountingModule } from './export-accounting/export-accounting.module';
 
 const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
 
@@ -56,6 +57,7 @@ const queuesEnabled = process.env.ENABLE_QUEUES === 'true';
     AdminModule,
     MaintenanceModule,
     ExporterModule,
+    ExportAccountingModule,
   ],
 })
 export class AppModule {}
