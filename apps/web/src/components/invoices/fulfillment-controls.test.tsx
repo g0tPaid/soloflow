@@ -28,7 +28,7 @@ describe('FulfillmentControls', () => {
     expect(
       screen.getByRole('button', { name: '3. Shipped out to shipping center in China' }),
     ).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: '4. Went out international' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '4. Shipped · awaiting reception' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '5. Customer received' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '6. Order completed' })).toBeInTheDocument();
 
@@ -70,7 +70,8 @@ describe('FulfillmentControls', () => {
         onTrackingSave={vi.fn()}
       />,
     );
-    fireEvent.click(screen.getByText(/Fulfillment history/));
+    expect(screen.getByText(/Last shipment update:/)).toHaveTextContent(/23 Sept? 2026|23 Sep 2026/);
+    fireEvent.click(screen.getByText(/Shipment update history/));
     expect(screen.getByText(/2\. QC completed turned on/)).toHaveTextContent(/UTC/);
     expect(screen.getByText(/1\. Local ordering completed turned off/)).toBeInTheDocument();
   });
