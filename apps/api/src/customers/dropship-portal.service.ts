@@ -184,10 +184,8 @@ export class DropshipPortalService {
         shipping: true, shipmentWeightKg: true, taxAmount: true, discount: true, total: true, shippingToCountry: true,
         shippingMethod: true, fulfillmentStatus: true, internationalTrackingNumber: true, localTrackingNumber: true,
         fulfillmentEvents: {
-          where: { action: 'ON', status: { in: ['SHIPPED_INTERNATIONAL', 'SHIPPED_TO_CHINA_CENTER'] } },
-          orderBy: { createdAt: 'desc' },
-          take: 2,
-          select: { createdAt: true, status: true },
+          orderBy: [{ createdAt: 'desc' }, { id: 'desc' }],
+          select: { createdAt: true, status: true, action: true },
         },
         items: {
           orderBy: { sortOrder: 'asc' },
@@ -222,7 +220,8 @@ export class DropshipPortalService {
         shipmentContact: shipmentContact && typeof shipmentContact === 'object' && !Array.isArray(shipmentContact)
           ? Object.fromEntries(['addressLine2', 'city', 'region', 'postcode', 'country'].map((key) => [key, shipmentContact[key]]))
           : null,
-        shippedAt: fulfillmentEvents.find(({ status }) => status === (invoice.shippingMethod === 'LOCAL'
+        shipmentUpdatedAt: fulfillmentEvents[0]?.createdAt ?? null,
+        shippedAt: fulfillmentEvents.find(({ status, action }) => action === 'ON' && status === (invoice.shippingMethod === 'LOCAL'
           ? 'SHIPPED_TO_CHINA_CENTER' : 'SHIPPED_INTERNATIONAL'))?.createdAt ?? null,
       })),
     };
