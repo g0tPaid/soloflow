@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { act } from 'react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
@@ -128,6 +128,24 @@ describe('invoice and quote draft recovery', () => {
     );
     expect(await screen.findByLabelText('Notes')).toHaveValue('');
     expect(screen.queryByText(/Recovered unsaved invoice changes/)).not.toBeInTheDocument();
+  });
+
+  it('creates and selects a customer without discarding the invoice or submitting it', async () => {
+    const onSubmit = vi.fn(async () => ({ id: 'inv_new' }));
+    const onCreateCustomer = vi.fn(async () => ({ id: 'cus_new', name: 'New Buyer', currency: 'EUR' } as Customer));
+    render(<InvoiceForm mode="create" customers={[customer]} products={[]} defaultCurrency="USD"
+      suggestedNumber="INV-00001" onSubmit={onSubmit} onCreateCustomer={onCreateCustomer} />);
+    fireEvent.change(await screen.findByLabelText('Notes'), { target: { value: 'Keep these details' } });
+    fireEvent.change(screen.getByLabelText('Customer *'), { target: { value: '__add_customer__' } });
+    const dialog = await screen.findByRole('dialog', { name: 'Add customer' });
+    fireEvent.change(within(dialog).getByLabelText('Name *'), { target: { value: 'New Buyer' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Save customer' }));
+    await waitFor(() => expect(screen.getByLabelText('Customer *')).toHaveValue('cus_new'));
+    expect(screen.getByRole('option', { name: 'New Buyer' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Notes')).toHaveValue('Keep these details');
+    expect(screen.getByLabelText('Currency')).toHaveValue('EUR');
+    expect(onCreateCustomer).toHaveBeenCalledTimes(1);
+    expect(onSubmit).not.toHaveBeenCalled();
   });
 
   it('writes a draft 5 seconds after a change and does not submit the invoice', async () => {

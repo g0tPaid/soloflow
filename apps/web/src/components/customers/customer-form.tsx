@@ -67,6 +67,8 @@ type Props = {
   loading?: boolean;
   errorMessage?: string | null;
   onSubmit: (data: CreateCustomerInput) => void;
+  onCancel?: () => void;
+  idPrefix?: string;
 };
 
 function addressValue(customer: Customer | undefined, key: keyof NonNullable<Customer['address']>) {
@@ -80,6 +82,8 @@ export function CustomerForm({
   loading = false,
   errorMessage,
   onSubmit,
+  onCancel,
+  idPrefix = '',
 }: Props) {
   const isEdit = Boolean(customer);
   const [numberMessage, setNumberMessage] = useState('');
@@ -153,8 +157,8 @@ export function CustomerForm({
         >
           <div className="grid gap-4 sm:grid-cols-2">
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="name">Name *</Label>
-              <Input id="name" placeholder="Acme Corp" {...register('name')} />
+              <Label htmlFor={idPrefix + 'name'}>Name *</Label>
+              <Input id={idPrefix + 'name'} placeholder="Acme Corp" {...register('name')} />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
             </div>
             <label className="flex items-center gap-2 rounded-md border p-3 text-sm font-medium sm:col-span-2">
@@ -164,8 +168,8 @@ export function CustomerForm({
             {isDropshipper ? (
               <>
                 <div className="space-y-2">
-                  <Label htmlFor="dropshipperNumber">Dropshipper number *</Label>
-                  <Input id="dropshipperNumber" inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
+                  <Label htmlFor={idPrefix + 'dropshipperNumber'}>Dropshipper number *</Label>
+                  <Input id={idPrefix + 'dropshipperNumber'} inputMode="numeric" pattern="[0-9]{4}" maxLength={4}
                     placeholder="0001" required aria-invalid={Boolean(errors.dropshipperNumber)}
                     {...register('dropshipperNumber')} />
                   <p className={errors.dropshipperNumber ? 'text-sm text-destructive' : 'text-xs text-muted-foreground'}>
@@ -173,8 +177,8 @@ export function CustomerForm({
                   </p>
                 </div>
                 <div className="space-y-2">
-                  <Label htmlFor="dropshipperPrefix">ID prefix</Label>
-                  <Input id="dropshipperPrefix" maxLength={12} placeholder="AJ" {...register('dropshipperPrefix')} />
+                  <Label htmlFor={idPrefix + 'dropshipperPrefix'}>ID prefix</Label>
+                  <Input id={idPrefix + 'dropshipperPrefix'} maxLength={12} placeholder="AJ" {...register('dropshipperPrefix')} />
                   <p className={errors.dropshipperPrefix ? 'text-sm text-destructive' : 'text-xs text-muted-foreground'}>
                     {errors.dropshipperPrefix?.message ?? 'Optional letters or numbers.'}
                   </p>
@@ -182,17 +186,17 @@ export function CustomerForm({
               </>
             ) : null}
             <div className="space-y-2">
-              <Label htmlFor="email">Email</Label>
-              <Input id="email" type="email" placeholder="billing@acme.com" {...register('email')} />
+              <Label htmlFor={idPrefix + 'email'}>Email</Label>
+              <Input id={idPrefix + 'email'} type="email" placeholder="billing@acme.com" {...register('email')} />
               {errors.email && <p className="text-sm text-destructive">{errors.email.message}</p>}
             </div>
             <div className="space-y-2">
-              <Label htmlFor="phone">Phone</Label>
-              <Input id="phone" placeholder="+91 98765 43210" {...register('phone')} />
+              <Label htmlFor={idPrefix + 'phone'}>Phone</Label>
+              <Input id={idPrefix + 'phone'} placeholder="+91 98765 43210" {...register('phone')} />
             </div>
             <div className="space-y-2">
-              <Label htmlFor="currency">Currency</Label>
-              <select id="currency" className={selectClassName} {...register('currency')}>
+              <Label htmlFor={idPrefix + 'currency'}>Currency</Label>
+              <select id={idPrefix + 'currency'} className={selectClassName} {...register('currency')}>
                 {CURRENCIES.map((c) => (
                   <option key={c.code} value={c.code}>
                     {c.symbol} {c.code} — {c.name}
@@ -204,9 +208,9 @@ export function CustomerForm({
               </p>
             </div>
             <div className="space-y-2">
-              <Label htmlFor="taxId">TRN Number</Label>
+              <Label htmlFor={idPrefix + 'taxId'}>TRN Number</Label>
               <Input
-                id="taxId"
+                id={idPrefix + 'taxId'}
                 placeholder="Customer tax registration number"
                 {...register('taxId')}
               />
@@ -215,9 +219,9 @@ export function CustomerForm({
               </p>
             </div>
             <div className="space-y-2 sm:col-span-2">
-              <Label htmlFor="notes">Notes</Label>
+              <Label htmlFor={idPrefix + 'notes'}>Notes</Label>
               <textarea
-                id="notes"
+                id={idPrefix + 'notes'}
                 rows={3}
                 className={cn(
                   'flex min-h-[80px] w-full rounded-md border border-input bg-transparent px-3 py-2 text-sm shadow-sm placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring',
@@ -239,20 +243,20 @@ export function CustomerForm({
                 <Input id="address.line2" {...register('address.line2')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address.city">City</Label>
-                <Input id="address.city" {...register('address.city')} />
+                <Label htmlFor={idPrefix + 'address.city'}>City</Label>
+                <Input id={idPrefix + 'address.city'} {...register('address.city')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address.state">State</Label>
-                <Input id="address.state" {...register('address.state')} />
+                <Label htmlFor={idPrefix + 'address.state'}>State</Label>
+                <Input id={idPrefix + 'address.state'} {...register('address.state')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address.postalCode">Postal code</Label>
-                <Input id="address.postalCode" {...register('address.postalCode')} />
+                <Label htmlFor={idPrefix + 'address.postalCode'}>Postal code</Label>
+                <Input id={idPrefix + 'address.postalCode'} {...register('address.postalCode')} />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="address.country">Country</Label>
-                <Input id="address.country" {...register('address.country')} />
+                <Label htmlFor={idPrefix + 'address.country'}>Country</Label>
+                <Input id={idPrefix + 'address.country'} {...register('address.country')} />
               </div>
             </div>
           </div>
@@ -263,9 +267,13 @@ export function CustomerForm({
             <Button type="submit" disabled={loading}>
               {loading ? 'Saving...' : isEdit ? 'Save changes' : 'Save customer'}
             </Button>
-            <Button type="button" variant="outline" asChild>
-              <Link href="/customers">Cancel</Link>
-            </Button>
+            {onCancel ? (
+              <Button type="button" variant="outline" onClick={onCancel} disabled={loading}>Cancel</Button>
+            ) : (
+              <Button type="button" variant="outline" asChild>
+                <Link href="/customers">Cancel</Link>
+              </Button>
+            )}
           </div>
         </form>
       </CardContent>

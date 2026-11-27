@@ -13,6 +13,7 @@ import {
   isDropshippingPartnerInvoice,
   PROVISIONAL_INVOICE_NUMBER,
   type CreateInvoiceInput,
+  type CreateCustomerInput,
   type ShipmentContact,
   type UpdateInvoiceInput,
 } from '@flowbooks/shared';
@@ -22,6 +23,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { CustomerForm } from '@/components/customers/customer-form';
 import { CurrencySelect } from '@/components/currency-select';
 import { DropshipInvoiceFields } from '@/components/invoices/dropship-invoice-fields';
 import { DraftStatus } from '@/components/invoices/draft-status';
@@ -106,6 +108,8 @@ interface CreateInvoiceFormProps extends DraftFormExtras {
   /** Copy of another invoice. Applied only after the page has consent to replace a draft. */
   initialDraft?: FormDraftContent;
   catalogTruncated?: boolean;
+  onCreateCustomer?: (data: CreateCustomerInput) => Promise<Customer>;
+  suggestDropshipperNumber?: () => Promise<{ number: string | null }>;
   onSubmit: (data: CreateInvoiceInput) => Promise<{ id: string; offlinePending?: boolean }>;
 }
 
@@ -252,6 +256,19 @@ function InvoiceFormEditor(
   const [taxRate, setTaxRate] = useState(seed ? seed.taxRate : isEdit ? Number(invoice!.taxRate ?? 0) : 0);
   const currencyTouched = useRef(seed ? seed.currencyTouched : isEdit);
   const online = useOnlineStatus();
+  const [customerDialogOpen, setCustomerDialogOpen] = useState(false);
+  const [customerSaving, setCustomerSaving] = useState(false);
+  const [customerError, setCustomerError] = useState('');
+  const customerDialogRef = useRef<HTMLDialogElement>(null);
+  const [inlineCustomers, setInlineCustomers] = useState<Customer[]>([]);
+  const selectableCustomers = [...props.customers, ...inlineCustomers.filter((entry) => !props.customers.some((customer) => customer.id === entry.id))];
+  useEffect(() => {
+    const dialog = customerDialogRef.current;
+    if (customerDialogOpen && dialog && !dialog.open) {
+      if (typeof dialog.showModal === 'function') dialog.showModal();
+      else dialog.setAttribute('open', '');
+    }
+  }, [customerDialogOpen]);
 
   const createForm = useForm<CreateInvoiceFormValues>({
     resolver: zodResolver(createInvoiceFormSchema),
@@ -624,7 +641,39 @@ function InvoiceFormEditor(
     );
   }
 
+  function selectCustomer(customer: Customer | undefined, id: string) {
+    createForm.setValue('customerId', id, { shouldDirty: true, shouldValidate: true });
+    createForm.setValue('dropshippingPartner', isDropshipperInvoicePath(invoicePath) || customer?.isDropshipper === true);
+    for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
+      createForm.setValue(field, '');
+    }
+    createForm.setValue('shipmentWeightKg', null);
+    createForm.setValue('shipmentContact', emptyShipmentContact);
+    createForm.setValue('shipmentTrackingCode', '');
+    if (customer?.currency && !currencyTouched.current) {
+      setInvoiceCurrency(customer.currency);
+      createForm.setValue('currency', customer.currency);
+    }
+  }
+
+  async function saveCustomer(data: CreateCustomerInput) {
+    if (props.mode !== 'create' || !props.onCreateCustomer || customerSaving) return;
+    setCustomerSaving(true);
+    setCustomerError('');
+    try {
+      const customer = await props.onCreateCustomer(data);
+      setInlineCustomers((previous) => [...previous, customer]);
+      selectCustomer(customer, customer.id);
+      setCustomerDialogOpen(false);
+    } catch (err) {
+      setCustomerError(err instanceof Error ? err.message : 'Could not add customer.');
+    } finally {
+      setCustomerSaving(false);
+    }
+  }
+
   return (
+    <>
     <form
       onSubmit={createForm.handleSubmit(
         (data) => {
@@ -673,29 +722,25 @@ function InvoiceFormEditor(
             <select
               id="customerId"
               className={selectClassName}
-              {...createForm.register('customerId', {
-                onChange: (e) => {
-                  const customer = props.customers.find((c) => c.id === e.target.value);
-                  createForm.setValue('dropshippingPartner', isDropshipperInvoicePath(invoicePath) || customer?.isDropshipper === true);
-                  for (const field of ['partnerOrderNumber', 'endRecipientName', 'endRecipientAddress', 'shipmentCarrier'] as const) {
-                    createForm.setValue(field, '');
-                  }
-                  createForm.setValue('shipmentWeightKg', null);
-                  createForm.setValue('shipmentContact', emptyShipmentContact);
-                  createForm.setValue('shipmentTrackingCode', '');
-                  if (customer?.currency && !currencyTouched.current) {
-                    setInvoiceCurrency(customer.currency);
-                    createForm.setValue('currency', customer.currency);
-                  }
-                },
-              })}
+              {...createForm.register('customerId')}
+              value={createForm.watch('customerId') ?? ''}
+              onChange={(event) => {
+                if (event.target.value === '__add_customer__') {
+                  event.target.value = createForm.getValues('customerId') ?? '';
+                  setCustomerError('');
+                  setCustomerDialogOpen(true);
+                  return;
+                }
+                selectCustomer(selectableCustomers.find((customer) => customer.id === event.target.value), event.target.value);
+              }}
             >
               <option value="">Select customer</option>
+              {props.onCreateCustomer && <option value="__add_customer__" disabled={!online}>+ Add customer</option>}
               {createForm.watch('customerId') &&
-              !props.customers.some((customer) => customer.id === createForm.watch('customerId')) ? (
+              !selectableCustomers.some((customer) => customer.id === createForm.watch('customerId')) ? (
                 <option value={createForm.watch('customerId')}>Saved customer</option>
               ) : null}
-              {props.customers.map((customer) => (
+              {selectableCustomers.map((customer) => (
                 <option key={customer.id} value={customer.id}>
                   {customer.name}
                 </option>
@@ -830,5 +875,11 @@ function InvoiceFormEditor(
         </Button>
       </div>
     </form>
+    {customerDialogOpen && (
+      <dialog ref={customerDialogRef} aria-label="Add customer" className="fixed inset-0 m-auto w-[calc(100%-2rem)] max-w-2xl max-h-[90vh] overflow-y-auto rounded-xl bg-background p-0 text-foreground shadow-xl backdrop:bg-black/50" onCancel={(event) => { event.preventDefault(); if (!customerSaving) setCustomerDialogOpen(false); }}>
+        <CustomerForm idPrefix="inline-customer-" businessCurrency={businessCurrency} suggestDropshipperNumber={props.suggestDropshipperNumber} loading={customerSaving} errorMessage={customerError} onSubmit={(data) => void saveCustomer(data)} onCancel={() => setCustomerDialogOpen(false)} />
+      </dialog>
+    )}
+    </>
   );
 }

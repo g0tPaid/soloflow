@@ -4,8 +4,8 @@ import Link from 'next/link';
 import { usePathname, useRouter, useSearchParams } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { useSession } from 'next-auth/react';
-import { useQuery } from '@tanstack/react-query';
-import { api } from '@/lib/api';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { api, type Customer } from '@/lib/api';
 import { useOrganizationId } from '@/hooks/use-organization';
 import { useOnlineStatus } from '@/hooks/use-online-status';
 import { InvoiceForm } from '@/components/invoices/invoice-form';
@@ -22,11 +22,13 @@ import {
   type FormDraftSnapshot,
 } from '@/lib/form-draft/model';
 import { getFormDraftRepository } from '@/lib/form-draft/repository';
-import { DROPSHIPPING_PARTNER_INVOICE_TITLE, type CreateInvoiceInput } from '@flowbooks/shared';
+import { DROPSHIPPING_PARTNER_INVOICE_TITLE, type CreateInvoiceInput, type CreateCustomerInput } from '@flowbooks/shared';
 import { DROPSHIPPER_INVOICE_DRAFT_ID, isDropshipperInvoicePath } from '@/lib/invoice-version';
 
 export function NewInvoicePageContent() {
   const router = useRouter();
+  const queryClient = useQueryClient();
+  const [createdCustomers, setCreatedCustomers] = useState<{ organizationId: string; customer: Customer }[]>([]);
   const pathname = usePathname();
   const dropshippingPartner = isDropshipperInvoicePath(pathname);
   const draftId = dropshippingPartner ? DROPSHIPPER_INVOICE_DRAFT_ID : NEW_DOCUMENT_DRAFT_ID;
@@ -107,7 +109,8 @@ export function NewInvoicePageContent() {
     };
   }, [sessionStatus, isReady, userId, organizationId, fromId, draftId]);
 
-  const customers = customersData?.data ?? [];
+  const catalogCustomers = customersData?.data ?? [];
+  const customers = [...catalogCustomers, ...createdCustomers.filter((entry) => entry.organizationId === organizationId && !catalogCustomers.some((customer) => customer.id === entry.customer.id)).map((entry) => entry.customer)];
   const products = productsData?.data ?? [];
   const catalogsSettled = !customersLoading && !productsLoading;
   const copyReady = !fromId || copyChoice === 'keep' || sourceQuery.isSuccess || sourceQuery.isError;
@@ -117,6 +120,14 @@ export function NewInvoicePageContent() {
   let initialDraft: FormDraftContent | undefined;
   if (copyChoice === 'replace' && sourceQuery.data?.invoice && fromId) {
     initialDraft = draftContentFromInvoice(sourceQuery.data.invoice, today);
+  }
+
+  async function handleCreateCustomer(data: CreateCustomerInput) {
+    if (!session?.accessToken || !organizationId) throw new Error('Please sign in again.');
+    const customer = await api.customers.create(session.accessToken, organizationId, data);
+    setCreatedCustomers((previous) => [...previous, { organizationId, customer }]);
+    void queryClient.invalidateQueries({ queryKey: ['customers', organizationId] });
+    return customer;
   }
 
   async function handleCreate(data: CreateInvoiceInput) {
@@ -208,22 +219,7 @@ export function NewInvoicePageContent() {
         <div className="h-64 animate-pulse rounded-lg bg-muted" />
       )}
 
-      {showForm && organizationId && customers.length === 0 && !customersError && !existingDraft && !initialDraft && (
-        <Card className="border-dashed">
-          <CardContent className="flex flex-col items-center justify-center py-8 text-center">
-            <p className="font-medium">No customers found</p>
-            <p className="mb-4 mt-1 text-sm text-muted-foreground">Add a customer before creating an invoice</p>
-            <Link
-              href="/customers/new"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground hover:bg-primary/90"
-            >
-              Add customer
-            </Link>
-          </CardContent>
-        </Card>
-      )}
-
-      {showForm && organizationId && (customers.length > 0 || existingDraft || initialDraft || customersError) && (
+      {showForm && organizationId && (
         <InvoiceForm
           key={`${copyChoice}-${fromId ?? ''}-${customerFromQuery ?? ''}`}
           mode="create"
@@ -238,6 +234,8 @@ export function NewInvoicePageContent() {
             userId && organizationId ? { userId, organizationId } : null
           }
           onSubmit={handleCreate}
+          onCreateCustomer={handleCreateCustomer}
+          suggestDropshipperNumber={() => api.customers.suggestDropshipperNumber(session!.accessToken!, organizationId)}
         />
       )}
     </div>
