@@ -107,7 +107,8 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
   const status = inactive ? (shipment.status === 'VOID' ? 'Void' : 'Cancelled') :
     (shipment.fulfillmentStatus === 'SHIPPED_INTERNATIONAL' ||
       (shipment.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' && shipment.shippingMethod === 'LOCAL')) ? 'Shipped · awaiting reception' :
-    shipment.fulfillmentStatus ? fulfillmentStatusLabel(shipment.fulfillmentStatus) : 'Awaiting shipment';
+    shipment.fulfillmentStatus ? fulfillmentStatusLabel(shipment.fulfillmentStatus) :
+      shipment.status && ['DRAFT', 'SENT', 'VIEWED', 'PARTIAL', 'OVERDUE'].includes(shipment.status) ? 'Awaiting payment' : 'Awaiting shipment';
   const shipped = shipment.shippedAt ? new Intl.DateTimeFormat('en', {
     day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Shanghai',
   }).format(new Date(shipment.shippedAt)) : null;
@@ -122,7 +123,7 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
     detail('Delivery address', [shipment.endRecipientAddress, shipment.shipmentContact?.addressLine2,
       [shipment.shipmentContact?.city, shipment.shipmentContact?.region, shipment.shipmentContact?.postcode].filter(Boolean).join(' '),
       shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) + detail('Invoice date', shipment.issueDate ? shipment.issueDate.slice(0, 10) : null) +
-    detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
+    detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (status === 'Awaiting payment' ? 'Awaiting payment' : shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
     detail('Carrier status', shipment.staffTrackingStatus || null) +
     detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + detail('Last shipment update', updated) + '</dl><ul aria-label="Products">' + products + '</ul>' +
     '<dl class="totals">' + detail('Products', price(shipment.subtotal)) + detail('Shipping', price(shipment.shipping)) +

@@ -49,7 +49,7 @@ describe('private partner shipment view', () => {
       sourceCustomer: { id: 'partner', prefix: 'SPAIN', number: '0042' },
       hasMore: false,
       shipments: [{
-        number: 'INV-100', awaiting: true, partnerOrderNumber: '1007', fulfillmentStatus: null,
+        number: 'INV-100', status: 'SENT', awaiting: true, partnerOrderNumber: '1007', fulfillmentStatus: null,
         currency: 'USD', subtotal: '14', shipping: '6', total: '20', discount: '0', taxAmount: '0',
         items: [{ name: 'Chair', description: 'Color: <Blue>', imageUrl: 'https://example.com/chair.png',
           quantity: '1', unitPrice: '14', amount: '14' }],
@@ -58,10 +58,23 @@ describe('private partner shipment view', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await GET(new Request(path), params);
     const html = await response.text();
-    for (const label of ['Welcome, <span class="partner-name">Javier Example', 'SPAIN-0042', 'partner-portal-logo.png', 'All shipments', 'Awaiting shipment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
+    for (const label of ['Welcome, <span class="partner-name">Javier Example', 'SPAIN-0042', 'partner-portal-logo.png', 'All shipments', 'Awaiting payment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
       expect(html).toContain(label);
     }
+    expect(html).not.toContain('Awaiting shipment');
     expect(upstream).toHaveBeenCalledWith(expect.stringContaining('page=1&status=all'), expect.anything());
+  });
+
+  it('keeps paid orders with no fulfillment stage awaiting shipment', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
+      partner: 'Partner', hasMore: false, shipments: [{
+        number: 'INV-PAID', status: 'PAID', awaiting: true, fulfillmentStatus: null,
+        currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
+      }],
+    })));
+    const html = await (await GET(new Request(path), params)).text();
+    expect(html).toContain('Awaiting shipment');
+    expect(html).not.toContain('Awaiting payment');
   });
 
   it('renders all orders, actual early stages and inactive status without pagination', async () => {
