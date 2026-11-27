@@ -58,7 +58,7 @@ describe('private partner shipment view', () => {
     vi.stubGlobal('fetch', upstream);
     const response = await GET(new Request(path), params);
     const html = await response.text();
-    for (const label of ['Welcome, <span class="partner-name">Javier Example', 'SPAIN-0042', 'partner-portal-logo.png', 'All shipments', 'Awaiting payment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
+    for (const label of ['Welcome, <span class="partner-name"><span class="partner-name-letters">Javier Example', 'SPAIN-0042', 'partner-portal-logo.png', 'All shipments', 'Awaiting payment', 'Order 1007', 'Color: &lt;Blue&gt;', 'chair.png']) {
       expect(html).toContain(label);
     }
     expect(html).not.toContain('Awaiting shipment');
