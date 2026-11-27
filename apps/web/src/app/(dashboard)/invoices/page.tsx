@@ -506,7 +506,7 @@ export default function InvoicesPage() {
                   <FulfillmentControls
                     idPrefix={`table-${invoice.id}`}
                     layout="compact"
-                    disabled={invoice.status === 'CANCELLED' || invoice.status === 'VOID' || fulfillmentMutation.isPending}
+                    disabled={fulfillmentMutation.isPending}
                     status={invoice.fulfillmentStatus}
                     localTrackingNumber={invoice.localTrackingNumber}
                     internationalTrackingNumber={invoice.internationalTrackingNumber}
