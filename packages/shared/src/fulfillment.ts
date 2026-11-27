@@ -59,6 +59,7 @@ export function shipmentProgress(status?: string | null, invoiceStatus?: string 
   const labels = [
     ['Payment completed','Awaiting payment'],
     ['Local ordering completed','Local ordering in progress'],
+    ['Reached warehouse','Awaiting warehouse arrival'],
     ['QC completed','Quality check in progress'],
     ['Shipped to China shipping center','China shipping in progress'],
     ['International shipment dispatched','International shipping in progress'],
@@ -75,7 +76,7 @@ export function shipmentProgress(status?: string | null, invoiceStatus?: string 
     const inProgress = !completed && active===value;
     const [doneLabel,progressLabel] = value==='SHIPPED_TO_CHINA_CENTER'&&shippingMethod==='LOCAL'?['Local shipment dispatched','Local shipping in progress']:labels[original];
     const state = completed ? 'completed' as const : inProgress ? 'in-progress' as const : 'pending' as const;
-    const pendingLabels=['Awaiting payment','Local ordering','Quality check','China shipping','International shipping','Customer reception','Order completion'];
+    const pendingLabels=['Awaiting payment','Local ordering','Warehouse arrival','Quality check','China shipping','International shipping','Customer reception','Order completion'];
     return {value, state, label: completed ? doneLabel : inProgress ? progressLabel : pendingLabels[original]+' · pending', completedLabel:doneLabel, progressLabel, previous:index===1?null:visible[index-1]??null};
   });
 }

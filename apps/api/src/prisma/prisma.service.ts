@@ -285,6 +285,7 @@ export const REQUIRED_SCHEMA_STATEMENTS = [
   `DO $$ BEGIN
     CREATE TYPE "FulfillmentStatus" AS ENUM (
       'LOCAL_ORDERING_COMPLETED',
+      'WAREHOUSE_RECEIVED',
       'QC_COMPLETED',
       'SHIPPED_TO_CHINA_CENTER',
       'SHIPPED_INTERNATIONAL',
@@ -292,6 +293,7 @@ export const REQUIRED_SCHEMA_STATEMENTS = [
       'ORDER_COMPLETED'
     );
   EXCEPTION WHEN duplicate_object THEN NULL; END $$`,
+  `ALTER TYPE "FulfillmentStatus" ADD VALUE IF NOT EXISTS 'WAREHOUSE_RECEIVED' AFTER 'LOCAL_ORDERING_COMPLETED'`,
   `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "fulfillmentStatus" "FulfillmentStatus"`,
   `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "localTrackingNumber" TEXT`,
   `ALTER TABLE "invoices" ADD COLUMN IF NOT EXISTS "internationalTrackingNumber" TEXT`,
