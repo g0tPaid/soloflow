@@ -1,16 +1,14 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Check, ChevronRight } from 'lucide-react';
+import { Check, ChevronRight, LoaderCircle } from 'lucide-react';
 import {
-  FULFILLMENT_STATUSES,
   canEditInternationalTracking,
   canEditLocalTracking,
   formatFulfillmentHistoryLine,
   formatFulfillmentHistoryTimestamp,
-  fulfillmentRank,
-  fulfillmentStatusLabel,
-  nextFulfillmentSelection,
+  shipmentProgress,
+  shipmentProgressLabel,
   normalizeTrackingNumber,
   type FulfillmentHistoryAction,
   type FulfillmentStatus,
@@ -35,6 +33,8 @@ export type FulfillmentHistoryEntry = {
 type Props = {
   idPrefix: string;
   status?: FulfillmentStatus | null;
+  invoiceStatus?: string | null;
+  shippingMethod?: string | null;
   localTrackingNumber?: string | null;
   internationalTrackingNumber?: string | null;
   history?: FulfillmentHistoryEntry[];
@@ -92,7 +92,7 @@ export function FulfillmentHistoryList({
   );
 }
 
-export function FulfillmentStatusBadge({ status }: { status?: FulfillmentStatus | null }) {
+export function FulfillmentStatusBadge({ status, invoiceStatus, shippingMethod }: { status?: FulfillmentStatus | null; invoiceStatus?:string|null; shippingMethod?:string|null }) {
   const started = Boolean(status);
   return (
     <span
@@ -103,7 +103,7 @@ export function FulfillmentStatusBadge({ status }: { status?: FulfillmentStatus 
           : 'bg-muted text-muted-foreground',
       )}
     >
-      {fulfillmentStatusLabel(status)}
+      {shipmentProgressLabel(status,invoiceStatus,shippingMethod)}
     </span>
   );
 }
@@ -111,6 +111,8 @@ export function FulfillmentStatusBadge({ status }: { status?: FulfillmentStatus 
 export function FulfillmentControls({
   idPrefix,
   status = null,
+  invoiceStatus,
+  shippingMethod,
   localTrackingNumber,
   internationalTrackingNumber,
   disabled = false,
@@ -135,7 +137,7 @@ export function FulfillmentControls({
 
   const localEditable = canEditLocalTracking(status);
   const internationalEditable = canEditInternationalTracking(status);
-  const rank = fulfillmentRank(status);
+  const stages = shipmentProgress(status,invoiceStatus,shippingMethod);
   const lastUpdate = sortedHistory(history)[0];
   const showLocal =
     layout === 'full' || localEditable || Boolean(normalizeTrackingNumber(localTrackingNumber));
@@ -166,37 +168,28 @@ export function FulfillmentControls({
       <div>
         <p className="text-sm font-medium">Order fulfillment</p>
         <p className="text-sm text-muted-foreground">
-          {status === 'SHIPPED_INTERNATIONAL' ? 'Shipped · awaiting reception' : status ? fulfillmentStatusLabel(status) : 'Awaiting shipment'}
-          {rank >= 0 ? ` · step ${rank + 1} of ${FULFILLMENT_STATUSES.length}` : ''}
+          {shipmentProgressLabel(status,invoiceStatus,shippingMethod)}
         </p>
         {lastUpdate ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
       </div>
 
-      <div className="flex flex-wrap gap-2" role="group" aria-label="Fulfillment status">
-        {FULFILLMENT_STATUSES.map((stage, index) => {
-          const isCurrent = status === stage.value;
-          const isDone = rank > index;
-          return (
-            <button
+      <div className="grid gap-2 sm:grid-cols-2" role="group" aria-label="Fulfillment status">
+        {stages.map((stage, index) => (
+            <div
               key={stage.value}
-              type="button"
-              aria-pressed={isCurrent}
-              disabled={disabled || saving}
-              onClick={() => onStatusChange(nextFulfillmentSelection(status, stage.value))}
               className={cn(
-                'inline-flex items-center gap-1.5 rounded-lg border px-3 py-2 text-left text-xs font-medium transition sm:text-sm',
-                isCurrent
+                'rounded-lg border px-3 py-2 text-xs sm:text-sm',
+                stage.state==='in-progress'
                   ? 'border-red-600 bg-red-50 text-red-700 ring-1 ring-red-600'
-                  : isDone
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800 hover:bg-emerald-100'
-                    : 'border-input bg-background text-muted-foreground hover:border-red-200 hover:bg-red-50/50',
+                  : stage.state==='completed'
+                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                    : 'border-input bg-background text-muted-foreground',
               )}
             >
-              {isCurrent || isDone ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}
-              {index + 1}. {stage.value === 'SHIPPED_INTERNATIONAL' ? 'Shipped · awaiting reception' : stage.label}
-            </button>
-          );
-        })}
+              <div className="flex items-center gap-1.5 font-medium">{stage.state==='completed' ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : stage.state==='in-progress' ? <LoaderCircle className="h-4 w-4 shrink-0 motion-safe:animate-spin" aria-hidden/> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}{index+1}. {stage.label}</div>
+              {stage.value==='AWAITING_PAYMENT'?<p className="mt-1 text-[11px]">Updates automatically when the invoice is paid.</p>:<div className="mt-2 flex flex-wrap gap-1"><Button size="sm" variant="outline" type="button" aria-label={`${stage.progressLabel} — In progress`} disabled={disabled||saving||stage.state==='in-progress'||(index===1&&invoiceStatus!=='PAID')} onClick={()=>onStatusChange(stage.previous)}>In progress</Button><Button size="sm" variant="outline" type="button" aria-label={`${stage.completedLabel} — Completed`} disabled={disabled||saving||stage.state==='completed'} onClick={()=>onStatusChange(stage.value)}>Completed</Button></div>}
+            </div>
+          ))}
       </div>
 
       {(showLocal || showInternational) && (

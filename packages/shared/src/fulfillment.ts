@@ -54,6 +54,39 @@ export function fulfillmentStatusLabel(status: string | null | undefined): strin
   return FULFILLMENT_STATUSES.find((stage) => stage.value === status)?.label ?? 'Not started';
 }
 
+/** Stored stages remain completed checkpoints; the next stage is the active one. Payment is derived from the invoice, never from a shipment toggle. */
+export function shipmentProgress(status?: string | null, invoiceStatus?: string | null, shippingMethod?: string | null) {
+  const labels = [
+    ['Payment completed','Awaiting payment'],
+    ['Local ordering completed','Local ordering in progress'],
+    ['QC completed','Quality check in progress'],
+    ['Shipped to China shipping center','China shipping in progress'],
+    ['International shipment dispatched','International shipping in progress'],
+    ['Customer received','Awaiting reception'],
+    ['Order completed','Order completion in progress'],
+  ];
+  const visible = FULFILLMENT_STATUS_VALUES.filter(s => shippingMethod !== 'LOCAL' || s !== 'SHIPPED_INTERNATIONAL');
+  const rank = fulfillmentRank(status);
+  const paid = invoiceStatus === 'PAID';
+  const active = paid || rank > 0 ? visible.find(s=>s!=='AWAITING_PAYMENT' && fulfillmentRank(s)>rank) : 'AWAITING_PAYMENT';
+  return visible.map((value,index)=>{
+    const original = fulfillmentRank(value);
+    const completed = value==='AWAITING_PAYMENT' ? paid : rank>=original;
+    const inProgress = !completed && active===value;
+    const [doneLabel,progressLabel] = value==='SHIPPED_TO_CHINA_CENTER'&&shippingMethod==='LOCAL'?['Local shipment dispatched','Local shipping in progress']:labels[original];
+    const state = completed ? 'completed' as const : inProgress ? 'in-progress' as const : 'pending' as const;
+    const pendingLabels=['Awaiting payment','Local ordering','Quality check','China shipping','International shipping','Customer reception','Order completion'];
+    return {value, state, label: completed ? doneLabel : inProgress ? progressLabel : pendingLabels[original]+' · pending', completedLabel:doneLabel, progressLabel, previous:index===1?null:visible[index-1]??null};
+  });
+}
+
+export function shipmentProgressLabel(status?: string|null, invoiceStatus?: string|null, shippingMethod?: string|null): string {
+  if(invoiceStatus==='CANCELLED') return 'Cancelled';
+  if(invoiceStatus==='VOID') return 'Void';
+  const stages=shipmentProgress(status,invoiceStatus,shippingMethod);
+  return stages.find(s=>s.state==='in-progress')?.label ?? (status==='ORDER_COMPLETED'?'Order completed':stages.find(s=>s.state==='pending')?.label ?? 'Order completed');
+}
+
 export function canEditLocalTracking(status: string | null | undefined): boolean {
   const rank = fulfillmentRank(status);
   return rank >= 0 && rank >= fulfillmentRank(LOCAL_TRACKING_STATUS);

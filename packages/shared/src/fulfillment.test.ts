@@ -11,9 +11,21 @@ import {
   fulfillmentTrackingError,
   nextFulfillmentSelection,
   normalizeTrackingNumber,
+  shipmentProgress,
+  shipmentProgressLabel,
 } from './fulfillment';
 
 describe('fulfillment', () => {
+  it('advances automatically after payment and each completed checkpoint',()=>{
+    expect(shipmentProgressLabel(null,'SENT')).toBe('Awaiting payment');
+    expect(shipmentProgressLabel(null,'PAID')).toBe('Local ordering in progress');
+    expect(shipmentProgress(null,'PAID')[0].state).toBe('completed');
+    expect(shipmentProgressLabel('LOCAL_ORDERING_COMPLETED','PAID')).toBe('Quality check in progress');
+    expect(shipmentProgressLabel('SHIPPED_INTERNATIONAL','PAID')).toBe('Awaiting reception');
+    expect(shipmentProgressLabel('ORDER_COMPLETED','PAID')).toBe('Order completed');
+    expect(shipmentProgressLabel('SHIPPED_TO_CHINA_CENTER','PAID','LOCAL')).toBe('Awaiting reception');
+    expect(shipmentProgress('SHIPPED_TO_CHINA_CENTER','PAID','LOCAL').some(s=>s.value==='SHIPPED_INTERNATIONAL')).toBe(false);
+  });
   it('keeps the seven stages in merchant order', () => {
     expect(FULFILLMENT_STATUS_VALUES).toEqual([
       'AWAITING_PAYMENT',

@@ -231,7 +231,7 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
           {invoice && (
             <div className="mt-1 flex flex-wrap items-center gap-2">
               <InvoiceStatusBadge status={invoice.status} />
-              <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
+              <FulfillmentStatusBadge status={invoice.fulfillmentStatus} invoiceStatus={invoice.status} shippingMethod={invoice.shippingMethod} />
             </div>
           )}
         </div>
@@ -352,6 +352,8 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
               <FulfillmentControls
                 idPrefix={invoice.id}
                 status={invoice.fulfillmentStatus}
+                invoiceStatus={invoice.status}
+                shippingMethod={invoice.shippingMethod}
                 localTrackingNumber={invoice.localTrackingNumber}
                 internationalTrackingNumber={invoice.internationalTrackingNumber}
                 saving={fulfillmentMutation.isPending}
