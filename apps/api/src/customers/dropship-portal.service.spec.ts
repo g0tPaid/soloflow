@@ -66,7 +66,10 @@ describe('DropshipPortalService', () => {
       vendorId: null,
       status: { notIn: ['CANCELLED', 'VOID'] },
       customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
-      customFields: { path: ['dropshippingPartner'], equals: true },
+      AND: [{ OR: [
+        { customFields: { path: ['dropshippingPartner'], equals: true } },
+        { partnerOrderNumber: { not: null } },
+      ] }],
     });
     await service.shipments(token, 0, 'all');
     const allQuery = prisma.invoice.findMany.mock.calls[1][0];
@@ -79,6 +82,33 @@ describe('DropshipPortalService', () => {
     expect(query.select).not.toHaveProperty('shippingCost');
     expect(query.select.items.select).not.toHaveProperty('unitCost');
   });
+  it('returns all 45 orders in complete mode while preserving the authenticated customer scope', async () => {
+    prisma.dropshipPortal.findFirst.mockResolvedValue({
+      customer: { id: 'partner', organizationId: 'org', name: 'Partner', dropshipperNumber: '0042', dropshipperPrefix: 'A' },
+    });
+    prisma.invoiceItem.groupBy.mockResolvedValue([]);
+    prisma.dropshipStock.findMany.mockResolvedValue([]);
+    prisma.dropshipImportedShipment.findFirst.mockResolvedValue(null);
+    prisma.invoice.findMany.mockResolvedValue(Array.from({ length: 45 }, (_, index) => ({
+      number: 'INV-' + index, status: index === 44 ? 'CANCELLED' : 'DRAFT',
+      fulfillmentStatus: index === 0 ? 'QC_COMPLETED' : null,
+      fulfillmentEvents: [], items: [], shipmentContact: null,
+    })));
+    const result = await service.shipments(token, 0, 'all', true);
+    expect(result.shipments).toHaveLength(45);
+    expect(result.hasMore).toBe(false);
+    expect(result.shipments[0].fulfillmentStatus).toBe('QC_COMPLETED');
+    expect(result.shipments[44].status).toBe('CANCELLED');
+    const query = prisma.invoice.findMany.mock.calls[0][0];
+    expect(query).not.toHaveProperty('take');
+    expect(query).not.toHaveProperty('skip');
+    expect(query.where).not.toHaveProperty('status');
+    expect(query.where).toMatchObject({
+      organizationId: 'org', customerId: 'partner', vendorId: null,
+      customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
+    });
+  });
+
   it('deducts this partner’s shipped units from the allocated stock for the selected product', async () => {
     prisma.organizationMember.findUnique.mockResolvedValue({ role: 'ADMIN' });
     prisma.dropshipStock.findMany.mockResolvedValue([{
