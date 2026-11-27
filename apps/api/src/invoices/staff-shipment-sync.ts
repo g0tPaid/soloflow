@@ -1,6 +1,6 @@
 import { Injectable, Logger, OnModuleDestroy, OnModuleInit } from '@nestjs/common';
 import { FulfillmentStatus, Prisma } from '@flowbooks/database';
-import { fulfillmentRank } from '@flowbooks/shared';
+import { DROPSHIPPING_PARTNER_INVOICE_FIELD, fulfillmentPressEvents, fulfillmentRank } from '@flowbooks/shared';
 import { PrismaService } from '../prisma/prisma.service';
 
 @Injectable()
@@ -60,10 +60,11 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
       const invoices = await this.prisma.invoice.findMany({
         where: {
           organizationId: anchor.organizationId,
-          customer: { isDropshipper: true, dropshipperNumber: { not: null } },
+          customer: { isActive: true, isDropshipper: true, dropshipperNumber: { not: null } },
           status: { notIn: ['CANCELLED', 'VOID'] },
           AND: [{
             OR: [
+              { customFields: { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true } },
               { shipmentContact: { not: Prisma.DbNull } },
               { endRecipientName: { not: null } },
               { endRecipientAddress: { not: null } },
@@ -75,7 +76,7 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
           OR: [
             { staffSyncedAt: null },
             { staffSyncedAt: { lt: this.prisma.invoice.fields.updatedAt } },
-            { staffSyncedAt: { lt: new Date(Date.now() - 300_000) }, internationalTrackingNumber: null, localTrackingNumber: null },
+            { staffSyncedAt: { lt: new Date(Date.now() - 300_000) } },
           ],
         },
         include: { customer: { select: { dropshipperNumber: true, dropshipperPrefix: true } } },
@@ -103,25 +104,33 @@ export class StaffShipmentSync implements OnModuleInit, OnModuleDestroy {
             },
         });
         if (!response.ok) return;
-        const data: { tracking?: unknown; carrier?: unknown } = await response.json();
+        const data: { tracking?: unknown; carrier?: unknown; trackingStatus?: unknown } = await response.json();
         const tracking = typeof data.tracking === 'string' && /^[A-Z0-9]{4,40}$/.test(data.tracking) ? data.tracking : null;
         const carrier = typeof data.carrier === 'string' && /^[a-z0-9-]{1,80}$/.test(data.carrier) ? data.carrier : null;
         await this.prisma.$transaction(async (tx) => {
           // A newer invoice edit must not be acknowledged by an older sync attempt.
           const matched = await tx.$executeRaw`UPDATE "invoices" SET "staffSyncedAt" = CURRENT_TIMESTAMP
             WHERE id = ${invoice.id} AND "updatedAt" = ${invoice.updatedAt}`;
-          if (!matched || !tracking || invoice.internationalTrackingNumber || invoice.localTrackingNumber) return;
+          if (!matched || !tracking) return;
+          const existingTracking = invoice.internationalTrackingNumber || invoice.localTrackingNumber;
+          // Never apply an update for a different parcel, or overwrite a staff-edited invoice's tracking.
+          if (existingTracking && existingTracking.toUpperCase() !== tracking) return;
           const domestic = invoice.shippingMethod === 'LOCAL';
-          const stage = domestic ? FulfillmentStatus.SHIPPED_TO_CHINA_CENTER : FulfillmentStatus.SHIPPED_INTERNATIONAL;
-          const advance = fulfillmentRank(invoice.fulfillmentStatus) < fulfillmentRank(stage);
+          const shippedStage = domestic ? FulfillmentStatus.SHIPPED_TO_CHINA_CENTER : FulfillmentStatus.SHIPPED_INTERNATIONAL;
+          const knownInTransit = ['Picked Up', 'In Transit', 'Arrived at Destination Country', 'Customs Clearance', 'Customs Released', 'Out for Delivery', 'Delivered'].includes(String(data.trackingStatus));
+          const stage = !domestic && data.trackingStatus === 'Delivered' ? FulfillmentStatus.CUSTOMER_RECEIVED : shippedStage;
+          const advance = (!existingTracking || knownInTransit) && fulfillmentRank(invoice.fulfillmentStatus) < fulfillmentRank(stage);
+          if (existingTracking && !advance && (!carrier || invoice.shipmentCarrier)) return;
           await tx.invoice.update({
             where: { id: invoice.id },
             data: {
-              ...(domestic ? { localTrackingNumber: tracking } : { internationalTrackingNumber: tracking }),
+              ...(!existingTracking ? (domestic ? { localTrackingNumber: tracking } : { internationalTrackingNumber: tracking }) : {}),
               ...(carrier && !invoice.shipmentCarrier ? { shipmentCarrier: carrier } : {}),
               ...(advance ? {
                 fulfillmentStatus: stage,
-                fulfillmentEvents: { create: { organizationId: invoice.organizationId, status: stage, action: 'ON' } },
+                fulfillmentEvents: { create: fulfillmentPressEvents(invoice.fulfillmentStatus, stage).map((event) => ({
+                  organizationId: invoice.organizationId, ...event,
+                })) },
               } : {}),
             },
           });
