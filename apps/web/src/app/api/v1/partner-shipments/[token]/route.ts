@@ -198,7 +198,7 @@ ul{padding:0;margin:16px 0;list-style:none;border-top:1px solid #efe9eb}li{displ
 img,.photo{width:48px;height:48px;object-fit:cover;border-radius:8px;background:#f4edf0}.totals{display:flex;flex-wrap:wrap;gap:8px 20px}.totals div:last-child dd{color:#8e1744}.pagination{margin-top:16px}.inventory{margin-top:20px}.inventory ul{margin-bottom:0}.inventory li{grid-template-columns:48px minmax(0,1fr) minmax(90px,auto)}.inventory .totals{gap:5px 12px}.inventory li:last-child{border-bottom:0}.shipment-photos{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-top:16px}.shipment-photos img{width:100%;height:100px;object-fit:cover}
 `;
 
-const refreshScript = `let busy=false;async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const response=await fetch(location.href,{cache:'no-store',credentials:'same-origin',redirect:'error'});if(!response.ok)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}}catch{}finally{busy=false}}setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
+const refreshScript = `let busy=false;async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const response=await fetch(location.href,{cache:'no-store',credentials:'same-origin',redirect:'error'});if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}}catch{}finally{busy=false}}setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
 
 function documentBody(content: string, status = 200) {
   const nonce = randomBytes(16).toString('base64');
@@ -238,10 +238,17 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     }
     if (data.hasMore) throw new Error('Incomplete shipment history');
     const history = data.importedShipments ?? [];
-    const photos = await loadShipmentPhotos(data.sourceCustomer, [...history, ...data.shipments.map((shipment) => ({
+    const photoRows = [...history, ...data.shipments.map((shipment) => ({
       order: shipment.partnerOrderNumber || shipment.number,
       tracking: shipment.internationalTrackingNumber || shipment.localTrackingNumber || '',
-    }))]);
+    }))];
+    const photos: string[][] = [];
+    // The photo endpoint permits at most 2,000 order references per request.
+    for (let offset = 0; offset < photoRows.length; offset += 2000) {
+      const batch = photoRows.slice(offset, offset + 2000);
+      const groups = await loadShipmentPhotos(data.sourceCustomer, batch);
+      photos.push(...batch.map((_, i) => groups[i] ?? []));
+    }
     const href = (mode: 'list' | 'grid') => '?view=' + mode;
     const customerId = data.sourceCustomer?.number
       ? [data.sourceCustomer.prefix, data.sourceCustomer.number].filter(Boolean).join('-')
