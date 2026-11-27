@@ -1,5 +1,6 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { GET } from './route';
+import { fulfillmentStatusLabel } from '@flowbooks/shared';
 
 const token = 'x'.repeat(43);
 const path = 'https://soloflow.example/api/v1/partner-shipments/' + token;
@@ -11,7 +12,7 @@ describe('private partner shipment view', () => {
   it('shows the selected layout, shipment details and charges with HTML escaping', async () => {
     const upstream = vi.fn().mockResolvedValue(Response.json({
       partner: '<script>alert(1)</script>',
-      hasMore: true,
+      hasMore: false,
       stock: [{ name: 'Warehouse product', sku: 'WH', imageUrl: null, allocated: '20', shipped: '6', remaining: '14' }],
       shipments: [{
         shipmentWeightKg: '1.25', number: 'INV-100', partnerOrderNumber: 'ORDER-200', shippedAt: '2026-11-17T00:00:00Z',
@@ -29,14 +30,14 @@ describe('private partner shipment view', () => {
     expect(response.headers.get('referrer-policy')).toBe('no-referrer');
     expect(response.headers.get('x-robots-tag')).toContain('noindex');
     expect(html).toContain('class="shipments grid"');
-    expect(html).toContain('href="?view=list&amp;page=2"');
-    expect(html).toContain('href="?view=grid&amp;page=3"');
+    expect(html).toContain('href="?view=list"');
+    expect(html).not.toContain('aria-label="Shipment pages"');
     for (const text of ['ORDER-200', 'Pat Example', 'TRACK-300', '1.25 kg', 'Warehouse product', 'In stock', 'product.png', '14.00', '6.00', '20.00']) {
       expect(html).toContain(text);
     }
     expect(html).toContain('&lt;script&gt;alert(1)&lt;/script&gt;');
     expect(html).not.toContain(token);
-    expect(upstream).toHaveBeenCalledWith(expect.stringContaining('/dropship-portal/shipments?page=2&status=all'),
+    expect(upstream).toHaveBeenCalledWith(expect.stringContaining('/dropship-portal/shipments?page=1&status=all&complete=true'),
       expect.objectContaining({ method: 'POST', cache: 'no-store', body: JSON.stringify({ token }) }));
   });
 
@@ -46,7 +47,7 @@ describe('private partner shipment view', () => {
       sourceCustomer: { id: 'partner', prefix: 'SPAIN', number: '0042' },
       hasMore: false,
       shipments: [{
-        number: 'INV-100', awaiting: true, partnerOrderNumber: '1007', fulfillmentStatus: 'SHIPPED_TO_CHINA_CENTER',
+        number: 'INV-100', awaiting: true, partnerOrderNumber: '1007', fulfillmentStatus: null,
         currency: 'USD', subtotal: '14', shipping: '6', total: '20', discount: '0', taxAmount: '0',
         items: [{ name: 'Chair', description: 'Color: <Blue>', imageUrl: 'https://example.com/chair.png',
           quantity: '1', unitPrice: '14', amount: '14' }],
@@ -59,6 +60,39 @@ describe('private partner shipment view', () => {
       expect(html).toContain(label);
     }
     expect(upstream).toHaveBeenCalledWith(expect.stringContaining('page=1&status=all'), expect.anything());
+  });
+
+  it('renders all orders, actual early stages and inactive status without pagination', async () => {
+    const shipments = Array.from({ length: 45 }, (_, index) => ({
+      number: 'INV-' + index, partnerOrderNumber: 'ORDER-' + index,
+      status: index === 44 ? 'CANCELLED' : 'DRAFT', awaiting: true,
+      fulfillmentStatus: index === 0 ? 'QC_COMPLETED' : null,
+      currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
+    }));
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ partner: 'Partner', hasMore: false, shipments })));
+    const response = await GET(new Request(path), params);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain('45 orders');
+    expect(html).toContain('ORDER-44');
+    expect(html).toContain(fulfillmentStatusLabel('QC_COMPLETED'));
+    expect(html).toContain('Cancelled');
+    expect(html).not.toContain('aria-label="Shipment pages"');
+    expect(response.headers.get('content-security-policy')).toContain("connect-src 'self'");
+    expect(html).toContain('setInterval(refreshOrders,30000)');
+  });
+
+  it('collects all pages from the previous API during a rolling deployment', async () => {
+    const make = (number: string) => ({ number, partnerOrderNumber: number, currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [] });
+    const upstream = vi.fn()
+      .mockResolvedValueOnce(Response.json({ partner: 'Partner', hasMore: true, shipments: [make('FIRST')] }))
+      .mockResolvedValueOnce(Response.json({ partner: 'Partner', hasMore: false, shipments: [make('LAST')] }));
+    vi.stubGlobal('fetch', upstream);
+    const response = await GET(new Request(path), params);
+    const html = await response.text();
+    expect(html).toContain('FIRST');
+    expect(html).toContain('LAST');
+    expect(upstream).toHaveBeenCalledTimes(2);
   });
 
   it('returns 404 for a revoked link', async () => {

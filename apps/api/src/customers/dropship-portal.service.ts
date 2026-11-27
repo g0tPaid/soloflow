@@ -5,11 +5,15 @@ import { DROPSHIPPING_PARTNER_INVOICE_FIELD, FULFILLMENT_STATUS_VALUES, INTERNAT
 import { mergeImportedShipments, parsePartnerShipments, type ImportedShipment } from './dropship-shipment-import';
 import { PrismaService } from '../prisma/prisma.service';
 
-function partnerInvoices(organizationId: string, customerId: string): Prisma.InvoiceWhereInput {
+function partnerInvoices(organizationId: string, customerId: string, includeInactive = false): Prisma.InvoiceWhereInput {
   return {
     organizationId, customerId, vendorId: null,
-    customFields: { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true },
-    status: { notIn: ['CANCELLED', 'VOID'] },
+    AND: [{ OR: [
+      { customFields: { path: [DROPSHIPPING_PARTNER_INVOICE_FIELD], equals: true } },
+      // Older partner orders may predate the explicit invoice flag.
+      { partnerOrderNumber: { not: null } },
+    ] }],
+    ...(includeInactive ? {} : { status: { notIn: ['CANCELLED', 'VOID'] } }),
   };
 }
 
@@ -144,7 +148,7 @@ export class DropshipPortalService {
     return { revoked: true };
   }
 
-  async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped') {
+  async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped', complete = false) {
     if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
       throw new NotFoundException();
     }
@@ -164,15 +168,14 @@ export class DropshipPortalService {
     const stockByProduct = new Map(stock.map((row) => [row.id, row]));
     const invoices = await this.prisma.invoice.findMany({
       where: {
-        ...partnerInvoices(customer.organizationId, customer.id),
+        ...partnerInvoices(customer.organizationId, customer.id, complete && scope === 'all'),
         ...(scope === 'shipped' ? shippedFilter : {}),
         customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
       },
       orderBy: [{ issueDate: 'desc' }, { id: 'desc' }],
-      skip: offset,
-      take: pageSize + 1,
+      ...(complete ? {} : { skip: offset, take: pageSize + 1 }),
       select: {
-        number: true, issueDate: true, partnerOrderNumber: true, endRecipientName: true,
+        number: true, issueDate: true, status: true, partnerOrderNumber: true, endRecipientName: true,
         endRecipientAddress: true, shipmentContact: true, shipmentCarrier: true, currency: true, subtotal: true,
         shipping: true, shipmentWeightKg: true, taxAmount: true, discount: true, total: true, shippingToCountry: true,
         shippingMethod: true, fulfillmentStatus: true, internationalTrackingNumber: true, localTrackingNumber: true,
@@ -200,8 +203,8 @@ export class DropshipPortalService {
         select: { rows: true },
       }))?.rows ?? [],
       stock,
-      hasMore: invoices.length > pageSize,
-      shipments: invoices.slice(0, pageSize).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
+      hasMore: !complete && invoices.length > pageSize,
+      shipments: (complete ? invoices : invoices.slice(0, pageSize)).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
         ...invoice,
         awaiting: !shippedStages.some((stage) => stage === invoice.fulfillmentStatus) &&
           !(invoice.fulfillmentStatus === 'SHIPPED_TO_CHINA_CENTER' &&
