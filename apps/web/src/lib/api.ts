@@ -1187,6 +1187,8 @@ export const api = {
       apiFetch<PaginatedResult<OperatingExpense>>(`/expenses/operating${buildQuery(params)}`, { token, organizationId }),
     createOperating: (token: string, organizationId: string, data: CreateOperatingExpenseInput) =>
       apiFetch<OperatingExpense>('/expenses/operating', { token, organizationId, method: 'POST', body: JSON.stringify(data) }),
+    updateOperating: (token: string, organizationId: string, id: string, data: CreateOperatingExpenseInput) =>
+      apiFetch<OperatingExpense>(`/expenses/operating/${encodeURIComponent(id)}`, { token, organizationId, method: 'PATCH', body: JSON.stringify(data) }),
     get: (token: string, organizationId: string, id: string) =>
       apiFetch<ExpenseDetail>(`/expenses/${id}`, { token, organizationId }),
     create: (token: string, organizationId: string, data: CreateExpenseInput) =>
