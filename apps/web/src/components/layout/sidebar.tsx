@@ -59,6 +59,7 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   settings: Settings,
   team: UserPlus,
   exporter: Globe2,
+  exportAccounting: Landmark,
 };
 
 const sidebarModules = [...NAV_MODULES.flatMap((item) =>
@@ -75,7 +76,7 @@ const sidebarModules = [...NAV_MODULES.flatMap((item) =>
         { ...item, key: 'quotesV5', label: 'Quote 5 · Mobile', href: '/quotes-v5' },
       ]
     : [item],
-), { key: 'exporter', label: 'Exporter Module', href: '/exporter', enabled: true }];
+), { key: 'exporter', label: 'Exporter Module', href: '/exporter', enabled: true }, { key: 'exportAccounting', label: 'Exporter Module 2', href: '/export-accounting', enabled: true }];
 
 function SidebarDesktop({ organizationName }: { organizationName?: string }) {
   const pathname = usePathname();
