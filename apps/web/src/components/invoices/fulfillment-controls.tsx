@@ -165,11 +165,15 @@ export function FulfillmentControls({
 
   return (
     <div className="space-y-2">
-      <div>
-        <p className="text-xs font-medium">Order fulfillment</p>
-        <p className="text-xs font-semibold text-primary">
+      <div className="rounded-lg border bg-gradient-to-br from-background to-muted/40 px-2.5 py-2">
+        <div className="flex flex-wrap items-center justify-between gap-1">
+          <p className="text-xs font-medium">Order fulfillment</p>
+          <span className="text-[10px] text-muted-foreground">{stages.filter(stage => stage.state === 'completed').length} of {stages.length} completed</span>
+        </div>
+        <p className="mt-0.5 text-xs font-semibold text-primary">
           {shipmentProgressLabel(status,invoiceStatus,shippingMethod)}
         </p>
+        <div className="mt-1.5 flex h-1 gap-0.5" aria-hidden="true">{stages.map(stage => <span key={stage.value} className={cn('flex-1 rounded-full',stage.state==='completed'?'bg-emerald-500':stage.state==='in-progress'?'bg-primary':'bg-muted-foreground/20')}/>)}</div>
         {lastUpdate ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
       </div>
 
@@ -178,11 +182,11 @@ export function FulfillmentControls({
             <div
               key={stage.value}
               className={cn(
-                'grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-md border px-2 py-1 text-[11px] leading-tight',
+                'grid min-w-0 grid-cols-[minmax(0,1fr)_auto] items-center gap-1 rounded-lg border px-2 py-1 text-[11px] leading-tight',
                 stage.state==='in-progress'
-                  ? 'border-red-600 bg-red-50 text-red-700 ring-1 ring-red-600'
+                  ? 'border-rose-300 bg-gradient-to-r from-rose-50 to-background text-rose-800 shadow-sm'
                   : stage.state==='completed'
-                    ? 'border-emerald-500 bg-emerald-50 text-emerald-800'
+                    ? 'border-emerald-200 bg-emerald-50/80 text-emerald-800'
                     : 'border-input bg-background text-muted-foreground',
               )}
             >
