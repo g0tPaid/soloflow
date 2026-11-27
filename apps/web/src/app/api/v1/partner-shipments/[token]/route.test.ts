@@ -123,6 +123,26 @@ describe('private partner shipment view', () => {
     expect(upstream).toHaveBeenNthCalledWith(2, 'https://sourcing.center/api/partner-shipment-orders',
       expect.objectContaining({ body: JSON.stringify({ number: '0042', prefix: 'A' }), cache: 'no-store' }));
   });
+  it('renders regular customer invoices without reaching the external dropshipper history or photo endpoints', async () => {
+    vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');
+    const upstream = vi.fn().mockResolvedValue(Response.json({
+      partner: 'Regular Buyer', hasMore: false, stock: [], importedShipments: [],
+      shipments: [{ number: 'INV-REG-1', issueDate: '2026-11-27T00:00:00Z', status: 'PAID',
+        fulfillmentStatus: 'SHIPPED_INTERNATIONAL', currency: 'USD', subtotal: '10', shipping: '0',
+        total: '10', discount: '0', taxAmount: '0', items: [] }],
+    }));
+    vi.stubGlobal('fetch', upstream);
+    const response = await GET(new Request(path), params);
+    const html = await response.text();
+    expect(response.status).toBe(200);
+    expect(html).toContain('Regular Buyer');
+    expect(html).toContain('INV-REG-1');
+    expect(html).toContain('2026-11-27');
+    expect(html).toContain('Updates automatically every 30 seconds');
+    expect(html).not.toContain('Your stock');
+    expect(upstream).toHaveBeenCalledTimes(1);
+  });
+
   it('returns 404 for a revoked link', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
     const response = await GET(new Request(path), params);
