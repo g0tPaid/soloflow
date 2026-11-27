@@ -45,7 +45,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   if(/seven\s*color|sourcing[.\s]*center/i.test(val(seller,'name'))){line('sourcing.center',18,true);}
   line(val(seller,'name'),15,true);if(val(seller,'chineseName'))line(val(seller,'chineseName'),11,true);
   line(val(seller,'address'),10);line('Unified Social Credit Code / 统一社会信用代码: '+(val(seller,'uscc')||'-'),10);
-  section(`${kind} / ${names[kind]}`);if(missing.length)line('DRAFT - INCOMPLETE / 草稿',12,true);
+  section(`${kind} / ${names[kind]}`);if(/SAMPLE/i.test(val(deal,'number')))line('SAMPLE ONLY / 仅供演示 — NOT VALID FOR TRADE',12,true);if(missing.length)line('DRAFT - INCOMPLETE / 草稿',12,true);
   line(`Document no. / 单据编号 ${ref} | Date / 日期: ${val(deal,'date')} | Contract / 合同: ${val(deal,'contractNo')||'-'}`);if(kind==='Proforma Invoice')line('Quotation / payment proposal only; not a final commercial invoice.');
   section('Exporter / 出口方');line(val(seller,'name'),12,true);if(val(seller,'chineseName'))line(val(seller,'chineseName'));line(`USCC: ${val(seller,'uscc')||'-'} | ${val(seller,'address')}`);line(`${val(seller,'contact')} | ${val(seller,'phone')} | ${val(seller,'email')}`);
   section('Buyer / 购买方');line(val(deal,'customer'),12,true);line(`${val(deal,'customerAddress')} | ${val(deal,'customerCountry')}`);line(`Tax ID / 税号: ${val(deal,'customerTaxId')||'-'} | ${val(deal,'customerContact')} | ${val(deal,'customerPhone')} | ${val(deal,'customerEmail')}`);
@@ -86,7 +86,7 @@ export async function downloadExportPaymentStatement(deal:Row,seller:Row,entries
   const total=goodsTotal(deal)+n(deal,'freightCharge')+n(deal,'insuranceCharge')+n(deal,'otherCharge');
   const paid=receipts.filter(e=>e.currency===currency).reduce((sum,e)=>sum+n(e,'amount'),0);
   const other=receipts.filter(e=>e.currency!==currency);
-  await downloadTradeReport('Payment Statement / 收款对账单',reference+'-PS',[
+  await downloadTradeReport((/SAMPLE/i.test(val(seller,'name'))?'SAMPLE — ':'')+'Payment Statement / 收款对账单',reference+'-PS',[
     {title:'Parties / 双方',lines:[val(seller,'name'),val(seller,'address'),'Buyer: '+val(deal,'customer'),val(deal,'customerAddress')]},
     {title:'Recorded receipts / 收款记录',lines:receipts.length?receipts.map(e=>val(e,'date')+' | '+val(e,'currency')+' '+amt(n(e,'amount'))+' | '+val(e,'description')):['No recorded payments']},
     {title:'Invoice balance / 欠款',lines:['Invoice value: '+currency+' '+amt(total),'Recorded in invoice currency: '+currency+' '+amt(paid),'Estimated balance: '+currency+' '+amt(total-paid),...(other.length?['Payments in other currencies require reconciliation; balance excludes them.']:[]),'Internal statement based on recorded receipts. Not a bank receipt or statutory tax invoice.']}
