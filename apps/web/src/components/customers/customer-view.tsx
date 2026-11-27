@@ -1,8 +1,12 @@
 import Link from 'next/link';
+import { useSession } from 'next-auth/react';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { FULFILLMENT_STATUSES, type FulfillmentStatus } from '@flowbooks/shared';
+import { api } from '@/lib/api';
 import { DropshipShipmentImport } from '@/components/customers/dropship-shipment-import';
 import { DropshipStock } from '@/components/customers/dropship-stock';
 import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
-import { FilePlus, Pencil } from 'lucide-react';
+import { Check, FilePlus, Pencil } from 'lucide-react';
 import { InvoiceStatusBadge } from '@/components/invoices/invoice-status-badge';
 import { QuoteStatusBadge } from '@/components/quotes/quote-status-badge';
 import { Button } from '@/components/ui/button';
@@ -59,6 +63,53 @@ type BalanceGroup = {
   balanceDue: number;
   invoiceCount: number;
 };
+
+function ShipmentStatusControls({ invoice, organizationId }: { invoice: Invoice; organizationId: string }) {
+  const { data: session } = useSession();
+  const queryClient = useQueryClient();
+  const mutation = useMutation({
+    mutationFn: (fulfillmentStatus: FulfillmentStatus | null) => {
+      if (!session?.accessToken) throw new Error('Please sign in again.');
+      return api.invoices.update(session.accessToken, organizationId, invoice.id, { fulfillmentStatus });
+    },
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ['invoices', organizationId] });
+      await queryClient.invalidateQueries({ queryKey: ['invoice', organizationId, invoice.id] });
+    },
+  });
+  const selected = mutation.isSuccess ? mutation.data.fulfillmentStatus : invoice.fulfillmentStatus;
+  const options: { value: FulfillmentStatus | null; label: string }[] = [
+    { value: null, label: 'Awaiting shipment' },
+    ...FULFILLMENT_STATUSES.map(stage => ({
+      ...stage,
+      label: stage.value === 'SHIPPED_INTERNATIONAL' ||
+        (stage.value === 'SHIPPED_TO_CHINA_CENTER' && invoice.shippingMethod === 'LOCAL')
+        ? 'Shipped · awaiting reception' : stage.label,
+    })).filter(stage => invoice.shippingMethod !== 'LOCAL' || stage.value !== 'SHIPPED_INTERNATIONAL'),
+  ];
+
+  return (
+    <div className="space-y-2 border-t px-3 py-3">
+      <p className="text-xs font-semibold text-muted-foreground">Shipment status · {invoice.number}</p>
+      <div role="group" aria-label={`Shipment status for ${invoice.number}`} className="flex flex-wrap gap-2">
+        {options.map(({ value, label }) => {
+          const active = (selected ?? null) === value;
+          return (
+            <Button key={value ?? 'pending'} type="button" size="sm" variant={active ? 'default' : 'outline'}
+              className={active ? 'h-auto gap-1 whitespace-normal bg-[#E40046] py-1.5 text-white hover:bg-[#c4003c]' : 'h-auto gap-1 whitespace-normal py-1.5'}
+              aria-pressed={active} disabled={mutation.isPending || !session?.accessToken}
+              onClick={() => { if (!active) mutation.mutate(value); }}>
+              {active ? <Check className="h-4 w-4 shrink-0" aria-hidden /> : <span className="h-4 w-4 shrink-0 rounded border" aria-hidden />}
+              {label}
+            </Button>
+          );
+        })}
+      </div>
+      <p role="status" className="text-xs text-muted-foreground">{mutation.isPending ? 'Saving…' : mutation.isSuccess ? 'Saved · customer link updates automatically.' : 'Select the current stage to update the customer link.'}</p>
+      {mutation.isError ? <p role="alert" className="text-xs text-destructive">{mutation.error.message}</p> : null}
+    </div>
+  );
+}
 
 type Props = {
   customer: Customer;
@@ -236,6 +287,9 @@ export function CustomerView({
                       </span>
                     </span>
                   </Link>
+                  {portalOrganizationId && invoice.status !== 'CANCELLED' && invoice.status !== 'VOID' ? (
+                    <ShipmentStatusControls invoice={invoice} organizationId={portalOrganizationId} />
+                  ) : null}
                 </li>
               ))}
             </ul>
