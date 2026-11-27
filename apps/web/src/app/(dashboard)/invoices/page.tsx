@@ -499,11 +499,39 @@ export default function InvoicesPage() {
                     <td className="px-3 py-3">
                       <div className="space-y-2">
                         <FulfillmentStatusBadge status={invoice.fulfillmentStatus} />
-                        <FulfillmentHistoryList
-                          history={invoice.fulfillmentEvents}
-                          timeZone={timeZone}
-                          hideWhenEmpty
-                        />
+                        {!unsynced && invoice.status !== 'CANCELLED' && invoice.status !== 'VOID' ? (
+                          <details className="min-w-[240px] rounded-lg border p-2">
+                            <summary className="cursor-pointer text-xs font-semibold text-primary">Update shipment status</summary>
+                            <div className="mt-3">
+                  <FulfillmentControls
+                    idPrefix={`table-${invoice.id}`}
+                    layout="compact"
+                    disabled={invoice.status === 'CANCELLED' || invoice.status === 'VOID' || fulfillmentMutation.isPending}
+                    status={invoice.fulfillmentStatus}
+                    localTrackingNumber={invoice.localTrackingNumber}
+                    internationalTrackingNumber={invoice.internationalTrackingNumber}
+                    saving={
+                      fulfillmentMutation.isPending && fulfillmentMutation.variables?.id === invoice.id
+                    }
+                    error={
+                      fulfillmentMutation.isError && fulfillmentMutation.variables?.id === invoice.id
+                        ? fulfillmentMutation.error instanceof Error
+                          ? fulfillmentMutation.error.message
+                          : 'Could not update fulfillment'
+                        : undefined
+                    }
+                    history={invoice.fulfillmentEvents}
+                    timeZone={timeZone}
+                    onStatusChange={(fulfillmentStatus) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: { fulfillmentStatus } })
+                    }
+                    onTrackingSave={(tracking) =>
+                      fulfillmentMutation.mutate({ id: invoice.id, data: tracking })
+                    }
+                  />
+                            </div>
+                          </details>
+                        ) : <FulfillmentHistoryList history={invoice.fulfillmentEvents} timeZone={timeZone} hideWhenEmpty />}
                       </div>
                     </td>
                     <td className="px-3 py-3 whitespace-nowrap text-muted-foreground">
@@ -710,6 +738,7 @@ export default function InvoicesPage() {
                   <FulfillmentControls
                     idPrefix={invoice.id}
                     layout="compact"
+                    disabled={invoice.status === 'CANCELLED' || invoice.status === 'VOID' || fulfillmentMutation.isPending}
                     status={invoice.fulfillmentStatus}
                     localTrackingNumber={invoice.localTrackingNumber}
                     internationalTrackingNumber={invoice.internationalTrackingNumber}
