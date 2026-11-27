@@ -21,6 +21,11 @@ export function requiredDocumentFields(deal: Row, seller: Row, kind:DocumentKind
   if(kind!=='Packing List'&&['unitPrice','freightCharge','insuranceCharge','otherCharge'].some(k=>!Number.isFinite(n(deal,k))||n(deal,k)<0))missing.push('Non-negative price and charges');
   if(kind!=='Packing List' && n(deal,'unitPrice')<=0)missing.push('Positive unit price');
   if(kind==='Commercial Invoice')for(const [k,label] of [['hsCode','HS code'],['origin','Origin'],['incoterm','Incoterm and named place'],['contractNo','Contract reference'],['portLoading','Port of loading'],['portDestination','Destination'],['paymentTerms','Payment terms']] as const)if(!val(deal,k).trim())missing.push(label);
+  if(kind==='Commercial Invoice'||kind==='Proforma Invoice'){
+    const term=val(deal,'incoterm').trim();
+    if(!/^(EXW|FCA|CPT|CIP|DAP|DPU|DDP|FAS|FOB|CFR|CIF)\s+\S/i.test(term))missing.push('Incoterms 2020 rule and agreed named place');
+    if(/^(FAS|FOB|CFR|CIF)\b/i.test(term)&&/air|rail|road|courier|空运|铁路|公路|快递/i.test(val(deal,'transportMethod')))missing.push('Use a transport-appropriate Incoterm (sea rules are sea/inland waterway only)');
+  }
   if(kind==='Packing List' && (n(deal,'cartons')<=0||n(deal,'grossWeight')<=0||n(deal,'netWeight')<0||n(deal,'grossWeight')<n(deal,'netWeight')))missing.push('Valid packaging and gross/net weights');
   extraItems(deal).forEach((i,index)=>{if(!i.description.trim()||!i.unit.trim()||i.qty<=0||(kind!=='Packing List'&&i.unitPrice<=0)||(kind==='Commercial Invoice'&&(!i.hsCode.trim()||!i.origin.trim())))missing.push(`Complete additional item ${index+2}`);});
   return missing;
