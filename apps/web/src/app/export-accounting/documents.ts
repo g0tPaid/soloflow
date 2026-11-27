@@ -50,7 +50,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   if(document.fonts)await document.fonts.load('12px "Noto Sans SC"',Object.values({...seller,...deal}).join('')+names[kind]+'购买方收货人商品单价金额运输条件银行授权签字公司盖章').catch(()=>undefined);
   const W=210,L=14,R=196,wide=182,scale=3.78*3;
   const accent='#e60046',ink='#142239',muted='#58677c',light='#f1f5f9',border='#dbe2eb',navy='#17263d';
-  let y=14;
+  let y=10;
   const rgb=(hex:string):[number,number,number]=>[parseInt(hex.slice(1,3),16),parseInt(hex.slice(3,5),16),parseInt(hex.slice(5,7),16)];
   const font=(size:number,bold:boolean)=>`${bold?'600':'400'} ${size*1.333*3}px "Noto Sans SC", "Microsoft YaHei", Arial, sans-serif`;
   const lh=(size:number)=>size*.42+1;
@@ -72,20 +72,20 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   const note=(text:string,size=8,color=muted)=>{for(const line of wrap(text,wide,size)){ensure(lh(size)+1);drawLine(line,L,y,wide,size,false,color);y+=lh(size);}};
   brand();
   const branded=/seven\s*color|sourcing[.\s]*center/i.test(val(seller,'name'));
-  if(branded){y+=draw('sourcing.center',L,y,wide,21,true,accent,'center')+1;}
-  y+=draw(val(seller,'name'),L,y,wide,13,true,navy,'center');
+  if(branded){y+=draw('sourcing.center',L,y,wide,18,true,accent,'center')+1;}
+  y+=draw(val(seller,'name'),L,y,wide,12,true,navy,'center');
   if(val(seller,'chineseName'))y+=draw(val(seller,'chineseName'),L,y,wide,10,true,navy,'center');
   y+=draw(val(seller,'address'),L,y,wide,8,false,muted,'center');
   y+=draw(['USCC: '+(val(seller,'uscc')||'—'),val(seller,'phone'),val(seller,'email'),branded?'sourcing.center':''].filter(Boolean).join('  |  '),L,y,wide,8,false,muted,'center')+4;
   rule(y);y+=4;
-  y+=draw(kind.toUpperCase()+' / '+names[kind],L,y,wide,17,true,navy,'center')+2;
+  y+=draw(kind.toUpperCase()+' / '+names[kind],L,y,wide,15,true,navy,'center')+1;
   if(sample||missing.length){const status=sample?'SAMPLE ONLY / 仅供演示 — NOT VALID FOR TRADE':'DRAFT / 草稿 — INCOMPLETE';rect(L,y,wide,8,'#fff1f2');draw(status,L+2,y+1.3,wide-4,9,true,accent,'center');y+=10;}
   const card=(heading:string,lines:string[],x:number,top:number,w:number,height:number)=>{rect(x,top,w,height,'#f8fafc',border);let t=top+3;t+=draw(heading,x+3,t,w-6,9,true,accent)+1;for(const line of lines)t+=draw(line,x+3,t,w-6,8.5,false,ink);};
   const lineCount=(lines:string[],w:number)=>lines.reduce((a,text)=>a+wrap(text,w-6,8.5).length*lh(8.5),0);
   const boxPair=(a:{heading:string;lines:string[]},b:{heading:string;lines:string[]})=>{
-    const w=(wide-4)/2;const h=Math.max(lineCount(a.lines,w),lineCount(b.lines,w))+lh(9)+8;
+    const w=(wide-4)/2;const h=Math.max(lineCount(a.lines,w),lineCount(b.lines,w))+lh(9)+6;
     if(h>205){section(a.heading);a.lines.forEach(x=>note(x,8.5,ink));section(b.heading);b.lines.forEach(x=>note(x,8.5,ink));y+=3;return;}
-    ensure(h+3);card(a.heading,a.lines,L,y,w,h);card(b.heading,b.lines,L+w+4,y,w,h);y+=h+4;
+    ensure(h+3);card(a.heading,a.lines,L,y,w,h);card(b.heading,b.lines,L+w+4,y,w,h);y+=h+3;
   };
   boxPair({heading:'BUYER / 购买方',lines:[val(deal,'customer'),val(deal,'customerAddress'),[val(deal,'customerCountry'),val(deal,'customerTaxId')?'Tax ID: '+val(deal,'customerTaxId'):''].filter(Boolean).join(' | '),[val(deal,'customerContact'),val(deal,'customerPhone'),val(deal,'customerEmail')].filter(Boolean).join(' | ')].filter(Boolean)},{heading:'DOCUMENT DETAILS / 单据资料',lines:['No. / 编号: '+ref,'Date / 日期: '+date,'Contract / 合同: '+(val(deal,'contractNo')||'—'),'Currency / 币种: '+(val(deal,'currency')||'—'),...(val(deal,'validUntil')&&kind==='Proforma Invoice'?['Valid until / 有效期: '+val(deal,'validUntil')]:[])]});
   boxPair({heading:'CONSIGNEE / 收货人',lines:[val(deal,'consigneeName')||val(deal,'customer'),val(deal,'consigneeAddress')||val(deal,'customerAddress'),val(deal,'consigneeContact'),val(deal,'notifyParty')?'Notify party / 通知方: '+val(deal,'notifyParty'):''].filter(Boolean)},{heading:'TRADE TERMS / 贸易条款',lines:['Incoterms® 2020: '+(val(deal,'incoterm')||'—'),'Payment / 付款: '+(val(deal,'paymentTerms')||'—'),'Loading / 装运港: '+(val(deal,'portLoading')||'—'),'Destination / 目的港: '+(val(deal,'portDestination')||'—'),val(deal,'finalDestination')?'Final destination / 最终目的地: '+val(deal,'finalDestination'):''].filter(Boolean)});
@@ -97,7 +97,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   rows.forEach((r,index)=>{
     const primary=r.description||'—',detail=[r.model?'Model / 规格: '+r.model:'',r.hsCode?'HS: '+r.hsCode:'',r.origin?'Origin / 原产地: '+r.origin:''].filter(Boolean).join('  |  ');
     const primaryLines=wrap(primary,widths[1]-5,9,true),detailLines=detail?wrap(detail,widths[1]-5,7.5):[];
-    const height=Math.max(13,primaryLines.length*lh(9)+detailLines.length*lh(7.5)+5);
+    const height=Math.max(12,primaryLines.length*lh(9)+detailLines.length*lh(7.5)+4);
     if(y+height>274){page();tableHead();}
     pdf.setFillColor(...rgb(index%2?'#f8fafc':'#ffffff'));pdf.rect(L,y,wide,height,'F');
     draw(String(index+1),xs[0]+2,y+2,widths[0]-4,8,false,muted);
@@ -109,7 +109,7 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   if(!packing){
     const currency=val(deal,'currency'),goods=goodsTotal(deal),total=goods+n(deal,'freightCharge')+n(deal,'insuranceCharge')+n(deal,'otherCharge');
     const items=[['Goods subtotal / 货物小计',goods],['Freight / 运费',n(deal,'freightCharge')],['Insurance / 保险费',n(deal,'insuranceCharge')],['Other charges / 其他费用',n(deal,'otherCharge')]] as const;
-    ensure(42);for(const [label,value] of items){draw(label,L+72,y,65,8,false,muted);draw(currency+' '+amt(value),L+138,y,44,8,true,ink,'right');y+=lh(8);}
+    ensure(20+items.filter(([,value],index)=>index===0||value!==0).length*lh(8));for(const [label,value] of items.filter(([,value],index)=>index===0||value!==0)){draw(label,L+72,y,65,8,false,muted);draw(currency+' '+amt(value),L+138,y,44,8,true,ink,'right');y+=lh(8);}
     rect(L+72,y,110,11,navy);draw('TOTAL / 合计',L+76,y+3,48,9,true,'#ffffff');draw(currency+' '+amt(total),L+125,y+2.5,53,12,true,'#ffffff','right');y+=14;
     note('AMOUNT IN WORDS / 金额大写: '+amountInWords(total,currency),8.5,ink);y+=3;
   }
@@ -118,8 +118,8 @@ export async function downloadExportDocument(deal:Row,seller:Row,kind:DocumentKi
   for(let i=0;i<logistics.length;i+=2){const a=logistics[i],b=logistics[i+1];const height=Math.max(wrap(a[0]+': '+a[1],88,8).length,b?wrap(b[0]+': '+b[1],88,8).length:0)*lh(8)+2;ensure(height);draw(a[0]+': '+a[1],L,y,88,8,false,ink);if(b)draw(b[0]+': '+b[1],L+94,y,88,8,false,ink);y+=height;}y+=3;
   if(!packing){section('BENEFICIARY BANK DETAILS / 收款银行资料');for(const text of [val(deal,'bankInfo'),val(seller,'bankName')?'Bank / 银行: '+val(seller,'bankName'):'',val(seller,'bankAccount')?'Account / 账号: '+val(seller,'bankAccount'):'',val(seller,'bankBranch')?'Branch / 支行: '+val(seller,'bankBranch'):'',val(seller,'swift')?'SWIFT: '+val(seller,'swift'):''].filter(Boolean))note(text,8.5,ink);y+=3;}
   if(val(deal,'notes')){section('REMARKS / 备注');note(val(deal,'notes'),8.5,ink);y+=3;}
-  ensure(36);rule(y);y+=3;note(kind==='Proforma Invoice'?'Proforma quotation; not proof of payment.':'Commercial supporting document; reconcile with actual goods and customs declarations.');note('Not an official Chinese VAT fapiao / 非增值税发票。');if(missing.length)note('Draft — missing: '+missing.join('; '),7.5,accent);
-  ensure(20);y+=10;pdf.setDrawColor(...rgb(border));pdf.line(117,y,R,y);draw('Authorized signature & company seal / 授权签字及公司盖章',117,y+2,79,7.5,false,muted,'center');
+  ensure(23);rule(y);y+=3;note(kind==='Proforma Invoice'?'Proforma quotation; not proof of payment.':'Commercial supporting document; reconcile with actual goods and customs declarations.');note('Not an official Chinese VAT fapiao / 非增值税发票。');if(missing.length)note('Draft — missing: '+missing.join('; '),7.5,accent);
+  ensure(12);y+=5;pdf.setDrawColor(...rgb(border));pdf.line(117,y,R,y);draw('Authorized signature & company seal / 授权签字及公司盖章',117,y+2,79,7.5,false,muted,'center');
   for(let p=1;p<=pdf.getNumberOfPages();p++){pdf.setPage(p);pdf.setFillColor(...rgb(navy));pdf.rect(0,285,W,12,'F');draw(sample?'SAMPLE ONLY / 仅供演示':(branded?'sourcing.center':val(seller,'name')),L,288,130,8,true,'#ffffff');draw(ref+'  |  '+p+'/'+pdf.getNumberOfPages(),145,288,51,8,false,'#ffffff','right');}
   pdf.save(ref.replace(/[^a-zA-Z0-9_-]/g,'-')+'.pdf');
 }
