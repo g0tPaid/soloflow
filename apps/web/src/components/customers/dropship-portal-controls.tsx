@@ -6,29 +6,33 @@ import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
-export function DropshipPortalControls({ customerId, organizationId }: { customerId: string; organizationId: string }) {
+export function DropshipPortalControls({ customerId, organizationId, isDropshipper = false }: { customerId: string; organizationId: string; isDropshipper?: boolean }) {
   const { data: session } = useSession();
   const [url, setUrl] = useState('');
   const [busy, setBusy] = useState(false);
+  const [loading, setLoading] = useState(true);
   const [message, setMessage] = useState('');
 
   useEffect(() => {
     const token = session?.accessToken;
     if (!token) return;
     let active = true;
+    setLoading(true);
+    setUrl('');
     void apiFetch<{ token: string | null }>('/customers/' + customerId + '/dropship-portal', {
       token, organizationId,
     }).then((result) => {
-      if (active && result.token) setUrl(new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href);
+      if (active) setUrl(result.token ? new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href : '');
     }).catch(() => {
       if (active) setMessage('Could not load the private link.');
-    });
+    }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [session?.accessToken, customerId, organizationId]);
 
   async function changeLink(method: 'POST' | 'DELETE') {
     const token = session?.accessToken;
-    if (!token || busy) return;
+    if (!token || busy || loading) return;
+    if (url && !window.confirm(method === 'POST' ? 'Replace the existing link? The previous link will stop working.' : 'Disable the existing private link?')) return;
     setBusy(true);
     setMessage('');
     try {
@@ -45,11 +49,12 @@ export function DropshipPortalControls({ customerId, organizationId }: { custome
   }
 
   return (
-    <div className="mt-3 space-y-2">
-      <p className="text-xs text-muted-foreground">Private shipment and stock link. Anyone with the link can view it.</p>
+    <div id="private-order-link" className="mt-3 scroll-mt-24 space-y-2 rounded-lg border p-3">
+      <p className="font-semibold text-sm">Private customer order link</p>
+      <p className="text-xs text-muted-foreground">{isDropshipper ? "Shipment and stock history" : "All this customer’s sales invoices and shipping updates"}. Anyone who has the link can view it. Share only with this customer.</p>
         {url ? (
           <div className="flex flex-wrap items-center gap-2">
-            <Input aria-label="Private partner link" className="min-w-36 flex-1" readOnly value={url} onFocus={(event) => event.target.select()} />
+            <Input aria-label="Private customer order link" className="min-w-36 flex-1" readOnly value={url} onFocus={(event) => event.target.select()} />
             <Button type="button" variant="outline" onClick={async () => {
               try {
                 await navigator.clipboard.writeText(url);
@@ -62,8 +67,8 @@ export function DropshipPortalControls({ customerId, organizationId }: { custome
           </div>
         ) : null}
         <div className="flex flex-wrap gap-2">
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void changeLink('POST')}>{url ? 'Replace link' : 'Create or recover link'}</Button>
-          <Button type="button" size="sm" variant="outline" disabled={busy} onClick={() => void changeLink('DELETE')}>Disable link</Button>
+          <Button type="button" size="sm" variant={url ? 'outline' : 'default'} disabled={busy || loading} onClick={() => void changeLink('POST')}>{url ? 'Replace link' : 'Generate private link'}</Button>
+          <Button type="button" size="sm" variant="outline" disabled={busy || loading || !url} onClick={() => void changeLink('DELETE')}>Disable link</Button>
         </div>
         {message ? <p role="status" className="text-sm text-muted-foreground">{message}</p> : null}
     </div>
