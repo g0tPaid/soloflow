@@ -26,6 +26,7 @@ import {
   LogOut,
   ChevronLeft,
   Shield,
+  Globe2,
 } from 'lucide-react';
 import { NAV_MODULES, APP_NAME } from '@flowbooks/shared';
 import { DROPSHIPPER_INVOICE_PATH, isDropshipperInvoicePath } from '@/lib/invoice-version';
@@ -57,9 +58,10 @@ const iconMap: Record<string, React.ComponentType<{ className?: string }>> = {
   crm: Contact,
   settings: Settings,
   team: UserPlus,
+  exporter: Globe2,
 };
 
-const sidebarModules = NAV_MODULES.flatMap((item) =>
+const sidebarModules = [...NAV_MODULES.flatMap((item) =>
   item.key === 'invoices'
     ? [
         { ...item, label: 'Invoice 1' },
@@ -73,7 +75,7 @@ const sidebarModules = NAV_MODULES.flatMap((item) =>
         { ...item, key: 'quotesV5', label: 'Quote 5 · Mobile', href: '/quotes-v5' },
       ]
     : [item],
-);
+), { key: 'exporter', label: 'Exporter Module', href: '/exporter', enabled: true }];
 
 function SidebarDesktop({ organizationName }: { organizationName?: string }) {
   const pathname = usePathname();

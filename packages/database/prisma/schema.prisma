@@ -11,6 +11,103 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// Exporter module: intentionally independent of accounting records.
+model ExporterProfile {
+  organizationId String @id
+  data Json
+  updatedAt DateTime @updatedAt
+  @@map("exporter_profiles")
+}
+
+model ExporterDirectory {
+  id String @id @default(cuid())
+  organizationId String
+  kind String
+  name String
+  data Json
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  @@index([organizationId, kind])
+  @@map("exporter_directory")
+}
+
+model ExporterOrder {
+  id String @id @default(cuid())
+  organizationId String
+  number String
+  data Json
+  parties Json
+  sample Boolean @default(false)
+  completedAt DateTime?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  documents ExporterDocument[]
+  payments ExporterPayment[]
+  attachments ExporterAttachment[]
+  @@unique([organizationId, number])
+  @@unique([organizationId, id])
+  @@map("exporter_orders")
+}
+
+model ExporterDocument {
+  id String @id @default(cuid())
+  organizationId String
+  orderId String
+  kind String
+  number String
+  snapshot Json
+  createdAt DateTime @default(now())
+  order ExporterOrder @relation(fields: [organizationId, orderId], references: [organizationId, id], onDelete: Restrict)
+  @@unique([organizationId, number])
+  @@index([organizationId, orderId])
+  @@map("exporter_documents")
+}
+
+model ExporterPayment {
+  id String @id @default(cuid())
+  organizationId String
+  orderId String
+  data Json
+  createdAt DateTime @default(now())
+  order ExporterOrder @relation(fields: [organizationId, orderId], references: [organizationId, id], onDelete: Restrict)
+  @@index([organizationId, orderId])
+  @@map("exporter_payments")
+}
+
+model ExporterAttachment {
+  id String @id @default(cuid())
+  organizationId String
+  orderId String
+  category String
+  filename String
+  contentType String
+  content Bytes
+  createdAt DateTime @default(now())
+  order ExporterOrder @relation(fields: [organizationId, orderId], references: [organizationId, id], onDelete: Restrict)
+  @@index([organizationId, orderId])
+  @@map("exporter_attachments")
+}
+
+model ExporterSequence {
+  organizationId String
+  kind String
+  next Int @default(1)
+  @@id([organizationId, kind])
+  @@map("exporter_sequences")
+}
+
+model ExporterAudit {
+  id String @id @default(cuid())
+  organizationId String
+  actorId String
+  action String
+  recordId String
+  data Json
+  createdAt DateTime @default(now())
+  @@index([organizationId, recordId, createdAt])
+  @@map("exporter_audit")
+}
+
 // ─── Auth (Auth.js compatible) ───────────────────────────────────────────────
 
 model User {
