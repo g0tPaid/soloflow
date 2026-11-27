@@ -24,6 +24,7 @@ type Item = {
 
 type Shipment = {
   number: string;
+  issueDate?: string;
   awaiting?: boolean;
   status?: string;
   staffTrackingStatus?: string;
@@ -110,7 +111,7 @@ function shipmentCard(shipment: Shipment, photos: string[]) {
     '<dl class="details">' + detail('Recipient', shipment.endRecipientName || 'Not provided') +
     detail('Delivery address', [shipment.endRecipientAddress, shipment.shipmentContact?.addressLine2,
       [shipment.shipmentContact?.city, shipment.shipmentContact?.region, shipment.shipmentContact?.postcode].filter(Boolean).join(' '),
-      shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) +
+      shipment.shipmentContact?.country].filter(Boolean).join('\n')) + detail('Destination', shipment.shippingToCountry) + detail('Invoice date', shipment.issueDate ? shipment.issueDate.slice(0, 10) : null) +
     detail('Carrier', shipment.shipmentCarrier) + detail('Tracking number', tracking || (shipment.awaiting ? 'Awaiting shipment' : 'Pending')) +
     detail('Carrier status', shipment.staffTrackingStatus || null) +
     detail('Shipment weight', shipment.shipmentWeightKg != null ? shipment.shipmentWeightKg + ' kg' : null) + detail('Shipped on', shipped) + '</dl><ul aria-label="Products">' + products + '</ul>' +
@@ -272,7 +273,7 @@ function documentBody(content: string, status = 200) {
   const nonce = randomBytes(16).toString('base64');
   const live = status === 200;
   const html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>Dropshipping shipments · SoloFlow</title><style>' + styles + '</style><body><main>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
+    '<title>Customer orders &amp; shipments · SoloFlow</title><style>' + styles + '</style><body><main>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
   return new Response(html, { status, headers: live ? { ...headers, 'Content-Security-Policy': headers['Content-Security-Policy'] + "; script-src 'nonce-" + nonce + "'; connect-src 'self'" } : headers });
 }
 
