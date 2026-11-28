@@ -78,7 +78,9 @@ describe('private partner shipment view', () => {
     expect(html).toContain('class="ios-check"');
     expect(html).toContain('Local ordering in progress');
     expect(html).toContain('1 of 8 completed');
-    expect(html).toContain('aria-valuenow="13"');
+    expect(html).toContain('aria-valuemax="8" aria-valuenow="1" aria-valuetext="1 of 8 stages completed"');
+    expect(html).toContain('<span class="completed" aria-hidden="true"></span><span class="in-progress" aria-hidden="true"></span><span class="pending" aria-hidden="true"></span>');
+    expect(html).not.toContain('class="progress-percent"');
     expect(html).toContain('CURRENT STAGE');
     expect(html).toContain('order-progress-3d.webp');
     expect(html).toContain('<div class="hero-art"><span class="stage-art" data-stage="LOCAL_ORDERING_COMPLETED"');
