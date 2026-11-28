@@ -77,6 +77,97 @@ function addressValue(customer: Customer | undefined, key: keyof NonNullable<Cus
   return customer?.address?.[key] ?? '';
 }
 
+function CountryPicker({ id, value, onChange }: { id: string; value: string; onChange: (value: string) => void }) {
+  const [open, setOpen] = useState(false);
+  const [query, setQuery] = useState('');
+  const [active, setActive] = useState(0);
+  const listId = id + '-options';
+  const selected = resolveCountry(value);
+  const term = query.trim().toLowerCase();
+  const exact = resolveCountry(term);
+  const options = [
+    ...(!term ? [{ name: '', flag: '', label: 'No country selected' }] : []),
+    ...(value && !selected && (!term || value.toLowerCase().includes(term))
+      ? [{ name: value, flag: '', label: value + ' (saved)' }] : []),
+    ...countries.filter(country => !term || country === exact ||
+      [country.name, country.code, country.alpha3].some(field => field.toLowerCase().includes(term)))
+      .sort((a, b) => Number(b === exact) - Number(a === exact))
+      .map(country => ({ name: country.name, flag: country.flag, label: country.name })),
+  ];
+
+  function show() {
+    if (open) return;
+    setQuery('');
+    setActive(0);
+    setOpen(true);
+  }
+
+  function choose(name: string) {
+    onChange(name);
+    setQuery('');
+    setOpen(false);
+  }
+
+  return (
+    <div className="relative" onBlur={event => {
+      if (!event.currentTarget.contains(event.relatedTarget)) setOpen(false);
+    }}>
+      <Input
+        id={id}
+        role="combobox"
+        aria-autocomplete="list"
+        aria-expanded={open}
+        aria-controls={open ? listId : undefined}
+        aria-activedescendant={open && options[active] ? listId + '-' + active : undefined}
+        autoComplete="off"
+        placeholder="Type to search countries..."
+        value={open ? query : selected ? selected.flag + ' ' + selected.name : value}
+        onFocus={show}
+        onClick={show}
+        onChange={event => {
+          setOpen(true);
+          setQuery(event.target.value);
+          setActive(0);
+        }}
+        onKeyDown={event => {
+          if (event.key === 'Escape' && open) {
+            event.preventDefault();
+            setOpen(false);
+          } else if (event.key === 'ArrowDown' || event.key === 'ArrowUp') {
+            event.preventDefault();
+            if (!open) { show(); return; }
+            if (!options.length) return;
+            const next = Math.max(0, Math.min(options.length - 1, active + (event.key === 'ArrowDown' ? 1 : -1)));
+            setActive(next);
+            document.getElementById(listId + '-' + next)?.scrollIntoView?.({ block: 'nearest' });
+          } else if (event.key === 'Enter' && open) {
+            event.preventDefault();
+            if (options[active]) choose(options[active].name);
+          }
+        }}
+      />
+      {open && (
+        <div id={listId} role="listbox" aria-label="Countries" className="absolute z-50 mt-1 max-h-56 w-full overflow-y-auto rounded-md border bg-popover p-1 text-popover-foreground shadow-md">
+          {options.length ? options.map((option, index) => (
+            <div
+              key={option.name}
+              id={listId + '-' + index}
+              role="option"
+              aria-selected={option.name === value}
+              className={cn('cursor-pointer rounded-sm px-3 py-2 text-sm', index === active && 'bg-accent text-accent-foreground')}
+              onMouseDown={event => event.preventDefault()}
+              onClick={() => choose(option.name)}
+              onMouseEnter={() => setActive(index)}
+            >
+              {option.flag && <span className="mr-2">{option.flag}</span>}{option.label}
+            </div>
+          )) : <p className="px-3 py-2 text-sm text-muted-foreground">No matching countries.</p>}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export function CustomerForm({
   businessCurrency,
   customer,
@@ -266,11 +357,12 @@ export function CustomerForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor={idPrefix + 'address.country'}>Country</Label>
-                <select id={idPrefix + 'address.country'} className={selectClassName} {...register('address.country')}>
-                  <option value="">Select a country</option>
-                  {addressValue(customer, 'country') && !resolveCountry(addressValue(customer, 'country')) && <option value={addressValue(customer, 'country')}>{addressValue(customer, 'country')} (saved)</option>}
-                  {countries.map(country => <option key={country.code} value={country.name}>{country.flag} {country.name}</option>)}
-                </select>
+                <input type="hidden" {...register('address.country')} />
+                <CountryPicker
+                  id={idPrefix + 'address.country'}
+                  value={watch('address.country') ?? ''}
+                  onChange={value => setValue('address.country', value, { shouldDirty: true, shouldTouch: true, shouldValidate: true })}
+                />
               </div>
             </div>
           </div>
