@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { cn } from '@/lib/utils';
+import { countries, resolveCountry } from '@/lib/countries';
 import { z } from 'zod';
 import type { Customer } from '@/lib/api';
 
@@ -113,7 +114,7 @@ export function CustomerForm({
         city: addressValue(customer, 'city'),
         state: addressValue(customer, 'state'),
         postalCode: addressValue(customer, 'postalCode'),
-        country: addressValue(customer, 'country'),
+        country: resolveCountry(addressValue(customer, 'country'))?.name ?? addressValue(customer, 'country'),
       },
     },
   });
@@ -256,7 +257,11 @@ export function CustomerForm({
               </div>
               <div className="space-y-2">
                 <Label htmlFor={idPrefix + 'address.country'}>Country</Label>
-                <Input id={idPrefix + 'address.country'} {...register('address.country')} />
+                <select id={idPrefix + 'address.country'} className={selectClassName} {...register('address.country')}>
+                  <option value="">Select a country</option>
+                  {addressValue(customer, 'country') && !resolveCountry(addressValue(customer, 'country')) && <option value={addressValue(customer, 'country')}>{addressValue(customer, 'country')} (saved)</option>}
+                  {countries.map(country => <option key={country.code} value={country.name}>{country.flag} {country.name}</option>)}
+                </select>
               </div>
             </div>
           </div>

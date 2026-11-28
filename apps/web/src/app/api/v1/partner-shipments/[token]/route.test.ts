@@ -91,6 +91,12 @@ describe('private partner shipment view', () => {
     expect(html).not.toContain('Awaiting payment');
   });
 
+  it('renders the German flag for existing customer country names', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ partner: 'Partner', customerCountry: 'GERMANY', hasMore: false, shipments: [] })));
+    const html = await (await GET(new Request(path), params)).text();
+    expect(html).toContain('aria-label="Germany" title="Germany">🇩🇪');
+  });
+
   it('renders all orders, actual early stages and inactive status without pagination', async () => {
     const shipments = Array.from({ length: 45 }, (_, index) => ({
       number: 'INV-' + index, partnerOrderNumber: 'ORDER-' + index,

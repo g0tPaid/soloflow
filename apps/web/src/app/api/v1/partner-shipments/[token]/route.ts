@@ -1,6 +1,7 @@
 import { createHash, randomBytes } from 'node:crypto';
 import { shipmentProgress, shipmentProgressLabel } from '@flowbooks/shared';
 import { getServerApiBaseUrl } from '@/lib/server-api-url';
+import { resolveCountry } from '@/lib/countries';
 
 export const dynamic = 'force-dynamic';
 
@@ -92,25 +93,10 @@ function stageIllustration(value: string) {
   return '<span class="stage-art" data-stage="'+escapeHtml(value)+'" aria-hidden="true"></span>';
 }
 
-const countryNames = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
-const countryAliases: Record<string, string> = {
-  uae: 'AE', emirates: 'AE', dubai: 'AE', 'abu dhabi': 'AE', uk: 'GB', 'great britain': 'GB', britain: 'GB', england: 'GB',
-  usa: 'US', america: 'US', 'united states of america': 'US', ksa: 'SA', 'saudi arabia': 'SA', 'south korea': 'KR',
-  'republic of korea': 'KR', 'hong kong': 'HK', 'czech republic': 'CZ', 'vietnam': 'VN', 'russia': 'RU',
-};
 function customerFlag(country: unknown) {
-  if (typeof country !== 'string' || !country.trim()) return '';
-  const normalized = country.trim().toLowerCase().replace(/[.]/g, '');
-  let code = (Object.prototype.hasOwnProperty.call(countryAliases, normalized) ? countryAliases[normalized] : '') || (/^[a-z]{2}$/.test(normalized) ? normalized.toUpperCase() : '');
-  if (!code) {
-    for (let first = 65; first <= 90 && !code; first++) for (let second = 65; second <= 90; second++) {
-      const candidate = String.fromCharCode(first, second);
-      if (countryNames.of(candidate)?.toLowerCase() === normalized) { code = candidate; break; }
-    }
-  }
-  const name = code && code !== 'ZZ' ? countryNames.of(code) : undefined;
-  if (!name) return '';
-  const flag = String.fromCodePoint(...Array.from(code, char => 0x1F1E6 + char.charCodeAt(0) - 65));
+  const resolved = resolveCountry(country);
+  if (!resolved) return '';
+  const {name, flag} = resolved;
   return '<span class="customer-flag" role="img" aria-label="'+escapeHtml(name)+'" title="'+escapeHtml(name)+'">'+flag+'</span>';
 }
 
