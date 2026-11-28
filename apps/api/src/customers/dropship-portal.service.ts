@@ -195,10 +195,10 @@ export class DropshipPortalService {
         ...(scope === 'shipped' ? shippedFilter : {}),
         customer: { isActive: true, isDropshipper: customer.isDropshipper, dropshipPortal: { tokenHash } },
       },
-      orderBy: [{ issueDate: 'desc' }, { id: 'desc' }],
+      orderBy: [{ issueDate: 'desc' }, { createdAt: 'desc' }, { id: 'desc' }],
       ...(complete ? {} : { skip: offset, take: pageSize + 1 }),
       select: {
-        number: true, issueDate: true, status: true, partnerOrderNumber: true, endRecipientName: true,
+        number: true, issueDate: true, createdAt: true, status: true, partnerOrderNumber: true, endRecipientName: true,
         endRecipientAddress: true, shipmentContact: true, shipmentCarrier: true, currency: true, subtotal: true,
         shipping: true, shipmentWeightKg: true, taxAmount: true, discount: true, total: true, shippingToCountry: true,
         shippingMethod: true, fulfillmentStatus: true, internationalTrackingNumber: true, localTrackingNumber: true,
