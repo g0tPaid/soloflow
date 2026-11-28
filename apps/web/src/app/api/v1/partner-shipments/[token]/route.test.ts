@@ -82,7 +82,8 @@ describe('private partner shipment view', () => {
     expect(html).toContain('<span class="completed" aria-hidden="true"></span><span class="in-progress" aria-hidden="true"></span><span class="pending" aria-hidden="true"></span>');
     expect(html).not.toContain('class="progress-percent"');
     expect(html).toContain('CURRENT STAGE');
-    expect(html).toContain('order-progress-3d.webp');
+    expect(html).toContain('background-image:url(\'data:image/webp;base64,UklGR');
+    expect(html).not.toContain("url('/icons/order-progress-3d.webp')");
     expect(html).toContain('<div class="hero-art"><span class="stage-art" data-stage="LOCAL_ORDERING_COMPLETED"');
     expect(html).toContain('class="in-progress" aria-current="step"');
     for (const stage of ['AWAITING_PAYMENT', 'LOCAL_ORDERING_COMPLETED', 'WAREHOUSE_RECEIVED', 'QC_COMPLETED', 'SHIPPED_TO_CHINA_CENTER', 'SHIPPED_INTERNATIONAL', 'CUSTOMER_RECEIVED', 'ORDER_COMPLETED']) {
