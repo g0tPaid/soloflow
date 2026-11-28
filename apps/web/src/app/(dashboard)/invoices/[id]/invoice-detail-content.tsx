@@ -23,6 +23,7 @@ import {
 } from '@/components/invoices/fulfillment-controls';
 import { CancelOrderButton } from '@/components/invoices/cancel-order-button';
 import { DownloadInvoicePdfButton } from '@/components/invoices/download-invoice-pdf-button';
+import { DropshipPortalControls } from '@/components/customers/dropship-portal-controls';
 import { ShareInvoiceWhatsAppButton } from '@/components/invoices/share-invoice-whatsapp-button';
 import { RecordPaymentDialog } from '@/components/invoices/record-payment-dialog';
 import { Button } from '@/components/ui/button';
@@ -321,6 +322,15 @@ export function InvoiceDetailPageContent({ params }: { params: Promise<{ id: str
           </Link>
         </div>
       </div>
+
+      {invoice?.customerId && !invoice.vendorId && organizationId && (
+        <DropshipPortalControls
+          key={organizationId + ':' + invoice.customerId}
+          customerId={invoice.customerId}
+          organizationId={organizationId}
+          invoiceMode
+        />
+      )}
 
       {isReady && !organizationId && (
         <Card className="border-dashed">
