@@ -134,22 +134,24 @@ describe('private partner shipment view', () => {
     expect(html).toContain('setInterval(refreshOrders,30000)');
   });
 
-  it('does not display draft invoices or include them in the order count, even with an older API', async () => {
+  it('displays draft invoices as awaiting payment and includes them in the order count', async () => {
     const make = (number: string, status: string) => ({ number, status, currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [] });
-    const upstream = vi.fn().mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('SECRET-DRAFT-001', 'DRAFT'), make('ISSUED-001', 'SENT')] }))
-      .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('SECRET-DRAFT-001', 'DRAFT')] }));
+    const upstream = vi.fn().mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('DRAFT-001', 'DRAFT'), make('ISSUED-001', 'SENT')] }))
+      .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('DRAFT-001', 'DRAFT')] }));
     vi.stubGlobal('fetch', upstream);
     const mixed = await (await GET(new Request(path), params)).text();
-    expect(mixed).toContain('1 orders');
+    expect(mixed).toContain('2 orders');
     expect(mixed).toContain('ISSUED-001');
-    expect(mixed).not.toContain('SECRET-DRAFT-001');
+    expect(mixed).toContain('DRAFT-001');
+    expect(mixed).toContain('Awaiting payment');
     const draftOnly = await (await GET(new Request(path), params)).text();
-    expect(draftOnly).toContain('0 orders');
-    expect(draftOnly).toContain('Awaiting your first order');
-    expect(draftOnly).not.toContain('SECRET-DRAFT-001');
+    expect(draftOnly).toContain('1 orders');
+    expect(draftOnly).not.toContain('Awaiting your first order');
+    expect(draftOnly).toContain('DRAFT-001');
+    expect(draftOnly).toContain('Awaiting payment');
   });
 
-  it.each(['list', 'grid'])('sorts issued orders newest first across pages in %s view, including awaiting payment', async (view) => {
+  it.each(['list', 'grid'])('sorts all orders newest first across pages in %s view, including awaiting payment', async (view) => {
     const make = (number: string, status: string, issueDate: string, createdAt: string) => ({
       number, status, issueDate, createdAt, fulfillmentStatus: null, awaiting: true,
       currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
@@ -157,14 +159,15 @@ describe('private partner shipment view', () => {
     const old = make('ORDER-OLDEST', 'PAID', '2026-11-25', '2026-11-25T15:00:00Z');
     const sameDay = make('ORDER-SAME-DAY', 'PAID', '2026-11-28', '2026-11-28T08:00:00Z');
     const latest = make('ORDER-NEWEST', 'SENT', '2026-11-28', '2026-11-28T12:00:00Z');
-    const draft = make('HIDDEN-DRAFT', 'DRAFT', '2026-11-29', '2026-11-29T12:00:00Z');
+    const draft = make('ORDER-DRAFT', 'DRAFT', '2026-11-29', '2026-11-29T12:00:00Z');
     vi.stubGlobal('fetch', vi.fn()
       .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: true, shipments: [old, sameDay] }))
       .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [draft, latest] })));
     const html = await (await GET(new Request(path + '?view=' + view), params)).text();
-    expect(html).toContain('3 orders');
+    expect(html).toContain('4 orders');
     expect(html).toContain('Awaiting payment');
-    expect(html).not.toContain('HIDDEN-DRAFT');
+    expect(html).toContain('ORDER-DRAFT');
+    expect(html.indexOf('ORDER-DRAFT')).toBeLessThan(html.indexOf('ORDER-NEWEST'));
     expect(html).toContain('ORDER-NEWEST');
     expect(html).toContain('ORDER-SAME-DAY');
     expect(html).toContain('ORDER-OLDEST');
