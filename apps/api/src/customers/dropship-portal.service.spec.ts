@@ -107,7 +107,7 @@ describe('DropshipPortalService', () => {
     prisma.dropshipStock.findMany.mockResolvedValue([]);
     prisma.dropshipImportedShipment.findFirst.mockResolvedValue(null);
     prisma.invoice.findMany.mockResolvedValue(Array.from({ length: 45 }, (_, index) => ({
-      number: 'INV-' + index, status: index === 44 ? 'CANCELLED' : 'SENT',
+      number: 'INV-' + index, status: index === 44 ? 'CANCELLED' : index === 1 ? 'DRAFT' : 'SENT',
       fulfillmentStatus: index === 0 ? 'QC_COMPLETED' : null,
       fulfillmentEvents: [], items: [], shipmentContact: null,
     })));
@@ -116,10 +116,11 @@ describe('DropshipPortalService', () => {
     expect(result.hasMore).toBe(false);
     expect(result.shipments[0].fulfillmentStatus).toBe('QC_COMPLETED');
     expect(result.shipments[44].status).toBe('CANCELLED');
+    expect(result.shipments[1].status).toBe('DRAFT');
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query).not.toHaveProperty('take');
     expect(query).not.toHaveProperty('skip');
-    expect(query.where.status).toEqual({ not: 'DRAFT' });
+    expect(query.where).not.toHaveProperty('status');
     // Complete customer links include issued orders before partner tagging.
     expect(query.where).not.toHaveProperty('AND');
     expect(query.where).not.toHaveProperty('OR');
@@ -147,11 +148,12 @@ describe('DropshipPortalService', () => {
     prisma.invoice.findMany.mockResolvedValue([
       { number: 'INV-REG-1', status: 'PAID', fulfillmentStatus: 'SHIPPED_INTERNATIONAL', endRecipientName: null,
         fulfillmentEvents: [], items: [], shipmentContact: null },
-      { number: 'INV-REG-2', status: 'SENT', fulfillmentStatus: null, endRecipientName: null,
+      { number: 'INV-REG-2', status: 'DRAFT', fulfillmentStatus: null, endRecipientName: null,
         fulfillmentEvents: [], items: [], shipmentContact: null },
     ]);
     const result = await service.shipments(token, 0, 'all', true);
     expect(result.shipments.map(s => s.number)).toEqual(['INV-REG-1', 'INV-REG-2']);
+    expect(result.shipments[1].status).toBe('DRAFT');
     expect(result.shipments[0].endRecipientName).toBe('Regular Buyer');
     expect(result.stock).toEqual([]);
     expect(result.importedShipments).toEqual([]);
@@ -165,7 +167,7 @@ describe('DropshipPortalService', () => {
       customer: { isActive: true, isDropshipper: false, dropshipPortal: { tokenHash } },
     });
     expect(query.where).not.toHaveProperty('AND');
-    expect(query.where.status).toEqual({ not: 'DRAFT' });
+    expect(query.where).not.toHaveProperty('status');
     expect(query).not.toHaveProperty('take');
     expect(query.select).not.toHaveProperty('shippingCost');
     expect(query.select.items.select).not.toHaveProperty('unitCost');
