@@ -77,6 +77,10 @@ describe('private partner shipment view', () => {
     expect(html).toContain('class="ios-check"');
     expect(html).toContain('Local ordering in progress');
     expect(html).toContain('1 of 8 completed');
+    expect(html).toContain('aria-valuenow="13"');
+    expect(html).toContain('CURRENT STAGE');
+    expect(html).toContain('order-progress-3d.webp');
+    expect(html).toContain('<div class="hero-art"><span class="stage-art" data-stage="LOCAL_ORDERING_COMPLETED"');
     expect(html).toContain('class="in-progress" aria-current="step"');
     for (const stage of ['AWAITING_PAYMENT', 'LOCAL_ORDERING_COMPLETED', 'WAREHOUSE_RECEIVED', 'QC_COMPLETED', 'SHIPPED_TO_CHINA_CENTER', 'SHIPPED_INTERNATIONAL', 'CUSTOMER_RECEIVED', 'ORDER_COMPLETED']) {
       expect(html).toContain('class="stage-art" data-stage="' + stage + '"');
