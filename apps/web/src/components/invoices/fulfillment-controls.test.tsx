@@ -112,6 +112,19 @@ describe('FulfillmentControls', () => {
     });
   });
 
+  it('shows only a compact summary until expanded and supports marking the current stage done', () => {
+    const onStatusChange=vi.fn();
+    render(<FulfillmentControls idPrefix="compact" status={null} invoiceStatus="PAID" layout="compact" collapseByDefault onStatusChange={onStatusChange} onTrackingSave={vi.fn()}/>);
+    expect(screen.queryByText('3. Warehouse arrival · pending')).not.toBeInTheDocument();
+    expect(screen.queryByRole('group',{name:'Fulfillment status'})).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:'Local ordering completed — Completed'}));
+    expect(onStatusChange).toHaveBeenCalledWith('LOCAL_ORDERING_COMPLETED');
+    fireEvent.click(screen.getByRole('button',{name:/Update steps/}));
+    expect(screen.getByRole('group',{name:'Fulfillment status'})).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button',{name:/Hide steps/}));
+    expect(screen.queryByRole('group',{name:'Fulfillment status'})).not.toBeInTheDocument();
+  });
+
   it('hides tracking fields on the compact list until shipping applies', () => {
     renderControls('QC_COMPLETED', 'compact');
     expect(screen.queryByLabelText('China / domestic tracking')).not.toBeInTheDocument();
