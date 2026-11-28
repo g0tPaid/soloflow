@@ -390,15 +390,17 @@ body::after{opacity:.43}body::before{background:radial-gradient(ellipse at 15% 0
 
 const refreshScript = `let busy=false,etag='';async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const url=new URL(location.href);url.searchParams.set('enriched','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',redirect:'error',headers:etag?{'If-None-Match':etag}:{}});if(response.status===304)return;if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}delete current.dataset.deferred;etag=response.headers.get('etag')||''}catch{}finally{busy=false}}if(document.querySelector('main[data-deferred]'))setTimeout(refreshOrders,500);setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
 
-function documentBody(content: string, status = 200, options: { deferred?: boolean; ifNoneMatch?: string | null } = {}) {
+function documentBody(content: string, status = 200, options: { deferred?: boolean; ifNoneMatch?: string | null; branded?: boolean } = {}) {
   const nonce = randomBytes(16).toString('base64');
   const live = status === 200;
   // Weak ETag compares the rendered data and design, excluding the per-response CSP nonce.
-  const etag = live ? 'W/"' + createHash('sha256').update(content).update(styles).update(refreshScript).update(String(options.deferred ?? false)).digest('hex') + '"' : null;
+  const etag = live ? 'W/"' + createHash('sha256').update(content).update(styles).update(refreshScript).update(String(options.deferred ?? false)).update(String(options.branded ?? false)).digest('hex') + '"' : null;
   if (etag && options.ifNoneMatch === etag) return new Response(null, { status: 304, headers: { ...headers, ETag: etag } });
   const html = '<!doctype html><html lang="en"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">' +
-    '<title>Customer orders &amp; shipments · SoloFlow</title><style>' + styles + '</style><body><main' + (options.deferred ? ' data-deferred="true"' : '') + '>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
-  return new Response(html, { status, headers: live ? { ...headers, ETag: etag!, 'Content-Security-Policy': headers['Content-Security-Policy'] + "; script-src 'nonce-" + nonce + "'; connect-src 'self'" } : headers });
+    '<title>Customer orders &amp; shipments · ' + (options.branded ? 'Sourcing Center' : 'SoloFlow') + '</title><style>' + styles + '</style><body><main' + (options.deferred ? ' data-deferred="true"' : '') + '>' + content + '</main>' + (live ? '<script nonce="' + nonce + '">' + refreshScript + '</script>' : '') + '</body></html>';
+  // The branded forwarding route can stream this already-prepared representation.
+  const output = options.branded ? html.replace(/(src="|url\(')(\/(?:icons|uploads)\/)/g, '$1https://soloflow.practicalthings.store$2') : html;
+  return new Response(output, { status, headers: live ? { ...headers, ETag: etag!, ...(options.branded ? { 'X-Portal-Representation': 'sourcing-center' } : {}), 'Content-Security-Policy': headers['Content-Security-Policy'] + "; script-src 'nonce-" + nonce + "'; connect-src 'self'" } : headers });
 }
 
 export async function GET(request: Request, { params }: { params: Promise<{ token: string }> }) {
@@ -477,7 +479,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       '<section aria-label="All shipments" class="shipments ' + view + '">' +
       (cards || (history.length || deferred || live === null ? '' : firstOrderCard())) +
       '</section>' +
-      importedHistory(history, view, photos) + inventory(data.stock ?? [], deferred), 200, { deferred, ifNoneMatch: request.headers.get('if-none-match') });
+      importedHistory(history, view, photos) + inventory(data.stock ?? [], deferred), 200, { deferred, ifNoneMatch: request.headers.get('if-none-match'), branded: search.get('brand') === 'sourcing-center' });
   } catch {
     return documentBody('<h1>Shipments are temporarily unavailable</h1><p>Please try again shortly.</p>', 503);
   }
