@@ -1,5 +1,5 @@
 import { createHash, randomBytes } from 'node:crypto';
-import { shipmentProgress, shipmentProgressLabel } from '@flowbooks/shared';
+import { shipmentProgress, shipmentProgressLabel, isCustomerTier, CUSTOMER_TIER_LABELS } from '@flowbooks/shared';
 import { getServerApiBaseUrl } from '@/lib/server-api-url';
 import { resolveCountry } from '@/lib/countries';
 
@@ -98,6 +98,11 @@ function customerFlag(country: unknown) {
   if (!resolved) return '';
   const {name, flag} = resolved;
   return '<span class="customer-flag" role="img" aria-label="'+escapeHtml(name)+'" title="'+escapeHtml(name)+'">'+flag+'</span>';
+}
+
+function tierBadge(tier: unknown) {
+  if (!isCustomerTier(tier)) return '';
+  return '<div class="customer-tier-line"><span class="customer-tier tier-'+tier.toLowerCase()+'"><svg viewBox="0 0 24 24" fill="none" aria-hidden="true"><path d="M12 2.5 20 6v7c0 4-4 7-8 8.5C8 20 4 17 4 13V6l8-3.5Z" fill="currentColor" opacity=".17" stroke="currentColor" stroke-width="1.6"/><path d="m12 6.5 1.6 3.2 3.5.5-2.5 2.5.6 3.5-3.2-1.7-3.2 1.7.6-3.5-2.5-2.5 3.5-.5Z" fill="currentColor"/></svg>'+CUSTOMER_TIER_LABELS[tier]+' Customer</span></div>';
 }
 
 function shipmentCard(shipment: Shipment, photos: string[], deferInlineImages = false) {
@@ -336,6 +341,7 @@ body::after{opacity:.43}body::before{background:radial-gradient(ellipse at 15% 0
 .partner-name{display:block;color:#c42335;line-height:1.25;font-weight:800;letter-spacing:-.035em}.partner-name-letters{display:inline;color:#c42335;background-image:linear-gradient(112deg,transparent 36%,#fff7 47%,transparent 59%),linear-gradient(180deg,#e34c57 3%,#c12539 42%,#9e182c 54%,#c8293e 96%);background-size:260% 100%,100% 100%;background-position:100% 0,0 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.15px #a51b2d;filter:drop-shadow(0 1px 0 #fff) drop-shadow(0 2px 2px #9f24311a);box-decoration-break:clone;-webkit-box-decoration-break:clone}.customer-flag{display:inline-block;vertical-align:baseline;margin-left:.27em;font-size:.78em;line-height:1;letter-spacing:0;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;filter:drop-shadow(0 1px 1px #0002);white-space:nowrap}
 @media(prefers-reduced-motion:no-preference){.partner-name-letters{animation:welcome-glint 8s 1s linear infinite}}@media(prefers-reduced-motion:reduce){.partner-name-letters{animation:none}}@media(prefers-reduced-transparency:reduce),(forced-colors:active){.partner-name-letters{color:#b42333;background:none;-webkit-text-fill-color:currentColor;-webkit-text-stroke:0;filter:none;animation:none}}
 .progress-heading{grid-template-columns:minmax(0,1fr) auto;gap:9px;padding-top:9px}.progress-steps{display:flex;align-items:center;gap:4px;min-width:0}.progress-steps>span{flex:1;min-width:0;height:7px;border-radius:999px;background:linear-gradient(180deg,#e7e7ea,#ceced3);box-shadow:inset 0 1px 2px #28242b15}.progress-steps>.completed{background:linear-gradient(180deg,#91e6ba,#2fbd78 50%,#168556);box-shadow:inset 0 1px 1px #ffffffae,0 1px 3px #16855633}.progress-steps>.in-progress{background:linear-gradient(180deg,#ec94b4,#b82960 50%,#8e1744);box-shadow:inset 0 1px 1px #ffffffa0,0 0 5px #b8296040}.progress-count{font-weight:550;color:#65616a;white-space:nowrap}@media(max-width:350px){.progress-steps{gap:3px}.progress-heading{gap:6px}}
+.customer-tier-line{margin:7px 0 4px}.customer-tier{display:inline-flex;align-items:center;gap:5px;padding:5px 11px;border:1px solid #ffffffed;border-radius:999px;font-size:12px;font-weight:750;line-height:1.25;letter-spacing:.01em;box-shadow:0 3px 8px #28212b16,inset 0 1px 1px #fff,inset 0 -1px 2px #ffffff90}.customer-tier svg{width:17px;height:17px;flex:none}.tier-bronze{color:#713a20;background:linear-gradient(165deg,#fff3e7,#dba783 52%,#f2d2bf)}.tier-silver{color:#444951;background:linear-gradient(165deg,#fff,#d1d5dc 52%,#f4f5f7)}.tier-gold{color:#78500e;background:linear-gradient(165deg,#fff8d7,#f1c86d 52%,#ffedb6)}.tier-platinum{color:#364b67;background:linear-gradient(165deg,#fff,#c5d5e9 50%,#eef5ff);box-shadow:0 3px 8px #3c567520,inset 0 1px 1px #fff,inset 0 -1px 2px #ffffff90}.customer-tier-line+.customer-id{margin-top:5px}
 `;
 
 const refreshScript = `let busy=false,etag='';async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const url=new URL(location.href);url.searchParams.set('enriched','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',redirect:'error',headers:etag?{'If-None-Match':etag}:{}});if(response.status===304)return;if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}delete current.dataset.deferred;etag=response.headers.get('etag')||''}catch{}finally{busy=false}}if(document.querySelector('main[data-deferred]'))setTimeout(refreshOrders,100);setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
@@ -359,7 +365,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const unavailable = '<h1>Private shipment link unavailable</h1><p>Ask your supplier for a new link.</p>';
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return documentBody(unavailable, 404);
   try {
-    type PortalData = { partner: string; customerCountry?: string | null; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean };
+    type PortalData = { partner: string; customerCountry?: string | null; customerTier?: string | null; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean };
     const getOrders = (page: number) => fetch(getServerApiBaseUrl() + '/dropship-portal/shipments?page=' + page + '&status=all&complete=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -408,6 +414,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.webp" width="930" height="227" fetchpriority="high" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
       '<div class="top"><div><h1>Welcome, <span class="partner-name"><span class="partner-name-letters">' +
       escapeHtml(data.partner) + '</span>' + customerFlag(data.customerCountry) + '</span></h1>' +
+      tierBadge(data.customerTier) +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
       '</div><div>' + nav + trackShipmentButton() + '</div></div>' +
       '<p class="partner">' + (data.shipments.length + history.length) + ' orders · Updates automatically every 30 seconds</p>' +

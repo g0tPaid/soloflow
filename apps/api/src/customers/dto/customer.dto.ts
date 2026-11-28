@@ -1,8 +1,14 @@
-import { Matches, IsBoolean, IsString, IsEmail, IsOptional, IsObject } from 'class-validator';
+import { Matches, IsBoolean, IsString, IsEmail, IsOptional, IsObject, IsIn } from 'class-validator';
+import { CUSTOMER_TIERS, type CustomerTier } from '@flowbooks/shared';
 import { ApiProperty } from '@nestjs/swagger';
 import { PartialType } from '@nestjs/swagger';
 
 export class CreateCustomerDto {
+  @ApiProperty({ required: false, nullable: true, enum: [...CUSTOMER_TIERS] })
+  @IsOptional()
+  @IsIn([...CUSTOMER_TIERS])
+  customerTier?: CustomerTier | null;
+
   @IsOptional()
   @IsBoolean()
   isDropshipper?: boolean;

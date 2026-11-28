@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { zodResolver } from '@hookform/resolvers/zod';
-import { createCustomerSchema, type CreateCustomerInput, CURRENCIES } from '@flowbooks/shared';
+import { createCustomerSchema, type CreateCustomerInput, CURRENCIES, CUSTOMER_TIERS, CUSTOMER_TIER_LABELS, customerTierFromFields } from '@flowbooks/shared';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,6 +20,7 @@ const selectClassName = cn(
 );
 
 const customerFormSchema = createCustomerSchema.extend({
+  customerTier: z.union([z.enum(CUSTOMER_TIERS), z.literal('')]).transform(value => value || null),
   dropshipperNumber: z.string().optional(),
   dropshipperPrefix: z.string().optional(),
   email: z
@@ -100,6 +101,7 @@ export function CustomerForm({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
       name: customer?.name ?? '',
+      customerTier: customerTierFromFields(customer?.customFields) ?? '',
       isDropshipper: customer?.isDropshipper === true,
       dropshipperNumber: customer?.dropshipperNumber ?? '',
       dropshipperPrefix: customer?.dropshipperPrefix ?? '',
@@ -161,6 +163,14 @@ export function CustomerForm({
               <Label htmlFor={idPrefix + 'name'}>Name *</Label>
               <Input id={idPrefix + 'name'} placeholder="Acme Corp" {...register('name')} />
               {errors.name && <p className="text-sm text-destructive">{errors.name.message}</p>}
+            </div>
+            <div className="space-y-2 sm:col-span-2">
+              <Label htmlFor={idPrefix + 'customerTier'}>Customer tier</Label>
+              <select id={idPrefix + 'customerTier'} className={selectClassName} {...register('customerTier')}>
+                <option value="">No tier assigned</option>
+                {CUSTOMER_TIERS.map(tier => <option key={tier} value={tier}>{CUSTOMER_TIER_LABELS[tier]}</option>)}
+              </select>
+              <p className="text-xs text-muted-foreground">Shown beneath the customer name on their private tracking page.</p>
             </div>
             <label className="flex items-center gap-2 rounded-md border p-3 text-sm font-medium sm:col-span-2">
               <input type="checkbox" className="size-4 accent-[#E40046]" {...register('isDropshipper', { onChange: (event) => void fillSuggestedNumber(event.target.checked) })} />

@@ -8,6 +8,7 @@ export * from './fx';
 export * from './invoice-balance';
 export * from './sales-invoice';
 export * from './customer-balance';
+export * from './customer-tier';
 export * from './order-status';
 export * from './workspace-search';
 export * from './exporter';

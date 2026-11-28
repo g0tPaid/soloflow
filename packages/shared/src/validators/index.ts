@@ -2,6 +2,7 @@ import { z } from 'zod';
 import { FULFILLMENT_STATUS_VALUES, INVITABLE_ROLES } from '../constants';
 import { CURRENCIES } from '../constants';
 import { fulfillmentTrackingError } from '../fulfillment';
+import { CUSTOMER_TIERS } from '../customer-tier';
 
 const currencyCodes = CURRENCIES.map((c) => c.code) as [string, ...string[]];
 
@@ -167,6 +168,7 @@ export const updateMemberRoleSchema = z.object({
 // ─── Customer ────────────────────────────────────────────────────────────────
 
 export const createCustomerSchema = z.object({
+  customerTier: z.enum(CUSTOMER_TIERS).nullable().optional(),
   isDropshipper: z.boolean().optional(),
   dropshipperNumber: z.string().regex(/^(?:[0-9]{4})?$/, 'Enter exactly four digits').optional(),
   dropshipperPrefix: z.string().regex(/^[a-z0-9]{0,12}$/i, 'Use up to 12 letters or numbers').optional(),
@@ -192,7 +194,7 @@ export const updateCustomerSchema = createCustomerSchema.partial();
 
 // ─── Vendor ──────────────────────────────────────────────────────────────────
 
-export const createVendorSchema = createCustomerSchema.omit({ isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true });
+export const createVendorSchema = createCustomerSchema.omit({ isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true, customerTier: true });
 export const updateVendorSchema = createVendorSchema.partial();
 
 // ─── Product ─────────────────────────────────────────────────────────────────

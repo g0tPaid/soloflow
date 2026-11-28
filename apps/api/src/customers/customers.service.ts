@@ -118,13 +118,14 @@ export class CustomersService {
   }
 
   async create(organizationId: string, dto: CreateCustomerDto) {
-    const { dropshipperNumber, dropshipperPrefix, ...fields } = dto;
+    const { dropshipperNumber, dropshipperPrefix, customerTier, ...fields } = dto;
     if (dto.isDropshipper) this.requireDropshipperNumber(dropshipperNumber);
     const { linkNonce, tokenHash } = dto.isDropshipper ? newPortalLink() : {};
     try {
       return await this.prisma.customer.create({
         data: {
           ...fields,
+          ...(customerTier ? { customFields: { customerTier } } : {}),
           organizationId,
           address: dto.address || {},
           isDropshipper: dto.isDropshipper === true,
@@ -140,23 +141,31 @@ export class CustomersService {
 
   async update(organizationId: string, id: string, dto: UpdateCustomerDto) {
     await this.findOne(organizationId, id);
-    const { dropshipperNumber, dropshipperPrefix, ...fields } = dto;
+    const { dropshipperNumber, dropshipperPrefix, customerTier, ...fields } = dto;
     try {
       return await this.prisma.$transaction(async (tx) => {
         const result = await tx.$queryRaw<{
           isDropshipper: boolean;
           dropshipperNumber: string | null;
-        }[]>`SELECT "isDropshipper", "dropshipperNumber" FROM "customers"
+          customFields: Prisma.JsonValue;
+        }[]>`SELECT "isDropshipper", "dropshipperNumber", "customFields" FROM "customers"
           WHERE "id" = ${id} AND "organizationId" = ${organizationId} FOR UPDATE`;
         const existing = result[0];
         if (!existing) throw new NotFoundException('Customer not found');
         const isDropshipper = dto.isDropshipper ?? existing.isDropshipper;
         const number = dropshipperNumber ?? existing.dropshipperNumber;
         if (isDropshipper) this.requireDropshipperNumber(number);
+        const customFields: Prisma.JsonObject = existing.customFields && typeof existing.customFields === 'object' && !Array.isArray(existing.customFields)
+          ? { ...existing.customFields } : {};
+        if (customerTier !== undefined) {
+          if (customerTier === null) delete customFields.customerTier;
+          else customFields.customerTier = customerTier;
+        }
         const customer = await tx.customer.update({
           where: { id },
           data: {
             ...fields,
+            ...(customerTier !== undefined ? { customFields: customFields as Prisma.InputJsonObject } : {}),
             isDropshipper,
             dropshipperNumber: isDropshipper ? number : undefined,
             dropshipperPrefix: isDropshipper && dropshipperPrefix !== undefined

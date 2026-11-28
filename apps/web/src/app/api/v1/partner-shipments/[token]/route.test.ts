@@ -97,6 +97,13 @@ describe('private partner shipment view', () => {
     expect(html).toContain('aria-label="Germany" title="Germany">🇩🇪');
   });
 
+  it.each(['BRONZE', 'SILVER', 'GOLD', 'PLATINUM'])('renders the %s tier below the customer name', async (tier) => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ partner: 'Partner', customerTier: tier, hasMore: false, shipments: [] })));
+    const html = await (await GET(new Request(path), params)).text();
+    expect(html).toContain('</span></span></h1><div class="customer-tier-line"><span class="customer-tier tier-'+tier.toLowerCase()+'"');
+    expect(html).toContain(tier[0]+tier.slice(1).toLowerCase()+' Tier Customer');
+  });
+
   it('renders all orders, actual early stages and inactive status without pagination', async () => {
     const shipments = Array.from({ length: 45 }, (_, index) => ({
       number: 'INV-' + index, partnerOrderNumber: 'ORDER-' + index,

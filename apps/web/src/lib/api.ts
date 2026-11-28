@@ -11,6 +11,7 @@ import type {
   Role,
   FulfillmentStatus,
   FulfillmentHistoryAction,
+  CustomerTier,
 } from '@flowbooks/shared';
 import { toApiLineItems } from '@/lib/line-items';
 import { LOCAL_MODE } from '@/lib/local-mode';
@@ -162,6 +163,7 @@ export interface WorkspaceSearchResponse {
 }
 
 export interface Customer {
+  customFields?: Record<string, unknown> | null;
   isDropshipper?: boolean;
   dropshipperNumber?: string | null;
   dropshipperPrefix?: string | null;
@@ -808,6 +810,7 @@ export const api = {
       organizationId: string,
       data: {
         name: string;
+        customerTier?: CustomerTier | null;
         isDropshipper?: boolean;
         dropshipperNumber?: string;
         dropshipperPrefix?: string;
@@ -831,6 +834,7 @@ export const api = {
       id: string,
       data: Partial<{
         name: string;
+        customerTier?: CustomerTier | null;
         isDropshipper?: boolean;
         dropshipperNumber?: string;
         dropshipperPrefix?: string;

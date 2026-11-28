@@ -1,7 +1,7 @@
 import Link from 'next/link';
 import { useSession } from 'next-auth/react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
-import { type FulfillmentStatus } from '@flowbooks/shared';
+import { type FulfillmentStatus, CUSTOMER_TIER_LABELS, customerTierFromFields } from '@flowbooks/shared';
 import { api } from '@/lib/api';
 import { DropshipShipmentImport } from '@/components/customers/dropship-shipment-import';
 import { DropshipStock } from '@/components/customers/dropship-stock';
@@ -27,8 +27,10 @@ function formatAddress(address?: Customer['address'] | null): string {
 
 function contactRows(customer: Customer): Array<[string, string]> {
   const address = formatAddress(customer.address);
+  const tier = customerTierFromFields(customer.customFields);
   const rows: Array<[string, string | null | undefined]> = [
     ['Dropshipper ID', customerDropshipperId(customer)],
+    ['Customer tier', tier ? CUSTOMER_TIER_LABELS[tier] : null],
     ['Email', customer.email],
     ['Phone', customer.phone],
     ['TRN', customer.taxId],
