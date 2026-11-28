@@ -98,13 +98,13 @@ export class DropshipPortalService {
     return this.stockRows(organizationId, customerId);
   }
 
-  private async stockRows(organizationId: string, customerId: string, tokenHash?: string) {
+  private async stockRows(organizationId: string, customerId: string, tokenHash?: string, light = false) {
     const customer = { organizationId, isActive: true, isDropshipper: true,
       ...(tokenHash ? { dropshipPortal: { tokenHash } } : {}) };
     const [stock, shipped] = await Promise.all([
       this.prisma.dropshipStock.findMany({
         where: { customerId, customer, product: { organizationId } },
-        select: { allocated: true, imageUrl: true, product: { select: { id: true, name: true, sku: true, imageUrl: true } } },
+        select: { allocated: true, imageUrl: !light, product: { select: { id: true, name: true, sku: true, imageUrl: !light } } },
         orderBy: { product: { name: 'asc' } },
       }),
       this.prisma.invoiceItem.groupBy({
@@ -115,7 +115,7 @@ export class DropshipPortalService {
     const quantities = new Map(shipped.map((row) => [row.productId, row._sum.quantity]));
     return stock.map(({ product, allocated, imageUrl }) => {
       const quantity = quantities.get(product.id) ?? 0;
-      return { ...product, imageUrl: imageUrl ?? product.imageUrl, allocated: allocated.toString(), shipped: String(quantity), remaining: allocated.minus(quantity).toString() };
+      return { ...product, imageUrl: light ? null : imageUrl ?? product.imageUrl, allocated: allocated.toString(), shipped: String(quantity), remaining: allocated.minus(quantity).toString() };
     });
   }
 
@@ -149,7 +149,7 @@ export class DropshipPortalService {
     return { revoked: true };
   }
 
-  async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped', complete = false) {
+  async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped', complete = false, light = false) {
     if (typeof token !== 'string') throw new NotFoundException();
     let tokenHash: string;
     if (/^[A-Za-z0-9_-]{43}$/.test(token)) {
@@ -173,14 +173,18 @@ export class DropshipPortalService {
     if (!portal) throw new NotFoundException();
     const { customer } = portal;
     const anchorId = process.env.STAFF_SHIPMENT_SYNC_CUSTOMER_ID;
-    const sourcingEnabled = customer.isDropshipper && anchorId ? Boolean(await this.prisma.customer.findFirst({
-      where: { id: anchorId, organizationId: customer.organizationId }, select: { id: true },
-    })) : false;
     const pageSize = 20;
-    // Stock and externally imported staff history are a separate dropshipper-only dataset.
-    const stock = customer.isDropshipper ? await this.stockRows(customer.organizationId, customer.id, tokenHash) : [];
-    const stockByProduct = new Map(stock.map((row) => [row.id, row]));
-    const invoices = await this.prisma.invoice.findMany({
+    // Independent reads run concurrently after validating the bearer token.
+    const [anchor, stock, imported, invoices] = await Promise.all([
+      customer.isDropshipper && anchorId ? this.prisma.customer.findFirst({
+        where: { id: anchorId, organizationId: customer.organizationId }, select: { id: true },
+      }) : Promise.resolve(null),
+      customer.isDropshipper ? this.stockRows(customer.organizationId, customer.id, tokenHash, light) : Promise.resolve([]),
+      customer.isDropshipper ? this.prisma.dropshipImportedShipment.findFirst({
+        where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
+        select: { rows: true },
+      }) : Promise.resolve(null),
+      this.prisma.invoice.findMany({
       where: {
         ...(customer.isDropshipper
           ? partnerInvoices(customer.organizationId, customer.id, complete && scope === 'all')
@@ -203,22 +207,23 @@ export class DropshipPortalService {
         items: {
           orderBy: { sortOrder: 'asc' },
           select: {
-            id: true, productId: true, name: true, description: true, imageUrl: true,
+            id: true, productId: true, name: true, description: true, imageUrl: !light,
             quantity: true, unitPrice: true, amount: true,
-            product: { select: { organizationId: true, imageUrl: true } },
+            product: { select: { organizationId: true, imageUrl: !light } },
           },
         },
       },
-    });
+      }),
+    ]);
+    const sourcingEnabled = Boolean(anchor);
+    const stockByProduct = new Map(stock.map((row) => [row.id, row]));
     return {
+      ...(light ? { imagesDeferred: invoices.some(invoice => invoice.items.length > 0) || stock.length > 0 } : {}),
       partner: customer.name,
       customerTier: customerTierFromFields(customer.customFields),
       customerCountry: customer.address && typeof customer.address === 'object' && !Array.isArray(customer.address) && typeof customer.address.country === 'string' ? customer.address.country.trim() || null : null,
       sourceCustomer: customer.isDropshipper ? { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix, sourcingEnabled } : undefined,
-      importedShipments: customer.isDropshipper ? (await this.prisma.dropshipImportedShipment.findFirst({
-        where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },
-        select: { rows: true },
-      }))?.rows ?? [] : [],
+      importedShipments: imported?.rows ?? [],
       stock,
       hasMore: !complete && invoices.length > pageSize,
       shipments: (complete ? invoices : invoices.slice(0, pageSize)).map(({ fulfillmentEvents, shipmentContact, items, ...invoice }) => ({
@@ -229,7 +234,7 @@ export class DropshipPortalService {
             invoice.shippingMethod === 'LOCAL' && invoice.localTrackingNumber !== null),
         items: items.map(({ productId, product, ...item }) => ({
           ...item,
-          imageUrl: item.imageUrl || (productId ? stockByProduct.get(productId)?.imageUrl : null) ||
+          imageUrl: light ? null : item.imageUrl || (productId ? stockByProduct.get(productId)?.imageUrl : null) ||
             (product?.organizationId === customer.organizationId ? product.imageUrl : null),
         })),
         shipmentContact: shipmentContact && typeof shipmentContact === 'object' && !Array.isArray(shipmentContact)

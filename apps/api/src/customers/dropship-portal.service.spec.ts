@@ -126,6 +126,17 @@ describe('DropshipPortalService', () => {
     });
   });
 
+  it('omits image columns for the fast first render and retains the complete customer order list', async () => {
+    prisma.dropshipPortal.findFirst.mockResolvedValue({ customer: { id: 'regular', organizationId: 'org', name: 'Buyer', isDropshipper: false } });
+    prisma.invoice.findMany.mockResolvedValue([{ number: 'INV-1', status: 'PAID', fulfillmentEvents: [], shipmentContact: null,
+      items: [{ id: 'item', name: 'Product', imageUrl: 'data:image/png;base64,AAAA', productId: null, product: null }] }]);
+    const result = await service.shipments(token, 0, 'all', true, true);
+    expect(result.imagesDeferred).toBe(true);
+    expect(result.shipments[0].items[0].imageUrl).toBeNull();
+    expect(prisma.invoice.findMany.mock.calls[0][0].select.items.select.imageUrl).toBe(false);
+    expect(prisma.invoice.findMany.mock.calls[0][0].select.items.select.product.select.imageUrl).toBe(false);
+  });
+
   it('shows every regular customer sales order but never loads partner-only stock or imported history', async () => {
     prisma.dropshipPortal.findFirst.mockResolvedValue({
       customer: { id: 'regular', organizationId: 'org', name: 'Regular Buyer', isDropshipper: false, dropshipperNumber: '0042' },

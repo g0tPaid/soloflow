@@ -199,6 +199,17 @@ describe('private partner shipment view', () => {
     expect(upstream).toHaveBeenCalledTimes(4);
   });
 
+  it('requests the lightweight API payload on initial load and defers photos when the API indicates omitted images', async () => {
+    const payload = { partner: 'Buyer', hasMore: false, imagesDeferred: true, shipments: [{ number: 'INV-1', currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [{ name: 'Product', imageUrl: null, quantity: '1', unitPrice: '0', amount: '0' }] }] };
+    const upstream = vi.fn().mockResolvedValueOnce(Response.json(payload)).mockResolvedValueOnce(Response.json({ ...payload, imagesDeferred: false }));
+    vi.stubGlobal('fetch', upstream);
+    const first = await GET(new Request(path), params);
+    expect(await first.text()).toContain('data-deferred="true"');
+    expect(upstream.mock.calls[0][0]).toContain('&light=1');
+    await GET(new Request(path + '?enriched=1'), params);
+    expect(upstream.mock.calls[1][0]).not.toContain('&light=1');
+  });
+
   it('avoids re-sending unchanged HTML but rechecks the private token on each refresh', async () => {
     const payload = { partner: 'Partner', hasMore: false, shipments: [] };
     const upstream = vi.fn().mockResolvedValueOnce(Response.json(payload))
