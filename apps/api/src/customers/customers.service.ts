@@ -125,7 +125,7 @@ export class CustomersService {
       return await this.prisma.customer.create({
         data: {
           ...fields,
-          ...(customerTier ? { customFields: { customerTier } } : {}),
+          customFields: { customerTier: customerTier ?? 'SILVER' },
           organizationId,
           address: dto.address || {},
           isDropshipper: dto.isDropshipper === true,
@@ -158,8 +158,7 @@ export class CustomersService {
         const customFields: Prisma.JsonObject = existing.customFields && typeof existing.customFields === 'object' && !Array.isArray(existing.customFields)
           ? { ...existing.customFields } : {};
         if (customerTier !== undefined) {
-          if (customerTier === null) delete customFields.customerTier;
-          else customFields.customerTier = customerTier;
+          customFields.customerTier = customerTier ?? 'SILVER';
         }
         const customer = await tx.customer.update({
           where: { id },

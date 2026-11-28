@@ -8,8 +8,8 @@ export function isCustomerTier(value: unknown): value is CustomerTier {
   return typeof value === 'string' && (CUSTOMER_TIERS as readonly string[]).includes(value);
 }
 
-export function customerTierFromFields(fields: unknown): CustomerTier | null {
-  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return null;
+export function customerTierFromFields(fields: unknown): CustomerTier {
+  if (!fields || typeof fields !== 'object' || Array.isArray(fields)) return 'SILVER';
   const value = (fields as Record<string, unknown>).customerTier;
-  return isCustomerTier(value) ? value : null;
+  return isCustomerTier(value) ? value : 'SILVER';
 }

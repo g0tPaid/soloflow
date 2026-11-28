@@ -20,7 +20,7 @@ const selectClassName = cn(
 );
 
 const customerFormSchema = createCustomerSchema.extend({
-  customerTier: z.union([z.enum(CUSTOMER_TIERS), z.literal('')]).transform(value => value || null),
+  customerTier: z.enum(CUSTOMER_TIERS),
   dropshipperNumber: z.string().optional(),
   dropshipperPrefix: z.string().optional(),
   email: z
@@ -101,7 +101,7 @@ export function CustomerForm({
     resolver: zodResolver(customerFormSchema),
     defaultValues: {
       name: customer?.name ?? '',
-      customerTier: customerTierFromFields(customer?.customFields) ?? '',
+      customerTier: customerTierFromFields(customer?.customFields),
       isDropshipper: customer?.isDropshipper === true,
       dropshipperNumber: customer?.dropshipperNumber ?? '',
       dropshipperPrefix: customer?.dropshipperPrefix ?? '',
@@ -167,7 +167,6 @@ export function CustomerForm({
             <div className="space-y-2 sm:col-span-2">
               <Label htmlFor={idPrefix + 'customerTier'}>Customer tier</Label>
               <select id={idPrefix + 'customerTier'} className={selectClassName} {...register('customerTier')}>
-                <option value="">No tier assigned</option>
                 {CUSTOMER_TIERS.map(tier => <option key={tier} value={tier}>{CUSTOMER_TIER_LABELS[tier]}</option>)}
               </select>
               <p className="text-xs text-muted-foreground">Shown beneath the customer name on their private tracking page.</p>

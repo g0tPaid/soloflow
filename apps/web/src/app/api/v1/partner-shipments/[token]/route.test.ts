@@ -104,6 +104,15 @@ describe('private partner shipment view', () => {
     expect(html).toContain(tier[0]+tier.slice(1).toLowerCase()+' Tier Customer');
   });
 
+  it('defaults an unassigned customer to Silver and renders the decorative VIP arrival', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ partner: 'New Customer', hasMore: false, shipments: [] })));
+    const html = await (await GET(new Request(path), params)).text();
+    expect(html).toContain('Silver Tier Customer');
+    expect(html).toContain('class="vip-arrival" aria-hidden="true"');
+    expect(html).toContain('id="vip-photographer"');
+    expect(html).toContain('Awaiting your first order');
+  });
+
   it('renders all orders, actual early stages and inactive status without pagination', async () => {
     const shipments = Array.from({ length: 45 }, (_, index) => ({
       number: 'INV-' + index, partnerOrderNumber: 'ORDER-' + index,

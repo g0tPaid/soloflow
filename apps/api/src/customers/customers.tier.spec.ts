@@ -11,15 +11,21 @@ describe('customer tier persistence', () => {
     tx.$queryRaw.mockResolvedValue([{ isDropshipper: false, dropshipperNumber: null, customFields: { customerTier: 'BRONZE', existing: 'keep' } }]);
     prisma.$transaction.mockImplementation(callback => callback(tx));
   });
+  it('defaults omitted and null tiers to Silver when creating a customer', async () => {
+    for (const dto of [{ name: 'Customer' }, { name: 'Customer', customerTier: null }]) {
+      await service.create('org', dto);
+      expect(prisma.customer.create).toHaveBeenLastCalledWith({ data: expect.objectContaining({ customFields: { customerTier: 'SILVER' } }) });
+    }
+  });
   it('stores the chosen tier when creating a customer', async () => {
     await service.create('org', { name: 'Customer', customerTier: 'GOLD' });
     expect(prisma.customer.create).toHaveBeenCalledWith({ data: expect.objectContaining({ customFields: { customerTier: 'GOLD' } }) });
   });
-  it('changes or clears the tier without overwriting other custom fields', async () => {
+  it('changes or resets the tier without overwriting other custom fields', async () => {
     await service.update('org', 'customer', { customerTier: 'PLATINUM' });
     expect(tx.customer.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ customFields: { customerTier: 'PLATINUM', existing: 'keep' } }) }));
     await service.update('org', 'customer', { customerTier: null });
-    expect(tx.customer.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ customFields: { existing: 'keep' } }) }));
+    expect(tx.customer.update).toHaveBeenLastCalledWith(expect.objectContaining({ data: expect.objectContaining({ customFields: { customerTier: 'SILVER', existing: 'keep' } }) }));
   });
   it('leaves customer tier unchanged for unrelated edits', async () => {
     await service.update('org', 'customer', { name: 'Renamed' });
