@@ -231,6 +231,46 @@ describe('private partner shipment view', () => {
     expect(upstream).toHaveBeenCalledTimes(1);
   });
 
+  it('welcomes a new customer with a pending journey rather than a fabricated order', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ partner: 'New Buyer', customerCountry: 'US', customerTier: 'GOLD', hasMore: false, shipments: [] })));
+    const html = await (await GET(new Request(path + '?view=grid'), params)).text();
+    expect(html).toContain('Awaiting your first order');
+    expect(html).toContain('class="first-order"');
+    expect(html).toContain('0 of 8 completed');
+    expect(html).toContain('aria-valuemax="8" aria-valuenow="0"');
+    expect(html.match(/<li class="pending">/g)).toHaveLength(8);
+    expect(html).toContain('Gold Tier Customer');
+    expect(html).toContain('https://wa.me/8618059262730');
+    expect(html).not.toContain('No orders yet.');
+    expect(html).not.toContain('class="ios-check"');
+    expect(html).not.toContain('Invoice date');
+  });
+
+  it('replaces first-order onboarding with the actual invoice on refresh', async () => {
+    const initial = { partner: 'New Buyer', hasMore: false, shipments: [] };
+    const invoice = { number: 'INV-FIRST', status: 'SENT', currency: 'USD', subtotal: '10', shipping: '0', total: '10', discount: '0', taxAmount: '0', items: [] };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(initial)).mockResolvedValueOnce(Response.json({ ...initial, shipments: [invoice] })));
+    const first = await GET(new Request(path), params);
+    expect(await first.text()).toContain('Awaiting your first order');
+    const next = await GET(new Request(path + '?enriched=1', { headers: { 'If-None-Match': first.headers.get('etag')! } }), params);
+    expect(next.status).toBe(200);
+    const html = await next.text();
+    expect(html).toContain('INV-FIRST');
+    expect(html).toContain('Awaiting payment');
+    expect(html).not.toContain('Awaiting your first order');
+  });
+
+  it('does not show first-order onboarding while external history is loading or unavailable', async () => {
+    vi.stubEnv('PARTNER_SHIPMENT_PHOTO_KEY', 'test-only-key');
+    const payload = { partner: 'Partner', hasMore: false, shipments: [], sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: true } };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValueOnce(Response.json(payload)).mockResolvedValueOnce(Response.json(payload)).mockResolvedValueOnce(new Response(null, { status: 503 })));
+    const deferred = await (await GET(new Request(path), params)).text();
+    expect(deferred).toContain('Loading additional order details');
+    expect(deferred).not.toContain('Awaiting your first order');
+    const unavailable = await (await GET(new Request(path + '?enriched=1'), params)).text();
+    expect(unavailable).not.toContain('Awaiting your first order');
+  });
+
   it('returns 404 for a revoked link', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(null, { status: 404 })));
     const response = await GET(new Request(path), params);
