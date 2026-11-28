@@ -120,6 +120,9 @@ describe('DropshipPortalService', () => {
     expect(query).not.toHaveProperty('take');
     expect(query).not.toHaveProperty('skip');
     expect(query.where.status).toEqual({ not: 'DRAFT' });
+    // Complete customer links include issued orders before partner tagging.
+    expect(query.where).not.toHaveProperty('AND');
+    expect(query.where).not.toHaveProperty('OR');
     expect(query.where).toMatchObject({
       organizationId: 'org', customerId: 'partner', vendorId: null,
       customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
