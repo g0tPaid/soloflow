@@ -467,7 +467,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     const cards = data.shipments.map((shipment, index) =>
       shipmentCard(shipment, photos[history.length + index] ?? [], deferred)).join('');
     return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.webp" width="930" height="227" fetchpriority="high" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
-      '<div class="top vip-top"><div class="vip-welcome"><h1>Welcome, <span class="partner-name"><span class="partner-name-letters">' +
+      '<div class="top vip-top"><div class="vip-welcome"><h1>Hello, <span class="partner-name"><span class="partner-name-letters">' +
       escapeHtml(data.partner) + '</span>' + customerFlag(data.customerCountry) + '</span></h1>' +
       tierBadge(data.customerTier) + vipArrival() +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
