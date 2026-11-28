@@ -6,6 +6,11 @@ import { apiFetch } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 
+function customerPortalUrl(result: { token?: string | null; shortCode?: string | null }) {
+  if (result.shortCode && /^[A-Za-z0-9_-]{22}$/.test(result.shortCode)) return 'https://sourcing.center/c/' + result.shortCode;
+  return result.token ? new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href : '';
+}
+
 export function DropshipPortalControls({ customerId, organizationId, isDropshipper = false }: { customerId: string; organizationId: string; isDropshipper?: boolean }) {
   const { data: session } = useSession();
   const [url, setUrl] = useState('');
@@ -19,10 +24,10 @@ export function DropshipPortalControls({ customerId, organizationId, isDropshipp
     let active = true;
     setLoading(true);
     setUrl('');
-    void apiFetch<{ token: string | null }>('/customers/' + customerId + '/dropship-portal', {
+    void apiFetch<{ token: string | null; shortCode?: string | null }>('/customers/' + customerId + '/dropship-portal', {
       token, organizationId,
     }).then((result) => {
-      if (active) setUrl(result.token ? new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href : '');
+      if (active) setUrl(customerPortalUrl(result));
     }).catch(() => {
       if (active) setMessage('Could not load the private link.');
     }).finally(() => { if (active) setLoading(false); });
@@ -36,10 +41,10 @@ export function DropshipPortalControls({ customerId, organizationId, isDropshipp
     setBusy(true);
     setMessage('');
     try {
-      const result = await apiFetch<{ token?: string }>('/customers/' + customerId + '/dropship-portal', {
+      const result = await apiFetch<{ token?: string; shortCode?: string }>('/customers/' + customerId + '/dropship-portal', {
         token, organizationId, method,
       });
-      setUrl(result.token ? new URL('/api/v1/partner-shipments/' + result.token, window.location.origin).href : '');
+      setUrl(customerPortalUrl(result));
       setMessage(result.token ? 'New link created. Any previous link is now disabled.' : 'Private link disabled.');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not update the private link.');

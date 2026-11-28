@@ -10,7 +10,7 @@ describe('DropshipPortalService', () => {
   const prisma = {
     organizationMember: { findUnique: jest.fn() },
     customer: { updateMany: jest.fn(), findFirst: jest.fn() },
-    dropshipPortal: { upsert: jest.fn(), findFirst: jest.fn(), deleteMany: jest.fn() },
+    dropshipPortal: { upsert: jest.fn(), findFirst: jest.fn(), findMany: jest.fn(), deleteMany: jest.fn() },
     invoice: { findMany: jest.fn() },
     invoiceItem: { groupBy: jest.fn() },
     dropshipStock: { findMany: jest.fn() },
@@ -34,6 +34,7 @@ describe('DropshipPortalService', () => {
     const issued = await service.issue('org', 'owner', 'partner');
     expect(issued.token).toMatch(/^[A-Za-z0-9_-]{43}$/);
     const digest = createHash('sha256').update(issued.token).digest('hex');
+    expect(issued.shortCode).toBe(Buffer.from(digest.slice(0, 32), 'hex').toString('base64url'));
     expect(prisma.dropshipPortal.upsert).toHaveBeenCalledWith(expect.objectContaining({
       where: { customerId: 'partner' },
       create: expect.objectContaining({ customerId: 'partner', tokenHash: digest }),
@@ -49,6 +50,22 @@ describe('DropshipPortalService', () => {
     await expect(service.shipments('bad-token', 0)).rejects.toBeInstanceOf(NotFoundException);
     await expect(service.shipments(token, 0)).rejects.toBeInstanceOf(NotFoundException);
     expect(prisma.invoice.findMany).not.toHaveBeenCalled();
+  });
+
+  it('resolves a 128-bit short code to the same full digest and rejects collisions and revocation', async () => {
+    const shortCode = Buffer.from(tokenHash.slice(0, 32), 'hex').toString('base64url');
+    prisma.dropshipPortal.findMany.mockResolvedValue([{ tokenHash }]);
+    prisma.dropshipPortal.findFirst.mockResolvedValue({ customer: { id: 'regular', organizationId: 'org', name: 'Buyer', isDropshipper: false } });
+    prisma.invoice.findMany.mockResolvedValue([]);
+    const result = await service.shipments(shortCode, 0, 'all', true);
+    expect(result.partner).toBe('Buyer');
+    expect(prisma.dropshipPortal.findMany).toHaveBeenCalledWith({ where: { tokenHash: { startsWith: tokenHash.slice(0, 32) }, customer: { isActive: true } }, select: { tokenHash: true }, take: 2 });
+    expect(prisma.invoice.findMany.mock.calls[0][0].where.customer.dropshipPortal).toEqual({ tokenHash });
+    prisma.dropshipPortal.findMany.mockResolvedValue([]);
+    await expect(service.shipments(shortCode, 0)).rejects.toBeInstanceOf(NotFoundException);
+    prisma.dropshipPortal.findMany.mockResolvedValue([{ tokenHash }, { tokenHash }]);
+    await expect(service.shipments(shortCode, 0)).rejects.toBeInstanceOf(NotFoundException);
+    expect(prisma.invoice.findMany).toHaveBeenCalledTimes(1);
   });
 
   it('selects only flagged and shipped customer invoices with partner-facing amounts', async () => {

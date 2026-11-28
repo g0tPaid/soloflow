@@ -403,7 +403,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const view = search.get('view') === 'grid' ? 'grid' : 'list';
   const enriched = search.get('enriched') === '1';
   const unavailable = '<h1>Private shipment link unavailable</h1><p>Ask your supplier for a new link.</p>';
-  if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return documentBody(unavailable, 404);
+  if (!/^(?:[A-Za-z0-9_-]{43}|[A-Za-z0-9_-]{22})$/.test(token)) return documentBody(unavailable, 404);
   try {
     type PortalData = { partner: string; customerCountry?: string | null; customerTier?: string | null; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean };
     const getOrders = (page: number) => fetch(getServerApiBaseUrl() + '/dropship-portal/shipments?page=' + page + '&status=all&complete=true', {

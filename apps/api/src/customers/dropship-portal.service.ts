@@ -1,6 +1,6 @@
 import { BadRequestException, Injectable, ForbiddenException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@flowbooks/database';
-import { hashPortalToken, newPortalLink, tokenForNonce } from './dropship-portal-token';
+import { hashPortalToken, newPortalLink, tokenForNonce, shortCodeForHash, hashPrefixForShortCode } from './dropship-portal-token';
 import { DROPSHIPPING_PARTNER_INVOICE_FIELD, FULFILLMENT_STATUS_VALUES, INTERNATIONAL_TRACKING_STATUS, customerTierFromFields } from '@flowbooks/shared';
 import { mergeImportedShipments, parsePartnerShipments, type ImportedShipment } from './dropship-shipment-import';
 import { PrismaService } from '../prisma/prisma.service';
@@ -55,7 +55,7 @@ export class DropshipPortalService {
         update: { tokenHash, linkNonce, createdAt: new Date() },
       });
     });
-    return { token };
+    return { token, shortCode: shortCodeForHash(tokenHash) };
   }
 
   async current(organizationId: string, userId: string, customerId: string) {
@@ -65,7 +65,8 @@ export class DropshipPortalService {
       select: { linkNonce: true, tokenHash: true },
     });
     const token = portal?.linkNonce ? tokenForNonce(portal.linkNonce) : null;
-    return { token: token && hashPortalToken(token) === portal?.tokenHash ? token : null };
+    const valid = token && hashPortalToken(token) === portal?.tokenHash ? token : null;
+    return { token: valid, shortCode: valid ? shortCodeForHash(hashPortalToken(valid)) : null };
   }
 
   async stock(organizationId: string, userId: string, customerId: string) {
@@ -149,10 +150,22 @@ export class DropshipPortalService {
   }
 
   async shipments(token: unknown, offset: number, scope: 'all' | 'shipped' = 'shipped', complete = false) {
-    if (typeof token !== 'string' || !/^[A-Za-z0-9_-]{43}$/.test(token)) {
-      throw new NotFoundException();
+    if (typeof token !== 'string') throw new NotFoundException();
+    let tokenHash: string;
+    if (/^[A-Za-z0-9_-]{43}$/.test(token)) {
+      tokenHash = hashPortalToken(token);
+    } else {
+      const prefix = hashPrefixForShortCode(token);
+      if (!prefix) throw new NotFoundException();
+      const matches = await this.prisma.dropshipPortal.findMany({
+        where: { tokenHash: { startsWith: prefix }, customer: { isActive: true } },
+        select: { tokenHash: true },
+        take: 2,
+      });
+      // Never resolve an ambiguous alias; the full digest is rechecked below.
+      if (matches.length !== 1) throw new NotFoundException();
+      tokenHash = matches[0].tokenHash;
     }
-    const tokenHash = hashPortalToken(token);
     const portal = await this.prisma.dropshipPortal.findFirst({
       where: { tokenHash, customer: { isActive: true } },
       select: { customer: { select: { id: true, name: true, address: true, customFields: true, organizationId: true, isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true } } },
