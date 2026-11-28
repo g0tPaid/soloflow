@@ -87,6 +87,22 @@ function trackShipmentButton() {
   return '<a class="track-shipment" href="https://www.sourcing.center/track" target="_blank" rel="noopener noreferrer">Track shipment <span aria-hidden="true">↗</span></a>';
 }
 
+// Small, self-contained illustrations: no image requests or animation libraries.
+const stageArtwork: Record<string, string> = {
+  AWAITING_PAYMENT: '<rect x="3" y="7" width="26" height="18" rx="4" fill="var(--art-fill)"/><path d="M3 13h26M7 20h7M23 20h2"/><path d="M8 4h14" opacity=".45"/>',
+  LOCAL_ORDERING_COMPLETED: '<path d="M3 5h4l4 15h15l3-11H8" fill="var(--art-fill)"/><path d="M13 13h10M18 10v6"/><circle cx="13" cy="25" r="2"/><circle cx="25" cy="25" r="2"/>',
+  WAREHOUSE_RECEIVED: '<path d="M3 12 16 4l13 8v16H3Z" fill="var(--art-fill)"/><path d="M10 28V15h12v13M10 19h12M10 23h12M14 9h4"/>',
+  QC_COMPLETED: '<rect x="4" y="5" width="17" height="23" rx="3" fill="var(--art-fill)"/><path d="M9 5V3h7v2M8 12l2 2 4-4M8 19h5"/><circle cx="22" cy="20" r="6" fill="var(--art-fill)"/><path d="m26 24 4 4"/>',
+  SHIPPED_TO_CHINA_CENTER: '<path d="M3 8h17v15H3zM20 13h5l4 5v5h-9" fill="var(--art-fill)"/><path d="M24 13v6h5M7 13h8M7 17h5"/><circle cx="9" cy="24" r="3" fill="var(--art-fill)"/><circle cx="24" cy="24" r="3" fill="var(--art-fill)"/>',
+  SHIPPED_INTERNATIONAL: '<path d="m3 18 11-4L11 4l3-1 7 9 6-2c4-1 5 3 1 5l-7 3-3 10-3 1-1-9-7 2z" fill="var(--art-fill)"/><path d="M3 8h4M2 26h7" opacity=".65"/>',
+  CUSTOMER_RECEIVED: '<path d="m3 13 13-9 13 9v15H3Z" fill="var(--art-fill)"/><rect x="10" y="17" width="12" height="11" rx="1" fill="var(--art-fill)"/><path d="M16 17v5M13 11h6"/>',
+  ORDER_COMPLETED: '<path d="m16 3 4 3 5 1 1 5 3 4-3 4-1 5-5 1-4 3-4-3-5-1-1-5-3-4 3-4 1-5 5-1z" fill="var(--art-fill)"/><path d="m10 16 4 4 8-8" stroke-width="2.4"/>',
+};
+
+function stageIllustration(value: string) {
+  return '<svg class="stage-art" data-stage="'+escapeHtml(value)+'" viewBox="0 0 32 32" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">'+(stageArtwork[value] ?? '')+'</svg>';
+}
+
 function shipmentCard(shipment: Shipment, photos: string[], deferInlineImages = false) {
   const currency = shipment.currency;
   const price = (amount: string) => money(amount, currency);
@@ -108,7 +124,7 @@ function shipmentCard(shipment: Shipment, photos: string[], deferInlineImages = 
   const stages = shipmentProgress(shipment.fulfillmentStatus,shipment.status,shipment.shippingMethod);
   const completed = stages.filter(stage => stage.state === 'completed').length;
   const checkmark = '<svg class="ios-check" viewBox="0 0 16 16" fill="none" aria-hidden="true" focusable="false"><path d="M4.1 8.1 6.8 10.8 12 5.4" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"/></svg>';
-  const progress = inactive ? '' : '<section class="progress-panel"><div class="progress-heading"><strong>Order progress</strong><span>'+completed+' of '+stages.length+' completed</span></div><div class="progress-track" aria-hidden="true">'+stages.map(stage=>'<span class="'+stage.state+'"></span>').join('')+'</div><ol class="shipment-progress" aria-label="Order progress">'+stages.map(stage=>'<li class="'+stage.state+'"'+(stage.state==='in-progress'?' aria-current="step"':'')+'><span class="progress-icon" aria-hidden="true">'+(stage.state==='completed'?checkmark:'')+'</span><span>'+escapeHtml(stage.label)+'</span></li>').join('')+'</ol></section>';
+  const progress = inactive ? '' : '<section class="progress-panel"><div class="progress-heading"><strong>Order progress</strong><span>'+completed+' of '+stages.length+' completed</span></div><div class="progress-track" aria-hidden="true">'+stages.map(stage=>'<span class="'+stage.state+'"></span>').join('')+'</div><ol class="shipment-progress" aria-label="Order progress">'+stages.map(stage=>'<li class="'+stage.state+'"'+(stage.state==='in-progress'?' aria-current="step"':'')+'><span class="stage-visual" aria-hidden="true">'+stageIllustration(stage.value)+'<span class="progress-icon">'+(stage.state==='completed'?checkmark:'')+'</span></span><span class="stage-label">'+escapeHtml(stage.label)+'</span></li>').join('')+'</ol></section>';
   return '<article><header><div><p class="eyebrow">Invoice ' + escapeHtml(shipment.number) + '</p>' +
     '<h2>' + escapeHtml(shipment.partnerOrderNumber ? 'Order ' + shipment.partnerOrderNumber : shipment.number) + '</h2></div>' +
     '<span class="badge' + (shipment.awaiting || inactive ? ' awaiting' : '') + '">' + escapeHtml(status) + '</span></header>' +
@@ -301,6 +317,7 @@ nav a{background:linear-gradient(165deg,#ffffffdb,#ffffff42 57%,#ffffff99);borde
 @supports (content-visibility:auto){.shipments.list article:not(:first-child){content-visibility:auto;contain-intrinsic-size:auto 300px}}
 @media(max-width:600px){article,.empty,.inventory{-webkit-backdrop-filter:blur(12px) saturate(135%);backdrop-filter:blur(12px) saturate(135%)}nav a{-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}}
 .progress-panel .completed .progress-icon{width:16px;height:16px;border:0;background:linear-gradient(165deg,#34c759,#249d46);color:#fff;box-shadow:inset 0 1px 1px #ffffff70,0 1px 2px #166b3633}.ios-check{width:14px;height:14px;display:block}
+.progress-panel .shipment-progress li{gap:8px;min-height:39px;padding:5px 6px}.stage-visual{position:relative;display:grid;place-items:center;flex:0 0 31px;width:31px;height:31px;border-radius:10px;background:linear-gradient(155deg,#ffffffdf,#ffffff35);box-shadow:inset 0 1px 1px #fff,0 1px 3px #29202d12;--art-fill:#cdd0d52e}.stage-art{width:25px;height:25px;display:block;color:#73727a}.completed .stage-visual{--art-fill:#48b58c42}.completed .stage-art{color:#18764b}.in-progress .stage-visual{--art-fill:#d7508640}.in-progress .stage-art{color:#a02050;animation:stage-float 2.6s ease-in-out infinite}.stage-visual .progress-icon{position:absolute;right:-3px;bottom:-3px;background:#f5f5f5;box-shadow:0 0 0 1px #fff}.progress-panel .stage-visual .progress-icon{width:11px;height:11px}.progress-panel .completed .stage-visual .progress-icon{width:13px;height:13px}.stage-visual .ios-check{width:11px;height:11px}.stage-label{flex:1;min-width:0}@keyframes stage-float{0%,100%{transform:translateY(0)}50%{transform:translateY(-2px)}}@media(prefers-reduced-motion:reduce){.in-progress .stage-art{animation:none}}@media(max-width:350px){.progress-panel .shipment-progress li{gap:5px;padding:4px}.stage-visual{flex-basis:26px;width:26px;height:26px}.stage-art{width:22px;height:22px}}
 @media(prefers-reduced-transparency:reduce){body::before{display:none}article,.empty,.inventory{background:#fff;-webkit-backdrop-filter:none;backdrop-filter:none}.progress-panel,.shipments article .totals{background:#faf6f8}.progress-panel .shipment-progress li,nav a{background:#fff}nav a[aria-current=true],.track-shipment{background:#8e1744}.progress-panel .shipment-progress li.completed{background:#e0f5e9}.progress-panel .shipment-progress li.in-progress{background:#fce4ef}}
 `;
 

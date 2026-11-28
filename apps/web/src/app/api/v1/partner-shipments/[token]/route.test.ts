@@ -78,6 +78,9 @@ describe('private partner shipment view', () => {
     expect(html).toContain('Local ordering in progress');
     expect(html).toContain('1 of 8 completed');
     expect(html).toContain('class="in-progress" aria-current="step"');
+    for (const stage of ['AWAITING_PAYMENT', 'LOCAL_ORDERING_COMPLETED', 'WAREHOUSE_RECEIVED', 'QC_COMPLETED', 'SHIPPED_TO_CHINA_CENTER', 'SHIPPED_INTERNATIONAL', 'CUSTOMER_RECEIVED', 'ORDER_COMPLETED']) {
+      expect(html).toContain('class="stage-art" data-stage="' + stage + '"');
+    }
     expect(html).not.toContain('Awaiting payment');
   });
 
