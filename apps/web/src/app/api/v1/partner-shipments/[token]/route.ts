@@ -27,6 +27,7 @@ type Item = {
 type Shipment = {
   number: string;
   issueDate?: string;
+  createdAt?: string;
   awaiting?: boolean;
   status?: string;
   staffTrackingStatus?: string;
@@ -432,7 +433,14 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
     }
     if (data.hasMore) throw new Error('Incomplete shipment history');
     // Also hide drafts if an older API is still serving during a rolling deploy.
-    data.shipments = data.shipments.filter(shipment => shipment.status !== 'DRAFT');
+    // Sort the combined pages as well, regardless of payment or fulfillment status.
+    // Keep undated legacy entries last and preserve upstream order for exact ties.
+    const dateValue = (date?: string) => {
+      const timestamp = date ? Date.parse(date) : NaN;
+      return Number.isFinite(timestamp) ? timestamp : Number.MIN_SAFE_INTEGER;
+    };
+    data.shipments = data.shipments.filter(shipment => shipment.status !== 'DRAFT').sort((a, b) =>
+      dateValue(b.issueDate) - dateValue(a.issueDate) || dateValue(b.createdAt) - dateValue(a.createdAt));
     const inlineImages = data.shipments.some(shipment => shipment.items.some(item => item.imageUrl?.startsWith('data:'))) ||
       (data.stock ?? []).some(row => row.imageUrl?.startsWith('data:'));
     const deferred = !enriched && (hasStaffIntegration(data.sourceCustomer) || inlineImages || data.imagesDeferred === true);
