@@ -155,7 +155,7 @@ export class DropshipPortalService {
     const tokenHash = hashPortalToken(token);
     const portal = await this.prisma.dropshipPortal.findFirst({
       where: { tokenHash, customer: { isActive: true } },
-      select: { customer: { select: { id: true, name: true, organizationId: true, isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true } } },
+      select: { customer: { select: { id: true, name: true, address: true, organizationId: true, isDropshipper: true, dropshipperNumber: true, dropshipperPrefix: true } } },
     });
     if (!portal) throw new NotFoundException();
     const { customer } = portal;
@@ -199,6 +199,7 @@ export class DropshipPortalService {
     });
     return {
       partner: customer.name,
+      customerCountry: customer.address && typeof customer.address === 'object' && !Array.isArray(customer.address) && typeof customer.address.country === 'string' ? customer.address.country.trim() || null : null,
       sourceCustomer: customer.isDropshipper ? { id: customer.id, number: customer.dropshipperNumber, prefix: customer.dropshipperPrefix, sourcingEnabled } : undefined,
       importedShipments: customer.isDropshipper ? (await this.prisma.dropshipImportedShipment.findFirst({
         where: { customerId: customer.id, customer: { organizationId: customer.organizationId, isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } } },

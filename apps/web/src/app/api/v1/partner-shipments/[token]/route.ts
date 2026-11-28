@@ -92,6 +92,28 @@ function stageIllustration(value: string) {
   return '<span class="stage-art" data-stage="'+escapeHtml(value)+'" aria-hidden="true"></span>';
 }
 
+const countryNames = new Intl.DisplayNames(['en'], { type: 'region', fallback: 'none' });
+const countryAliases: Record<string, string> = {
+  uae: 'AE', emirates: 'AE', dubai: 'AE', 'abu dhabi': 'AE', uk: 'GB', 'great britain': 'GB', britain: 'GB', england: 'GB',
+  usa: 'US', america: 'US', 'united states of america': 'US', ksa: 'SA', 'saudi arabia': 'SA', 'south korea': 'KR',
+  'republic of korea': 'KR', 'hong kong': 'HK', 'czech republic': 'CZ', 'vietnam': 'VN', 'russia': 'RU',
+};
+function customerFlag(country: unknown) {
+  if (typeof country !== 'string' || !country.trim()) return '';
+  const normalized = country.trim().toLowerCase().replace(/[.]/g, '');
+  let code = (Object.prototype.hasOwnProperty.call(countryAliases, normalized) ? countryAliases[normalized] : '') || (/^[a-z]{2}$/.test(normalized) ? normalized.toUpperCase() : '');
+  if (!code) {
+    for (let first = 65; first <= 90 && !code; first++) for (let second = 65; second <= 90; second++) {
+      const candidate = String.fromCharCode(first, second);
+      if (countryNames.of(candidate)?.toLowerCase() === normalized) { code = candidate; break; }
+    }
+  }
+  const name = code && code !== 'ZZ' ? countryNames.of(code) : undefined;
+  if (!name) return '';
+  const flag = String.fromCodePoint(...Array.from(code, char => 0x1F1E6 + char.charCodeAt(0) - 65));
+  return '<span class="customer-flag" role="img" aria-label="'+escapeHtml(name)+'" title="'+escapeHtml(name)+'">'+flag+'</span>';
+}
+
 function shipmentCard(shipment: Shipment, photos: string[], deferInlineImages = false) {
   const currency = shipment.currency;
   const price = (amount: string) => money(amount, currency);
@@ -323,6 +345,11 @@ body::after{opacity:.43}body::before{background:radial-gradient(ellipse at 15% 0
 @media(max-width:350px){.stage-visual{flex-basis:29px;width:29px;height:29px}.progress-panel .shipment-progress li{gap:4px;font-size:10px}.hero-copy strong{font-size:17px}.progress-heading{font-size:9px}.progress-heading .progress-percent{font-size:18px}}
 @media(prefers-reduced-motion:reduce){.hero-art .stage-art,.all-done .hero-art .stage-art{animation:none}.progress-meter>span{transition:none}}@media(prefers-reduced-transparency:reduce){.stage-hero,.progress-heading,.shipments article .details{background:#fff}}
 .hero-art,.stage-visual{isolation:auto;mix-blend-mode:multiply}.stage-art{mix-blend-mode:normal}.hero-art .stage-art{filter:none}.shipment-progress .stage-label{overflow-wrap:anywhere}.shipment-progress .pending .progress-icon{border-color:#97949c}
+/* Brand the render with the authentic company lockup and the original 7 mark, cropped from the existing transparent logo. */
+.stage-art{position:relative}.stage-art::after{content:none;position:absolute;pointer-events:none;background-repeat:no-repeat;background-image:url('/icons/partner-portal-logo.webp')}.stage-art[data-stage=WAREHOUSE_RECEIVED]::after{content:"";left:9%;top:47%;width:30%;aspect-ratio:2005/490;background-size:contain;transform:skewY(-4deg)}
+.stage-art[data-stage=AWAITING_PAYMENT]::after,.stage-art[data-stage=SHIPPED_TO_CHINA_CENTER]::after,.stage-art[data-stage=SHIPPED_INTERNATIONAL]::after{content:"";width:12%;aspect-ratio:132/163;background-size:1519% auto;background-position:27.12% 95.7%;filter:brightness(0) invert(1);opacity:.94}.stage-art[data-stage=AWAITING_PAYMENT]::after{left:66%;top:36%;transform:rotate(-8deg)}.stage-art[data-stage=SHIPPED_TO_CHINA_CENTER]::after{left:16%;top:39%;width:9%;transform:skewY(-7deg)}.stage-art[data-stage=SHIPPED_INTERNATIONAL]::after{left:26%;top:35%;width:7%;transform:rotate(-21deg)}
+.partner-name{display:block;color:#c42335;line-height:1.25;font-weight:800;letter-spacing:-.035em}.partner-name-letters{display:inline;color:#c42335;background-image:linear-gradient(112deg,transparent 36%,#fff7 47%,transparent 59%),linear-gradient(180deg,#e34c57 3%,#c12539 42%,#9e182c 54%,#c8293e 96%);background-size:260% 100%,100% 100%;background-position:100% 0,0 0;-webkit-background-clip:text;background-clip:text;-webkit-text-fill-color:transparent;-webkit-text-stroke:.15px #a51b2d;filter:drop-shadow(0 1px 0 #fff) drop-shadow(0 2px 2px #9f24311a);box-decoration-break:clone;-webkit-box-decoration-break:clone}.customer-flag{display:inline-block;vertical-align:baseline;margin-left:.27em;font-size:.78em;line-height:1;letter-spacing:0;font-family:'Apple Color Emoji','Segoe UI Emoji','Noto Color Emoji',sans-serif;filter:drop-shadow(0 1px 1px #0002);white-space:nowrap}
+@media(prefers-reduced-motion:no-preference){.partner-name-letters{animation:welcome-glint 8s 1s linear infinite}}@media(prefers-reduced-motion:reduce){.partner-name-letters{animation:none}}@media(prefers-reduced-transparency:reduce),(forced-colors:active){.partner-name-letters{color:#b42333;background:none;-webkit-text-fill-color:currentColor;-webkit-text-stroke:0;filter:none;animation:none}}
 `;
 
 const refreshScript = `let busy=false,etag='';async function refreshOrders(){if(busy||document.hidden||window.getSelection()?.toString())return;busy=true;try{const url=new URL(location.href);url.searchParams.set('enriched','1');const response=await fetch(url,{cache:'no-store',credentials:'same-origin',redirect:'error',headers:etag?{'If-None-Match':etag}:{}});if(response.status===304)return;if(!response.ok&&response.status!==404)return;const doc=new DOMParser().parseFromString(await response.text(),'text/html');const next=doc.querySelector('main');const current=document.querySelector('main');if(!next||!current)return;if(next.innerHTML!==current.innerHTML){const y=window.scrollY;current.replaceChildren(...Array.from(next.childNodes));window.scrollTo(0,y)}delete current.dataset.deferred;etag=response.headers.get('etag')||''}catch{}finally{busy=false}}if(document.querySelector('main[data-deferred]'))setTimeout(refreshOrders,100);setInterval(refreshOrders,30000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)refreshOrders()});`;
@@ -346,7 +373,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
   const unavailable = '<h1>Private shipment link unavailable</h1><p>Ask your supplier for a new link.</p>';
   if (!/^[A-Za-z0-9_-]{43}$/.test(token)) return documentBody(unavailable, 404);
   try {
-    type PortalData = { partner: string; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean };
+    type PortalData = { partner: string; customerCountry?: string | null; shipments: Shipment[]; stock?: Stock[]; importedShipments?: ImportedShipment[]; sourceCustomer?: SourceCustomer; hasMore: boolean };
     const getOrders = (page: number) => fetch(getServerApiBaseUrl() + '/dropship-portal/shipments?page=' + page + '&status=all&complete=true', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -394,7 +421,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       shipmentCard(shipment, photos[history.length + index] ?? [], deferred)).join('');
     return documentBody('<img class="portal-brand" src="/icons/partner-portal-logo.webp" width="930" height="227" fetchpriority="high" alt="Sourcing Center by Seven Color Trading Co Ltd">' +
       '<div class="top"><div><h1>Welcome, <span class="partner-name"><span class="partner-name-letters">' +
-      escapeHtml(data.partner) + '</span></span></h1>' +
+      escapeHtml(data.partner) + '</span>' + customerFlag(data.customerCountry) + '</span></h1>' +
       (customerId ? '<p class="customer-id">Customer ID <strong>' + escapeHtml(customerId) + '</strong></p>' : '') +
       '</div><div>' + nav + trackShipmentButton() + '</div></div>' +
       '<p class="partner">' + (data.shipments.length + history.length) + ' orders · Updates automatically every 30 seconds</p>' +

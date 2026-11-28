@@ -67,13 +67,14 @@ describe('private partner shipment view', () => {
 
   it('shows payment completed and local ordering in progress for a paid order', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({
-      partner: 'Partner', hasMore: false, shipments: [{
+      partner: 'Partner', customerCountry: 'UAE', hasMore: false, shipments: [{
         number: 'INV-PAID', status: 'PAID', awaiting: true, fulfillmentStatus: null,
         currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
       }],
     })));
     const html = await (await GET(new Request(path), params)).text();
     expect(html).toContain('Payment completed');
+    expect(html).toContain('aria-label="United Arab Emirates" title="United Arab Emirates">🇦🇪');
     expect(html).toContain('class="ios-check"');
     expect(html).toContain('Local ordering in progress');
     expect(html).toContain('1 of 8 completed');

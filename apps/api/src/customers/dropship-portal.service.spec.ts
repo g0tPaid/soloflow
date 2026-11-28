@@ -53,12 +53,12 @@ describe('DropshipPortalService', () => {
 
   it('selects only flagged and shipped customer invoices with partner-facing amounts', async () => {
     prisma.dropshipPortal.findFirst.mockResolvedValue({
-      customer: { id: 'partner', organizationId: 'org', name: 'Partner', isDropshipper: true, dropshipperNumber: '0042', dropshipperPrefix: 'A' },
+      customer: { id: 'partner', organizationId: 'org', name: 'Partner', address: { country: 'UAE' }, isDropshipper: true, dropshipperNumber: '0042', dropshipperPrefix: 'A' },
     });
     prisma.invoice.findMany.mockResolvedValue([]);
     prisma.invoiceItem.groupBy.mockResolvedValue([]);
     prisma.dropshipStock.findMany.mockResolvedValue([]);
-    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: false }, hasMore: false, shipments: [], stock: [], importedShipments: [] });
+    await expect(service.shipments(token, 20)).resolves.toEqual({ partner: 'Partner', customerCountry: 'UAE', sourceCustomer: { id: 'partner', number: '0042', prefix: 'A', sourcingEnabled: false }, hasMore: false, shipments: [], stock: [], importedShipments: [] });
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query.where).toMatchObject({
       organizationId: 'org',
