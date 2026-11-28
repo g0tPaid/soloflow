@@ -186,12 +186,12 @@ export class DropshipPortalService {
       }) : Promise.resolve(null),
       this.prisma.invoice.findMany({
       where: {
-        // The complete private customer portal shows all issued sales invoices for
+        // The complete private customer portal shows all sales invoices, including drafts, for
         // this customer, including orders awaiting payment before partner tagging.
         ...(customer.isDropshipper && !(complete && scope === 'all')
           ? partnerInvoices(customer.organizationId, customer.id)
           : { organizationId: customer.organizationId, customerId: customer.id, vendorId: null,
-              status: complete && scope === 'all' ? { not: 'DRAFT' as const } : { notIn: ['DRAFT', 'CANCELLED', 'VOID'] as ('DRAFT' | 'CANCELLED' | 'VOID')[] } }),
+              ...(complete && scope === 'all' ? {} : { status: { notIn: ['DRAFT', 'CANCELLED', 'VOID'] as ('DRAFT' | 'CANCELLED' | 'VOID')[] } }) }),
         ...(scope === 'shipped' ? shippedFilter : {}),
         customer: { isActive: true, isDropshipper: customer.isDropshipper, dropshipPortal: { tokenHash } },
       },
