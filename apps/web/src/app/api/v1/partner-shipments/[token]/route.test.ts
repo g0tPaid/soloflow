@@ -149,6 +149,29 @@ describe('private partner shipment view', () => {
     expect(draftOnly).not.toContain('SECRET-DRAFT-001');
   });
 
+  it.each(['list', 'grid'])('sorts issued orders newest first across pages in %s view, including awaiting payment', async (view) => {
+    const make = (number: string, status: string, issueDate: string, createdAt: string) => ({
+      number, status, issueDate, createdAt, fulfillmentStatus: null, awaiting: true,
+      currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
+    });
+    const old = make('ORDER-OLDEST', 'PAID', '2026-11-25', '2026-11-25T15:00:00Z');
+    const sameDay = make('ORDER-SAME-DAY', 'PAID', '2026-11-28', '2026-11-28T08:00:00Z');
+    const latest = make('ORDER-NEWEST', 'SENT', '2026-11-28', '2026-11-28T12:00:00Z');
+    const draft = make('HIDDEN-DRAFT', 'DRAFT', '2026-11-29', '2026-11-29T12:00:00Z');
+    vi.stubGlobal('fetch', vi.fn()
+      .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: true, shipments: [old, sameDay] }))
+      .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [draft, latest] })));
+    const html = await (await GET(new Request(path + '?view=' + view), params)).text();
+    expect(html).toContain('3 orders');
+    expect(html).toContain('Awaiting payment');
+    expect(html).not.toContain('HIDDEN-DRAFT');
+    expect(html).toContain('ORDER-NEWEST');
+    expect(html).toContain('ORDER-SAME-DAY');
+    expect(html).toContain('ORDER-OLDEST');
+    expect(html.indexOf('ORDER-NEWEST')).toBeLessThan(html.indexOf('ORDER-SAME-DAY'));
+    expect(html.indexOf('ORDER-SAME-DAY')).toBeLessThan(html.indexOf('ORDER-OLDEST'));
+  });
+
   it('collects all pages from the previous API during a rolling deployment', async () => {
     const make = (number: string) => ({ number, partnerOrderNumber: number, currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [] });
     const upstream = vi.fn()
