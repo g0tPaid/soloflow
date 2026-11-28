@@ -13,7 +13,7 @@ function partnerInvoices(organizationId: string, customerId: string, includeInac
       // Older partner orders may predate the explicit invoice flag.
       { partnerOrderNumber: { not: null } },
     ] }],
-    ...(includeInactive ? {} : { status: { notIn: ['CANCELLED', 'VOID'] } }),
+    status: includeInactive ? { not: 'DRAFT' } : { notIn: ['DRAFT', 'CANCELLED', 'VOID'] },
   };
 }
 
@@ -189,7 +189,7 @@ export class DropshipPortalService {
         ...(customer.isDropshipper
           ? partnerInvoices(customer.organizationId, customer.id, complete && scope === 'all')
           : { organizationId: customer.organizationId, customerId: customer.id, vendorId: null,
-              ...(complete && scope === 'all' ? {} : { status: { notIn: ['CANCELLED', 'VOID'] as ('CANCELLED' | 'VOID')[] } }) }),
+              status: complete && scope === 'all' ? { not: 'DRAFT' as const } : { notIn: ['DRAFT', 'CANCELLED', 'VOID'] as ('DRAFT' | 'CANCELLED' | 'VOID')[] } }),
         ...(scope === 'shipped' ? shippedFilter : {}),
         customer: { isActive: true, isDropshipper: customer.isDropshipper, dropshipPortal: { tokenHash } },
       },

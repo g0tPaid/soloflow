@@ -431,6 +431,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ toke
       data.imagesDeferred = data.imagesDeferred || more.imagesDeferred;
     }
     if (data.hasMore) throw new Error('Incomplete shipment history');
+    // Also hide drafts if an older API is still serving during a rolling deploy.
+    data.shipments = data.shipments.filter(shipment => shipment.status !== 'DRAFT');
     const inlineImages = data.shipments.some(shipment => shipment.items.some(item => item.imageUrl?.startsWith('data:'))) ||
       (data.stock ?? []).some(row => row.imageUrl?.startsWith('data:'));
     const deferred = !enriched && (hasStaffIntegration(data.sourceCustomer) || inlineImages || data.imagesDeferred === true);

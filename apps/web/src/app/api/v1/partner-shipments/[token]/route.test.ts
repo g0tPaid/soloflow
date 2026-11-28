@@ -117,7 +117,7 @@ describe('private partner shipment view', () => {
   it('renders all orders, actual early stages and inactive status without pagination', async () => {
     const shipments = Array.from({ length: 45 }, (_, index) => ({
       number: 'INV-' + index, partnerOrderNumber: 'ORDER-' + index,
-      status: index === 44 ? 'CANCELLED' : 'DRAFT', awaiting: true,
+      status: index === 44 ? 'CANCELLED' : 'SENT', awaiting: true,
       fulfillmentStatus: index === 0 ? 'QC_COMPLETED' : null,
       currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [],
     }));
@@ -132,6 +132,21 @@ describe('private partner shipment view', () => {
     expect(html).not.toContain('aria-label="Shipment pages"');
     expect(response.headers.get('content-security-policy')).toContain("connect-src 'self'");
     expect(html).toContain('setInterval(refreshOrders,30000)');
+  });
+
+  it('does not display draft invoices or include them in the order count, even with an older API', async () => {
+    const make = (number: string, status: string) => ({ number, status, currency: 'USD', subtotal: '0', shipping: '0', total: '0', discount: '0', taxAmount: '0', items: [] });
+    const upstream = vi.fn().mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('SECRET-DRAFT-001', 'DRAFT'), make('ISSUED-001', 'SENT')] }))
+      .mockResolvedValueOnce(Response.json({ partner: 'Buyer', hasMore: false, shipments: [make('SECRET-DRAFT-001', 'DRAFT')] }));
+    vi.stubGlobal('fetch', upstream);
+    const mixed = await (await GET(new Request(path), params)).text();
+    expect(mixed).toContain('1 orders');
+    expect(mixed).toContain('ISSUED-001');
+    expect(mixed).not.toContain('SECRET-DRAFT-001');
+    const draftOnly = await (await GET(new Request(path), params)).text();
+    expect(draftOnly).toContain('0 orders');
+    expect(draftOnly).toContain('Awaiting your first order');
+    expect(draftOnly).not.toContain('SECRET-DRAFT-001');
   });
 
   it('collects all pages from the previous API during a rolling deployment', async () => {

@@ -81,7 +81,7 @@ describe('DropshipPortalService', () => {
       organizationId: 'org',
       customerId: 'partner',
       vendorId: null,
-      status: { notIn: ['CANCELLED', 'VOID'] },
+      status: { notIn: ['DRAFT', 'CANCELLED', 'VOID'] },
       customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
       AND: [{ OR: [
         { customFields: { path: ['dropshippingPartner'], equals: true } },
@@ -91,7 +91,7 @@ describe('DropshipPortalService', () => {
     await service.shipments(token, 0, 'all');
     const allQuery = prisma.invoice.findMany.mock.calls[1][0];
     expect(allQuery.where).not.toHaveProperty('OR');
-    expect(allQuery.where.status).toEqual({ notIn: ['CANCELLED', 'VOID'] });
+    expect(allQuery.where.status).toEqual({ notIn: ['DRAFT', 'CANCELLED', 'VOID'] });
     expect(allQuery.where.customer).toEqual(query.where.customer);
     expect(query.where.OR[0].fulfillmentStatus.in).toContain('SHIPPED_INTERNATIONAL');
     expect(query.skip).toBe(20);
@@ -107,7 +107,7 @@ describe('DropshipPortalService', () => {
     prisma.dropshipStock.findMany.mockResolvedValue([]);
     prisma.dropshipImportedShipment.findFirst.mockResolvedValue(null);
     prisma.invoice.findMany.mockResolvedValue(Array.from({ length: 45 }, (_, index) => ({
-      number: 'INV-' + index, status: index === 44 ? 'CANCELLED' : 'DRAFT',
+      number: 'INV-' + index, status: index === 44 ? 'CANCELLED' : 'SENT',
       fulfillmentStatus: index === 0 ? 'QC_COMPLETED' : null,
       fulfillmentEvents: [], items: [], shipmentContact: null,
     })));
@@ -119,7 +119,7 @@ describe('DropshipPortalService', () => {
     const query = prisma.invoice.findMany.mock.calls[0][0];
     expect(query).not.toHaveProperty('take');
     expect(query).not.toHaveProperty('skip');
-    expect(query.where).not.toHaveProperty('status');
+    expect(query.where.status).toEqual({ not: 'DRAFT' });
     expect(query.where).toMatchObject({
       organizationId: 'org', customerId: 'partner', vendorId: null,
       customer: { isActive: true, isDropshipper: true, dropshipPortal: { tokenHash } },
@@ -144,7 +144,7 @@ describe('DropshipPortalService', () => {
     prisma.invoice.findMany.mockResolvedValue([
       { number: 'INV-REG-1', status: 'PAID', fulfillmentStatus: 'SHIPPED_INTERNATIONAL', endRecipientName: null,
         fulfillmentEvents: [], items: [], shipmentContact: null },
-      { number: 'INV-REG-2', status: 'DRAFT', fulfillmentStatus: null, endRecipientName: null,
+      { number: 'INV-REG-2', status: 'SENT', fulfillmentStatus: null, endRecipientName: null,
         fulfillmentEvents: [], items: [], shipmentContact: null },
     ]);
     const result = await service.shipments(token, 0, 'all', true);
@@ -162,6 +162,7 @@ describe('DropshipPortalService', () => {
       customer: { isActive: true, isDropshipper: false, dropshipPortal: { tokenHash } },
     });
     expect(query.where).not.toHaveProperty('AND');
+    expect(query.where.status).toEqual({ not: 'DRAFT' });
     expect(query).not.toHaveProperty('take');
     expect(query.select).not.toHaveProperty('shippingCost');
     expect(query.select.items.select).not.toHaveProperty('unitCost');
