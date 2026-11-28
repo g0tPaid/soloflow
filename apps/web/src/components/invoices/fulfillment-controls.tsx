@@ -43,6 +43,7 @@ type Props = {
   saving?: boolean;
   error?: string;
   layout?: 'full' | 'compact';
+  collapseByDefault?: boolean;
   onStatusChange: (status: FulfillmentStatus | null) => void;
   onTrackingSave: (tracking: TrackingSave) => void;
 };
@@ -119,11 +120,13 @@ export function FulfillmentControls({
   saving = false,
   error,
   layout = 'full',
+  collapseByDefault = false,
   history,
   timeZone,
   onStatusChange,
   onTrackingSave,
 }: Props) {
+  const [expanded, setExpanded] = useState(!collapseByDefault);
   const [localDraft, setLocalDraft] = useState(localTrackingNumber ?? '');
   const [internationalDraft, setInternationalDraft] = useState(internationalTrackingNumber ?? '');
 
@@ -153,6 +156,8 @@ export function FulfillmentControls({
     normalizeTrackingNumber(internationalDraft) !==
       normalizeTrackingNumber(internationalTrackingNumber);
   const dirty = localChanged || internationalChanged;
+  const currentStage = stages.find(stage => stage.state === 'in-progress');
+  const detailsVisible = expanded || !!error || dirty;
 
   function saveTracking() {
     const tracking: TrackingSave = {};
@@ -164,20 +169,18 @@ export function FulfillmentControls({
   }
 
   return (
-    <div className="space-y-2">
+    <div className={cn('space-y-2',collapseByDefault&&'space-y-1')}>
       <div className="rounded-xl border border-white/60 bg-gradient-to-br from-background/90 to-muted/50 px-2.5 py-2 shadow-sm backdrop-blur-md dark:border-border">
-        <div className="flex flex-wrap items-center justify-between gap-1">
-          <p className="text-xs font-medium">Order fulfillment</p>
-          <span className="text-[10px] text-muted-foreground">{stages.filter(stage => stage.state === 'completed').length} of {stages.length} completed</span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="min-w-0"><p className="text-[10px] text-muted-foreground">Order fulfillment · {stages.filter(stage => stage.state === 'completed').length}/{stages.length}</p><p className="text-xs font-semibold text-primary">{shipmentProgressLabel(status,invoiceStatus,shippingMethod)}</p></div>
+          {collapseByDefault&&<div className="flex shrink-0 items-center gap-1">{!detailsVisible&&currentStage&&currentStage.value!=='AWAITING_PAYMENT'&&invoiceStatus==='PAID'&&<Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" disabled={disabled||saving} onClick={()=>onStatusChange(currentStage.value)} aria-label={currentStage.completedLabel+' — Completed'}><Check className="h-3 w-3"/>Done</Button>}<Button type="button" size="sm" variant="outline" className="h-8 px-2 text-xs" aria-expanded={detailsVisible} onClick={()=>setExpanded(v=>!v)}>{detailsVisible?'Hide steps':'Update steps'}<ChevronRight className={cn('h-3 w-3',detailsVisible&&'rotate-90')}/></Button></div>}
         </div>
-        <p className="mt-0.5 text-xs font-semibold text-primary">
-          {shipmentProgressLabel(status,invoiceStatus,shippingMethod)}
-        </p>
         <div className="mt-1.5 flex h-1 gap-0.5" aria-hidden="true">{stages.map(stage => <span key={stage.value} className={cn('flex-1 rounded-full',stage.state==='completed'?'bg-emerald-500':stage.state==='in-progress'?'bg-primary':'bg-muted-foreground/20')}/>)}</div>
-        {lastUpdate ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
+        {lastUpdate && (!collapseByDefault||detailsVisible) ? <p className="mt-1 text-xs text-muted-foreground">Last shipment update: {formatFulfillmentHistoryTimestamp(lastUpdate.createdAt, timeZone)}</p> : null}
       </div>
 
-      <div className={cn('grid gap-1',layout==='full'&&'lg:grid-cols-2')} role="group" aria-label="Fulfillment status">
+      {detailsVisible&&<>
+      <div className={cn('grid gap-1',(layout==='full'||collapseByDefault)&&'lg:grid-cols-2')} role="group" aria-label="Fulfillment status">
         {stages.map((stage, index) => (
             <div
               key={stage.value}
@@ -241,7 +244,8 @@ export function FulfillmentControls({
 
       {error && <p className="text-sm text-destructive">{error}</p>}
 
-      <FulfillmentHistoryList history={history} timeZone={timeZone} />
+      <FulfillmentHistoryList history={history} timeZone={timeZone} hideWhenEmpty={collapseByDefault} />
+      </>}
     </div>
   );
 }

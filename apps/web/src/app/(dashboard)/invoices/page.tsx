@@ -581,7 +581,7 @@ export default function InvoicesPage() {
       )}
 
       {invoices.length > 0 && invoiceView === 'card' && (
-        <div className="space-y-3">
+        <div className={version===5?"space-y-2":"space-y-3"}>
           {invoices.map((invoice) => {
             const { paidAmount, balanceDue, isPaid, isPartial, canRecordPayment } = invoicePayState(invoice);
             const unsynced = invoice.syncState === 'pending' || invoice.syncState === 'error';
@@ -590,8 +590,8 @@ export default function InvoicesPage() {
                 key={invoice.id}
                 className={cn('rounded-xl border bg-card transition-colors', invoiceSurfaceClass(invoice, 'card'))}
               >
-                <CardContent className="flex flex-col gap-4 p-4">
-                  <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <CardContent className={cn("flex flex-col",version===5?"gap-2 p-2.5 sm:p-3":"gap-4 p-4")}>
+                  <div className={cn("flex flex-col sm:flex-row sm:items-center sm:justify-between",version===5?"gap-2":"gap-4")}>
                   <Link href={invoiceOpenHref(invoice.id)} className="min-w-0 flex-1 space-y-1">
                     <div className="flex flex-wrap items-center gap-2">
                       <span className="font-medium text-foreground">{invoice.number}</span>
@@ -613,9 +613,9 @@ export default function InvoicesPage() {
                     </p>
                   </Link>
 
-                  <div className="flex flex-col gap-3 sm:items-end">
+                  <div className={cn("flex flex-col sm:items-end",version===5?"gap-1.5":"gap-3")}>
                     <div className="text-right">
-                      <p className="text-lg font-medium tabular-nums">
+                      <p className={cn("font-medium tabular-nums",version===5?"text-base":"text-lg")}>
                         {formatCurrency(Number(invoice.total), invoice.currency)}
                       </p>
                       {isPartial && (
@@ -740,6 +740,7 @@ export default function InvoicesPage() {
                   <FulfillmentControls
                     idPrefix={invoice.id}
                     layout="compact"
+                    collapseByDefault={version===5}
                     disabled={invoice.status === 'CANCELLED' || invoice.status === 'VOID' || fulfillmentMutation.isPending}
                     status={invoice.fulfillmentStatus}
                     invoiceStatus={invoice.status}
